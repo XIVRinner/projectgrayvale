@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+.gv-progress-bar {
+  --gv-progress-fill: var(--gv-color-accent);
+  --gv-progress-glow: color-mix(in srgb, var(--gv-color-accent) 32%, transparent);
+
+  display: grid;
+  gap: var(--gv-space-xs);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-color-bg-raised);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+}
+
+.gv-progress-bar[data-tone="health"] {
+  --gv-progress-fill: var(--gv-color-accent-deep-orange);
+  --gv-progress-glow: color-mix(in srgb, var(--gv-color-accent-deep-orange) 35%, transparent);
+}
+
+.gv-progress-bar[data-tone="mana"] {
+  --gv-progress-fill: var(--gv-color-accent-cool);
+  --gv-progress-glow: color-mix(in srgb, var(--gv-color-accent-cool) 35%, transparent);
+}
+
+.gv-progress-bar[data-tone="experience"] {
+  --gv-progress-fill: var(--gv-color-accent);
+  --gv-progress-glow: color-mix(in srgb, var(--gv-color-accent) 40%, transparent);
+}
+
+.gv-progress-bar[data-tone="neutral"] {
+  --gv-progress-fill: var(--gv-color-accent-purple);
+  --gv-progress-glow: color-mix(in srgb, var(--gv-color-accent-purple) 35%, transparent);
+}
+
+.gv-progress-bar__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-progress-bar__label {
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gv-progress-bar__value {
+  color: var(--gv-color-text-primary);
+}
+
+.gv-progress-bar__track {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--gv-color-overlay-strong);
+}
+
+.gv-progress-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gv-progress-fill), var(--gv-progress-glow));
+}
+
+.gv-progress-bar__detail {
+  margin: 0;
+  color: var(--gv-color-text-muted);
+  line-height: 1.4;
+}

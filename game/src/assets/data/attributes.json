@@ -1,0 +1,30 @@
+[
+  {
+    "id": "vitality",
+    "name": "Vitality",
+    "abbreviation": "VIT",
+    "description": "Resilience, stamina, and physical staying power.",
+    "displayOrder": 1
+  },
+  {
+    "id": "strength",
+    "name": "Strength",
+    "abbreviation": "STR",
+    "description": "Raw force, burden handling, and direct physical pressure.",
+    "displayOrder": 2
+  },
+  {
+    "id": "agility",
+    "name": "Agility",
+    "abbreviation": "AGI",
+    "description": "Speed, finesse, and precision under motion.",
+    "displayOrder": 3
+  },
+  {
+    "id": "mentality",
+    "name": "Mentality",
+    "abbreviation": "MEN",
+    "description": "Focus, reasoning, and control of disciplined intent.",
+    "displayOrder": 4
+  }
+]

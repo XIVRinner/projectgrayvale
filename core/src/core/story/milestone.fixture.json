@@ -1,0 +1,21 @@
+{
+  "milestones": [
+    {
+      "id": "intro_complete",
+      "order": 1,
+      "required": true
+    },
+    {
+      "id": "training_started",
+      "order": 2,
+      "required": true,
+      "dependsOn": ["intro_complete"]
+    },
+    {
+      "id": "chapter_complete",
+      "order": 3,
+      "required": true,
+      "dependsOn": ["training_started"]
+    }
+  ]
+}

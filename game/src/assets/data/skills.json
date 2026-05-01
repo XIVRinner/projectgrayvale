@@ -1,0 +1,92 @@
+[
+  {
+    "id": "short_blade",
+    "name": "Short Blade",
+    "description": "Training with daggers, knives, and compact edged weapons.",
+    "tags": ["combat", "melee"]
+  },
+  {
+    "id": "survival",
+    "name": "Survival",
+    "description": "Fieldcraft, endurance, and self-sufficiency away from settlements.",
+    "tags": ["general"]
+  },
+  {
+    "id": "bargaining",
+    "name": "Bargaining",
+    "description": "Negotiation, leverage, and price pressure in trade.",
+    "tags": ["general"]
+  },
+  {
+    "id": "appraisal",
+    "name": "Appraisal",
+    "description": "Judging quality, rarity, and market value.",
+    "tags": ["general"]
+  },
+  {
+    "id": "bow",
+    "name": "Bow",
+    "description": "Handling bows, distance control, and ranged accuracy.",
+    "tags": ["combat", "ranged"]
+  },
+  {
+    "id": "evasion",
+    "name": "Evasion",
+    "description": "Avoidance, timing, and defensive footwork.",
+    "tags": ["combat", "defense"]
+  },
+  {
+    "id": "lore",
+    "name": "Lore",
+    "description": "Study of history, patterns, and learned knowledge.",
+    "tags": ["general"]
+  },
+  {
+    "id": "alchemy",
+    "name": "Alchemy",
+    "description": "Reagents, mixtures, and crafted chemical effects.",
+    "tags": ["general"]
+  },
+  {
+    "id": "shield",
+    "name": "Shield",
+    "description": "Blocking, bracing, and shield-led defense.",
+    "tags": ["combat", "defense", "melee"]
+  },
+  {
+    "id": "battle_sense",
+    "name": "Battle Sense",
+    "description": "Reading threat flow, pressure, and timing in a fight.",
+    "tags": ["combat", "utility", "melee"]
+  },
+  {
+    "id": "mining",
+    "name": "Mining",
+    "description": "Extraction, stonework, and ore recovery.",
+    "tags": ["general"]
+  },
+  {
+    "id": "foraging",
+    "name": "Foraging",
+    "description": "Locating useful natural materials in the wild.",
+    "tags": ["general"]
+  },
+  {
+    "id": "spellcraft",
+    "name": "Spellcraft",
+    "description": "Shaping arcane structure into practical results.",
+    "tags": ["combat", "magic"]
+  },
+  {
+    "id": "focus",
+    "name": "Focus",
+    "description": "Mental discipline used to sustain precise intent.",
+    "tags": ["general"]
+  },
+  {
+    "id": "tracking",
+    "name": "Tracking",
+    "description": "Reading signs, trails, and movement through terrain.",
+    "tags": ["general"]
+  }
+]

@@ -1,4 +1,5 @@
 @use "../app/shared/theme/tokens";
+@import 'primeicons/primeicons.css';
 
 * {
   box-sizing: border-box;
@@ -19,4 +20,45 @@ body {
     radial-gradient(circle at 10% 10%, var(--gv-color-bg-shade) 0%, transparent 35%),
     radial-gradient(circle at 90% 80%, var(--gv-color-bg-glow) 0%, transparent 40%),
     linear-gradient(180deg, var(--gv-color-bg-primary) 0%, #04070d 100%);
+}
+
+.gv-creator__name-field {
+  position: relative;
+}
+
+.gv-creator__name-field input {
+  padding-inline-end: calc(var(--gv-space-xl) + var(--gv-space-lg));
+}
+
+.gv-creator__name-randomizer {
+  position: absolute;
+  inset-block-start: 0;
+  inset-block-end: 0;
+  inset-inline-end: var(--gv-space-xs);
+  margin-block: auto;
+  border: 1px solid color-mix(in srgb, var(--gv-color-accent) 34%, transparent);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-accent) 14%, transparent);
+  color: var(--gv-color-accent-warm);
+  padding: 0;
+  font: inherit;
+  font-size: var(--gv-font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--gv-anim-normal), transform var(--gv-anim-normal);
+  inline-size: calc(var(--gv-space-lg) + var(--gv-space-xs));
+  block-size: calc(var(--gv-space-lg) + var(--gv-space-xs));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gv-creator__name-randomizer svg {
+  inline-size: calc(var(--gv-space-md) - var(--gv-space-xs));
+  block-size: calc(var(--gv-space-md) - var(--gv-space-xs));
+}
+
+.gv-creator__name-randomizer:hover {
+  border-color: var(--gv-color-border-strong);
+  transform: scale(0.98);
 }

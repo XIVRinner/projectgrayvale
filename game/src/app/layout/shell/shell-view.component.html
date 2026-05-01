@@ -1,26 +1,32 @@
 <div class="gv-shell" [attr.data-layout]="layoutPreset()">
-  <header class="gv-shell__topbar">
-    <div class="gv-shell__brand">
-      <span class="gv-shell__brand-mark">Command Center</span>
-      <h1 class="gv-shell__title">{{ title() }}</h1>
-      <p class="gv-shell__subtitle">{{ subtitle() }}</p>
-    </div>
-
-    <div class="gv-shell__status-row" aria-label="Session status">
-      @for (item of statusItems(); track item.label) {
-        <article class="gv-shell__status-chip">
-          <span class="gv-shell__status-label">{{ item.label }}</span>
-          <strong class="gv-shell__status-value">{{ item.value }}</strong>
-        </article>
-      }
-    </div>
-  </header>
+  <gv-shell-topbar
+    [title]="title()"
+    [subtitle]="subtitle()"
+    [statusItems]="statusItems()"
+    [saveSummary]="saveSummary()"
+    [actions]="topbarActions()"
+    (saveManagerRequested)="saveManagerOpenRequested.emit()"
+  />
 
   <main
     class="gv-shell__content-grid"
     [class.gv-shell__content-grid--command-center]="isCommandCenter()"
   >
     <aside class="gv-shell__panel gv-shell__sidebar">
+      <gv-shell-character-panel [panel]="characterPanel()" />
+    </aside>
+
+    <section class="gv-shell__middle-stack">
+      <article class="gv-shell__panel gv-shell__feature-panel">
+        <router-outlet></router-outlet>
+      </article>
+
+      <article class="gv-shell__panel gv-shell__action-panel">
+        <gv-shell-action-panel [groups]="actionGroups()" />
+      </article>
+    </section>
+
+    <aside class="gv-shell__panel gv-shell__intel-panel">
       <nav class="gv-shell__nav" aria-label="Primary">
         @for (item of navItems(); track item.label) {
           <a
@@ -30,38 +36,38 @@
             class="gv-shell__nav-link"
           >
             <span class="gv-shell__nav-label">{{ item.label }}</span>
-            <span class="gv-shell__nav-description">{{ item.description }}</span>
           </a>
         }
       </nav>
-    </aside>
 
-    <section class="gv-shell__middle-stack">
-      <article class="gv-shell__panel gv-shell__mission-panel">
-        <h2 class="gv-shell__panel-title">Mission Feed</h2>
-        <p class="gv-shell__panel-copy">
-          Routes render in the tactical viewport below while this panel hosts high-level
-          context, matching legacy command-center flow.
-        </p>
-      </article>
-
-      <article class="gv-shell__panel gv-shell__feature-panel">
-        <router-outlet></router-outlet>
-      </article>
-    </section>
-
-    <aside class="gv-shell__panel gv-shell__intel-panel">
-      <h2 class="gv-shell__panel-title">Intel</h2>
-      <div class="gv-shell__activity-list" aria-label="Activity feed">
-        @for (entry of activityItems(); track entry.title) {
-          <article class="gv-shell__activity-item">
-            <h3 class="gv-shell__activity-title">{{ entry.title }}</h3>
-            <p class="gv-shell__activity-detail">{{ entry.detail }}</p>
-          </article>
-        }
-      </div>
+      <section class="gv-shell__ops-panel" aria-label="Operations">
+        <h2 class="gv-shell__panel-title">Operations</h2>
+      </section>
     </aside>
   </main>
 
   <gv-shell-footer [version]="version()" />
+
+  <gv-shell-save-manager-modal
+    [open]="isSaveManagerOpen()"
+    [slots]="saveSlots()"
+    [transferPayload]="transferPayload()"
+    [statusMessage]="transferStatusMessage()"
+    (characterCreationRequested)="characterCreationOpenRequested.emit()"
+    (closed)="saveManagerCloseRequested.emit()"
+    (slotLoadRequested)="saveSlotLoadRequested.emit($event)"
+    (slotDeleteRequested)="saveSlotDeleteRequested.emit($event)"
+    (slotExportRequested)="saveSlotExportRequested.emit($event)"
+    (exportAllRequested)="saveExportAllRequested.emit()"
+    (importRequested)="saveImportRequested.emit()"
+    (resetRequested)="saveResetRequested.emit()"
+    (transferPayloadChanged)="saveTransferPayloadChanged.emit($event)"
+  />
+
+  <gv-shell-character-creation-dialog
+    [open]="isCharacterCreationOpen()"
+    [required]="isCharacterCreationRequired()"
+    (closed)="characterCreationCloseRequested.emit()"
+    (characterCreated)="characterCreated.emit()"
+  />
 </div>

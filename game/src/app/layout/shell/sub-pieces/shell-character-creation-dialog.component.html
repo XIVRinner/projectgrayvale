@@ -1,0 +1,24 @@
+<gv-dialog-shell
+  [open]="open()"
+  variant="character-system"
+  width="creator"
+  eyebrow="Character"
+  title="Create New Character"
+  ariaLabel="Character creation"
+  [closeDisabled]="required()"
+  [showCloseButton]="!required()"
+  (closed)="closed.emit()"
+>
+  <div class="gv-character-creation-dialog">
+    @if (required()) {
+      <p class="gv-character-creation-dialog__notice">
+        Create one character to continue.
+      </p>
+    }
+
+    <gv-character-creator-container
+      presentation="dialog"
+      (characterCreated)="characterCreated.emit()"
+    />
+  </div>
+</gv-dialog-shell>

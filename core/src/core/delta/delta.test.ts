@@ -6,7 +6,6 @@ const createPlayer = (): Player => ({
   id: "player_delta_test",
   name: "Delta Test Player",
   description: "A player used for delta application tests.",
-  race: "human",
   raceId: "race_human",
   jobClass: "wanderer",
   progression: {

@@ -1,0 +1,30 @@
+:host {
+  display: contents;
+}
+
+.gv-image-preview__trigger {
+  display: contents;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.gv-image-preview__viewport {
+  display: grid;
+  place-items: center;
+  min-block-size: 0;
+}
+
+.gv-image-preview__full-image {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: calc(92dvh - 9rem);
+  inline-size: auto;
+  block-size: auto;
+  object-fit: contain;
+  border-radius: var(--gv-radius-md);
+  border: var(--gv-border-subtle);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--gv-color-bg-primary) 82%, transparent);
+}

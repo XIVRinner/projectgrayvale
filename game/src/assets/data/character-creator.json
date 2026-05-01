@@ -1,0 +1,433 @@
+{
+  "races": [
+    {
+      "id": "race_human",
+      "name": "Human",
+      "slug": "human",
+      "imageBasePath": "assets/images/portraits/human",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png",
+          "portrait-11.png",
+          "portrait-12.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "vitality",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "race_elven",
+      "name": "Elven",
+      "slug": "elven",
+      "imageBasePath": "assets/images/portraits/elven",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "mentality",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "race_high_goblin",
+      "name": "High Goblin",
+      "slug": "high-goblin",
+      "imageBasePath": "assets/images/portraits/high-goblin",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "agility",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "race_night_elf",
+      "name": "Night Elf",
+      "slug": "night-elf",
+      "imageBasePath": "assets/images/portraits/night-elf",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "mentality",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "race_oni",
+      "name": "Oni",
+      "slug": "oni",
+      "imageBasePath": "assets/images/portraits/oni",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png",
+          "portrait-11.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "strength",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "race_catfolk",
+      "name": "Catfolk",
+      "slug": "catfolk",
+      "imageBasePath": "assets/images/portraits/catfolk",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "agility",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "race_golem",
+      "name": "Golem",
+      "slug": "golem",
+      "imageBasePath": "assets/images/portraits/golem",
+      "variants": {
+        "warm": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png"
+        ],
+        "cool": [
+          "portrait-01.png",
+          "portrait-02.png",
+          "portrait-03.png",
+          "portrait-04.png",
+          "portrait-05.png",
+          "portrait-06.png",
+          "portrait-07.png",
+          "portrait-08.png",
+          "portrait-09.png",
+          "portrait-10.png",
+          "portrait-11.png"
+        ]
+      },
+      "startingBonuses": [
+        {
+          "stat": "strength",
+          "type": "add",
+          "value": 1
+        },
+        {
+          "stat": "vitality",
+          "type": "add",
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": "wayfarer",
+      "name": "Wayfarer",
+      "bonusSummary": "Balanced growth and adaptable early-game tools.",
+      "lore": "A reliable traveler who can pivot into many paths.",
+      "baseAttributes": {
+        "strength": 6,
+        "agility": 6,
+        "vitality": 6,
+        "mentality": 6
+      },
+      "baseSkills": {
+        "short_blade": 1,
+        "survival": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/wayfarer.png"
+    },
+    {
+      "id": "merchant",
+      "name": "Merchant",
+      "bonusSummary": "Stronger economy starts and smoother trade loops.",
+      "lore": "A market-savvy adventurer who turns routes into profit.",
+      "baseAttributes": {
+        "strength": 4,
+        "agility": 6,
+        "vitality": 5,
+        "mentality": 7
+      },
+      "baseSkills": {
+        "bargaining": 2,
+        "appraisal": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/merchant.png"
+    },
+    {
+      "id": "agile",
+      "name": "Agile",
+      "bonusSummary": "High mobility and precision-oriented growth.",
+      "lore": "Fast hands, faster feet, and a talent for sudden angles.",
+      "baseAttributes": {
+        "strength": 5,
+        "agility": 8,
+        "vitality": 5,
+        "mentality": 5
+      },
+      "baseSkills": {
+        "short_blade": 1,
+        "bow": 1,
+        "evasion": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/agile.png"
+    },
+    {
+      "id": "scholar",
+      "name": "Scholar",
+      "bonusSummary": "Knowledge-heavy progression and utility options.",
+      "lore": "An observant mind that solves danger through preparation.",
+      "baseAttributes": {
+        "strength": 4,
+        "agility": 5,
+        "vitality": 5,
+        "mentality": 9
+      },
+      "baseSkills": {
+        "lore": 2,
+        "alchemy": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/scholar.png"
+    },
+    {
+      "id": "warden",
+      "name": "Warden",
+      "bonusSummary": "Durable frontline setup and safer early fights.",
+      "lore": "A disciplined protector trained to hold the line.",
+      "baseAttributes": {
+        "strength": 7,
+        "agility": 4,
+        "vitality": 8,
+        "mentality": 4
+      },
+      "baseSkills": {
+        "shield": 1,
+        "short_blade": 1,
+        "battle_sense": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/warden.png"
+    },
+    {
+      "id": "laborer",
+      "name": "Laborer",
+      "bonusSummary": "Resource gathering and stamina-focused growth.",
+      "lore": "A relentless worker shaped by hard routines and harder tools.",
+      "baseAttributes": {
+        "strength": 8,
+        "agility": 4,
+        "vitality": 7,
+        "mentality": 3
+      },
+      "baseSkills": {
+        "mining": 2,
+        "foraging": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/laborer.png"
+    },
+    {
+      "id": "spellweaver",
+      "name": "Spellweaver",
+      "bonusSummary": "Arcane baseline with stronger mana-oriented scaling.",
+      "lore": "A channeler who turns intent into shaped power.",
+      "baseAttributes": {
+        "strength": 3,
+        "agility": 5,
+        "vitality": 4,
+        "mentality": 10
+      },
+      "baseSkills": {
+        "spellcraft": 2,
+        "focus": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/spellweaver.png"
+    },
+    {
+      "id": "ranger",
+      "name": "Ranger",
+      "bonusSummary": "Excellent scouting and ranged combat openers.",
+      "lore": "A pathfinder who reads terrain and strikes from distance.",
+      "baseAttributes": {
+        "strength": 5,
+        "agility": 8,
+        "vitality": 5,
+        "mentality": 5
+      },
+      "baseSkills": {
+        "bow": 2,
+        "tracking": 1
+      },
+      "iconPath": "assets/images/character/talent-icons/ranger.png"
+    }
+  ],
+  "defaults": {
+    "raceId": "race_human",
+    "classId": "wayfarer",
+    "appearanceVariant": "warm",
+    "appearanceIndex": 0,
+    "adventurerRank": 1,
+    "progression": {
+      "level": 1,
+      "experience": 0
+    }
+  }
+}

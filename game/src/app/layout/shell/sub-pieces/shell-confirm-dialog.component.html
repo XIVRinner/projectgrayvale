@@ -1,0 +1,33 @@
+@if (open()) {
+  <gv-dialog-shell
+    [open]="open()"
+    variant="character-system"
+    width="standard"
+    eyebrow="Confirm Action"
+    title="Are you sure?"
+    ariaLabel="Confirm destructive action"
+    (closed)="cancelled.emit()"
+  >
+    <div class="gv-confirm-dialog">
+      <p class="gv-confirm-dialog__message">{{ message() }}</p>
+
+      <div class="gv-confirm-dialog__actions">
+        <button
+          type="button"
+          class="gv-confirm-dialog__btn gv-confirm-dialog__btn--cancel"
+          (click)="cancelled.emit()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="gv-confirm-dialog__btn"
+          [class.gv-confirm-dialog__btn--danger]="danger()"
+          (click)="confirmed.emit()"
+        >
+          {{ confirmLabel() }}
+        </button>
+      </div>
+    </div>
+  </gv-dialog-shell>
+}

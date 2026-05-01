@@ -1,0 +1,21 @@
+<article class="gv-progress-bar" [attr.data-tone]="tone()" [attr.title]="detail() || null">
+  <div class="gv-progress-bar__row">
+    <span class="gv-progress-bar__label">{{ label() }}</span>
+    <strong class="gv-progress-bar__value">{{ valueLabel() }}</strong>
+  </div>
+
+  <div
+    class="gv-progress-bar__track"
+    role="progressbar"
+    [attr.aria-label]="label()"
+    [attr.aria-valuemin]="0"
+    [attr.aria-valuemax]="max()"
+    [attr.aria-valuenow]="current()"
+  >
+    <span class="gv-progress-bar__fill" [style.width.%]="percent()"></span>
+  </div>
+
+  @if (detail()) {
+    <p class="gv-progress-bar__detail">{{ detail() }}</p>
+  }
+</article>

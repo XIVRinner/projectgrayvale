@@ -61,7 +61,7 @@ const createContext = (): GuardContext => ({
     id: "player_graph_test",
     name: "Graph Test Player",
     description: "A player used for graph tests.",
-    race: "human",
+    raceId: "human",
     jobClass: "wanderer",
     progression: {
       level: 1,

@@ -1,0 +1,28 @@
+<section class="gv-action-panel" aria-label="Available actions">
+  @if (groups().length === 0) {
+    <p class="gv-action-panel__empty">No actions available.</p>
+  }
+
+  @for (group of groups(); track group.label) {
+    <div class="gv-action-panel__group" [attr.data-tone]="group.tone">
+      <div class="gv-action-panel__group-header" aria-hidden="true">
+        <span class="gv-action-panel__group-label">{{ group.label }}</span>
+      </div>
+
+      <ul class="gv-action-panel__choices" role="list">
+        @for (choice of group.choices; track choice.id) {
+          <li>
+            <button
+              type="button"
+              class="gv-action-panel__choice"
+              [attr.data-id]="choice.id"
+            >
+              <span class="gv-action-panel__choice-marker" aria-hidden="true"></span>
+              <span class="gv-action-panel__choice-label">{{ choice.label }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>

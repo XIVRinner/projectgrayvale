@@ -55,7 +55,7 @@ const createNonCombatNPC = (): NPC => ({
     bargaining: 5
   },
   attributes: {
-    insight: 7
+    mentality: 7
   },
   progression: {
     level: 6,

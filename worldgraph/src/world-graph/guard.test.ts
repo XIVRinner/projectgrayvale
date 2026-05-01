@@ -13,7 +13,7 @@ const createPlayer = (): Player => ({
   id: "player_guard_test",
   name: "Guard Test Player",
   description: "A player used for guard tests.",
-  race: "human",
+  raceId: "human",
   jobClass: "wanderer",
   progression: {
     level: 1,
@@ -36,6 +36,9 @@ const createNpc = (): NPC => ({
   id: "npc_guard_test",
   name: "Mira",
   description: "A companion used for guard tests.",
+  visual: {
+    default: "mira_default.png"
+  },
   type: "combat",
   skills: {
     swordsmanship: 3

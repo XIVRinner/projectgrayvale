@@ -1,0 +1,24 @@
+<button
+  type="button"
+  class="gv-image-preview__trigger"
+  [attr.aria-label]="triggerLabel() ?? ('Open ' + title())"
+  [attr.title]="triggerLabel() ?? ('Open ' + title())"
+  (click)="open()"
+>
+  <ng-content />
+</button>
+
+<gv-dialog-shell
+  [open]="isOpen()"
+  [title]="title()"
+  [subtitle]="subtitle()"
+  [eyebrow]="eyebrow()"
+  [ariaLabel]="title()"
+  [variant]="variant()"
+  [width]="width()"
+  (closed)="close()"
+>
+  <div class="gv-image-preview__viewport">
+    <img class="gv-image-preview__full-image" [src]="src()" [alt]="alt()" />
+  </div>
+</gv-dialog-shell>

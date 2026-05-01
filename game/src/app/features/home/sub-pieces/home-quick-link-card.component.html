@@ -1,0 +1,21 @@
+<article
+  class="gv-quick-link"
+  [class.gv-quick-link--disabled]="link().disabled"
+>
+  @if (link().route && !link().disabled) {
+    <a [routerLink]="link().route" class="gv-quick-link__inner">
+      <i [class]="link().icon + ' gv-quick-link__icon'" aria-hidden="true"></i>
+      <span class="gv-quick-link__label">{{ link().label }}</span>
+      <p class="gv-quick-link__desc">{{ link().description }}</p>
+    </a>
+  } @else {
+    <div class="gv-quick-link__inner">
+      <i [class]="link().icon + ' gv-quick-link__icon'" aria-hidden="true"></i>
+      <span class="gv-quick-link__label">{{ link().label }}</span>
+      <p class="gv-quick-link__desc">{{ link().description }}</p>
+      @if (link().disabled) {
+        <span class="gv-quick-link__badge">Soon</span>
+      }
+    </div>
+  }
+</article>

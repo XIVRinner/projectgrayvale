@@ -1,0 +1,41 @@
+@if (open()) {
+  <div class="gv-dialog-shell__overlay" (click)="onOverlayClick()">
+    <section
+      class="gv-dialog-shell"
+      [attr.data-variant]="variant()"
+      [attr.data-width]="width()"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="ariaLabel() ?? title()"
+      (click)="stopPropagation($event)"
+    >
+      <header class="gv-dialog-shell__header">
+        <div class="gv-dialog-shell__heading">
+          @if (eyebrow(); as eyebrow) {
+            <p class="gv-dialog-shell__eyebrow">{{ eyebrow }}</p>
+          }
+          <h2>{{ title() }}</h2>
+          @if (subtitle(); as subtitle) {
+            <p class="gv-dialog-shell__subtitle">{{ subtitle }}</p>
+          }
+        </div>
+
+        @if (showCloseButton()) {
+          <button
+            type="button"
+            class="gv-dialog-shell__close"
+            [disabled]="closeDisabled()"
+            [attr.aria-label]="'Close ' + title()"
+            (click)="onCloseClick()"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        }
+      </header>
+
+      <div class="gv-dialog-shell__body">
+        <ng-content />
+      </div>
+    </section>
+  </div>
+}

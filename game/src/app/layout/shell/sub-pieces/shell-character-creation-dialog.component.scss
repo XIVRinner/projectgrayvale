@@ -1,0 +1,19 @@
+:host {
+  display: contents;
+}
+
+.gv-character-creation-dialog {
+  display: grid;
+  gap: var(--gv-space-md);
+  min-block-size: 100%;
+}
+
+.gv-character-creation-dialog__notice {
+  margin: 0;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-accent) 10%, transparent);
+  color: var(--gv-color-text-primary);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  line-height: 1.5;
+}

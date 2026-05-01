@@ -1,17 +1,36 @@
-import { Component, computed, input } from "@angular/core";
+import { Component, computed, input, output } from "@angular/core";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 
 import { ShellFooterComponent } from "./shell-footer.component";
+import { ShellCharacterPanelComponent } from "./sub-pieces/shell-character-panel.component";
+import { ShellCharacterCreationDialogComponent } from "./sub-pieces/shell-character-creation-dialog.component";
+import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
+import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
+import { ShellSaveManagerModalComponent } from "./sub-pieces/shell-save-manager-modal.component";
 import {
-  ShellActivityItem,
+  ShellActionGroup,
+  ShellCharacterPanel,
   ShellLayoutPreset,
   ShellNavItem,
-  ShellStatusItem
+  ShellSaveSlotSummary,
+  ShellStatusItem,
+  ShellTopbarAction,
+  ShellTopbarSaveSummary
 } from "./shell.types";
 
 @Component({
   selector: "gv-shell-view",
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ShellFooterComponent],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ShellCharacterPanelComponent,
+    ShellCharacterCreationDialogComponent,
+    ShellFooterComponent,
+    ShellTopbarComponent,
+    ShellActionPanelComponent,
+    ShellSaveManagerModalComponent
+  ],
   templateUrl: "./shell-view.component.html",
   styleUrl: "./shell-view.component.scss"
 })
@@ -21,8 +40,30 @@ export class ShellViewComponent {
   readonly navItems = input.required<readonly ShellNavItem[]>();
   readonly layoutPreset = input.required<ShellLayoutPreset>();
   readonly statusItems = input.required<readonly ShellStatusItem[]>();
-  readonly activityItems = input.required<readonly ShellActivityItem[]>();
+  readonly saveSummary = input.required<ShellTopbarSaveSummary>();
+  readonly topbarActions = input.required<readonly ShellTopbarAction[]>();
+  readonly actionGroups = input.required<readonly ShellActionGroup[]>();
+  readonly characterPanel = input.required<ShellCharacterPanel>();
+  readonly saveSlots = input.required<readonly ShellSaveSlotSummary[]>();
+  readonly isCharacterCreationOpen = input.required<boolean>();
+  readonly isCharacterCreationRequired = input.required<boolean>();
+  readonly isSaveManagerOpen = input.required<boolean>();
+  readonly transferPayload = input.required<string>();
+  readonly transferStatusMessage = input<string | null>(null);
   readonly version = input.required<string>();
+
+  readonly characterCreationOpenRequested = output<void>();
+  readonly characterCreationCloseRequested = output<void>();
+  readonly characterCreated = output<void>();
+  readonly saveManagerOpenRequested = output<void>();
+  readonly saveManagerCloseRequested = output<void>();
+  readonly saveSlotLoadRequested = output<string>();
+  readonly saveSlotDeleteRequested = output<string>();
+  readonly saveSlotExportRequested = output<string>();
+  readonly saveExportAllRequested = output<void>();
+  readonly saveImportRequested = output<void>();
+  readonly saveResetRequested = output<void>();
+  readonly saveTransferPayloadChanged = output<string>();
 
   protected readonly isCommandCenter = computed(
     () => this.layoutPreset() === "command-center"

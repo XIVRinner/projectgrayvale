@@ -1,0 +1,17 @@
+{
+  "easy": {
+    "baseXp": 100,
+    "growthFactor": 1,
+    "exponent": 1.1
+  },
+  "normal": {
+    "baseXp": 100,
+    "growthFactor": 1.2,
+    "exponent": 1.35
+  },
+  "hard": {
+    "baseXp": 100,
+    "growthFactor": 1.5,
+    "exponent": 1.6
+  }
+}

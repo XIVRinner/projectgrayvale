@@ -1,12 +1,26 @@
 <section class="gv-home">
-  <header class="gv-home__header">
-    <h2 class="gv-home__heading">{{ heading() }}</h2>
-    <p class="gv-home__summary">{{ summary() }}</p>
-  </header>
+  @if (adventurer(); as adv) {
+    <header class="gv-home__header">
+      <div class="gv-home__rank" aria-label="Rank {{ adv.rank }}">{{ adv.rank }}</div>
+      <div class="gv-home__identity">
+        <h2 class="gv-home__name">{{ adv.name }}</h2>
+        <p class="gv-home__meta">
+          {{ adv.raceId }} &middot; {{ adv.classId }} &middot; Level {{ adv.level }}
+        </p>
+      </div>
+      <p class="gv-home__saved">Last saved: {{ adv.lastSaved }}</p>
+    </header>
+  } @else {
+    <header class="gv-home__header gv-home__header--empty">
+      <p class="gv-home__empty-prompt">
+        No adventurer is active. Open Character Roster from the top bar to load or create a character.
+      </p>
+    </header>
+  }
 
   <div class="gv-home__grid">
-    @for (section of sections(); track section.location) {
-      <gv-home-section-card [section]="section" />
+    @for (link of quickLinks(); track link.label) {
+      <gv-home-quick-link-card [link]="link" />
     }
   </div>
 </section>

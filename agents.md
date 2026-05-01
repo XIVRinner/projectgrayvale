@@ -11,6 +11,7 @@
 - **Document gaps before implementing.** If a feature touches the core packages (`@rinner/grayvale-core`, `@rinner/grayvale-worldgraph`, `@rinner/grayvale-dialogue`) and you are unsure how to connect UI to that system, stop and describe what you need in a comment block or a `GAP:` note. Do not invent bridge logic without a plan.
 - **Never invent data shapes.** All game data comes from static JSON or `.fsc` / `.vf` files from the dialogue package. Do not hardcode values that should come from files.
 - **Small components, always.** Every visual piece is its own component. A "smart" component (one that touches a store or service) must not also be the thing rendering pixels. See §3.
+- **Do not explain everything in the main UI.** Default to terse labels and compact layouts. If explanatory copy is necessary (for example, what Health, Mana, or Rank means), put it behind a tooltip, hover state, or similar progressive disclosure instead of expanding the base layout.
 - **Theme files are the only source of design tokens.** Colors, spacing, typography, and animation durations live in one place. See §4.
 - **No inline styles.** No `style=""` attributes, no `[ngStyle]`, no `styleUrls` that duplicate tokens already in the theme.
 
@@ -144,6 +145,12 @@ Use `toSignal()` to bridge NgRx selectors into the component's signal graph.
 ### 3.4 Standalone Components
 
 All components are standalone. No `NgModule` declarations. Import only what you use per component.
+
+### 3.5 Progressive Disclosure for UI Copy
+
+- Keep always-visible copy short. Labels, values, and immediate actions come first.
+- Put definitions, explanations, and edge-case guidance into tooltips, hover cards, help icons, or expandable detail regions.
+- Do not turn core panels into documentation blocks. If the player only needs the explanation occasionally, it should not consume permanent layout space.
 
 ---
 

@@ -1,0 +1,43 @@
+<section class="gv-portrait-picker">
+  <div class="gv-portrait-picker__header">
+    <div>
+      <p class="gv-portrait-picker__eyebrow">Appearance</p>
+      <h3>Portrait Set</h3>
+    </div>
+  </div>
+
+  <div class="gv-portrait-picker__variants">
+    @for (variant of availableVariants(); track variant) {
+      <button
+        type="button"
+        class="gv-portrait-picker__variant"
+        [class.gv-portrait-picker__variant--selected]="variant === selectedVariant()"
+        (click)="variantChanged.emit(variant)"
+      >
+        {{ variant }}
+      </button>
+    }
+  </div>
+
+  @if (selectedPortraitSrc(); as portraitSrc) {
+    <div class="gv-portrait-picker__hero-frame">
+      <img class="gv-portrait-picker__hero" [src]="portraitSrc" alt="Selected portrait" />
+    </div>
+  }
+
+  <div class="gv-portrait-picker__grid">
+    @for (portrait of availablePortraits(); track portrait; let index = $index) {
+      <button
+        type="button"
+        class="gv-portrait-picker__thumb"
+        [class.gv-portrait-picker__thumb--selected]="index === selectedPortraitIndex()"
+        (click)="portraitChanged.emit(index)"
+      >
+        @if (portraitSrcFor(index); as portraitSrc) {
+          <img [src]="portraitSrc" [alt]="'Portrait ' + (index + 1)" />
+        }
+        <span>{{ index + 1 }}</span>
+      </button>
+    }
+  </div>
+</section>

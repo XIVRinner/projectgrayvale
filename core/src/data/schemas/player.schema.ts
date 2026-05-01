@@ -5,16 +5,31 @@ import { inventorySchema } from "./inventory.schema";
 import { experienceProgressionSchema } from "./progression.schema";
 import { descriptionSchema, idSchema, nameSchema, stringNumberRecordSchema } from "./shared";
 
+export const playerDifficultySchema = z
+  .object({
+    mode: z.enum(["easy", "normal", "hard"]),
+    expert: z.boolean(),
+    ironman: z.boolean()
+  })
+  .strict();
+
 export const playerSchema = z
   .object({
     id: idSchema,
     name: nameSchema,
     description: descriptionSchema.optional(),
-    race: z.string(),
     raceId: z.string(),
     jobClass: z.string(),
     progression: experienceProgressionSchema,
     adventurerRank: z.number(),
+    difficulty: playerDifficultySchema
+      .optional()
+      .default({
+        mode: "normal",
+        expert: false,
+        ironman: false
+      }),
+    genderId: z.string().optional(),
     attributes: stringNumberRecordSchema,
     skills: stringNumberRecordSchema,
     selectedAppearance: z
@@ -37,6 +52,14 @@ export const playerSchema = z
             })
             .strict()
         )
+      })
+      .strict()
+      .optional(),
+    story: z
+      .object({
+        currentArcId: z.string(),
+        currentChapter: z.number().int(),
+        completedChapters: z.array(z.number().int()).optional()
       })
       .strict()
       .optional(),

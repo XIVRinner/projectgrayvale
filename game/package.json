@@ -12,6 +12,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "sync:race-assets": "node ./scripts/asset-sync-worker.cjs --once --task race-portraits",
+    "watch:race-assets": "node ./scripts/asset-sync-worker.cjs --watch --task race-portraits --interval-ms 5000",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

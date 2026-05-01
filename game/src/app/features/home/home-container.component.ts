@@ -1,49 +1,85 @@
-import { Component, signal } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
 
+import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { HomeViewComponent } from "./home-view.component";
-import { HomeSection } from "./home.types";
+import { HomeAdventurerSummary, HomeQuickLink } from "./home.types";
 
 @Component({
   selector: "gv-home-container",
   imports: [HomeViewComponent],
   template: `
     <gv-home-view
-      [heading]="heading()"
-      [summary]="summary()"
-      [sections]="sections()"
+      [adventurer]="adventurer()"
+      [quickLinks]="quickLinks"
     />
   `
 })
 export class HomeContainerComponent {
-  readonly heading = signal("Baseline Layout");
-  readonly summary = signal(
-    "This baseline keeps visual components dumb, stores behavior in containers, and reserves data wiring for dedicated loaders/effects."
-  );
+  private readonly roster = inject(CharacterRosterService);
 
-  readonly sections = signal<readonly HomeSection[]>([
-    {
-      title: "Core",
-      location: "src/app/core",
-      responsibility: "Application-level services, guards, and root store setup.",
-      notes: "Only singleton and cross-feature concerns belong here."
-    },
-    {
-      title: "Data",
-      location: "src/app/data",
-      responsibility: "Load static JSON and dialogue files with schema validation.",
-      notes: "Runtime content is read-only and loaded through HttpClient boundaries."
-    },
-    {
-      title: "Features",
-      location: "src/app/features",
-      responsibility: "Each screen owns route, container, view, and local store slice.",
-      notes: "Features communicate through actions and selectors, not direct imports."
-    },
-    {
-      title: "Shared",
-      location: "src/app/shared",
-      responsibility: "Pure presentational components, directives, pipes, and theme tokens.",
-      notes: "Design tokens in shared/theme are the single visual source of truth."
+  readonly adventurer = computed<HomeAdventurerSummary | null>(() => {
+    const active = this.roster.activeCharacter();
+    if (!active) {
+      return null;
     }
-  ]);
+
+    const level = active.progression.level;
+    const rank = level >= 50 ? "S" : level >= 30 ? "A" : level >= 15 ? "B" : level >= 5 ? "C" : "G";
+
+    return {
+      name: active.name,
+      raceId: active.raceId,
+      classId: active.jobClass,
+      level,
+      rank,
+      lastSaved: this.roster.activeSlot()?.updatedAt
+        ? new Date(this.roster.activeSlot()!.updatedAt).toLocaleDateString()
+        : "—"
+    };
+  });
+
+  readonly quickLinks: readonly HomeQuickLink[] = [
+    {
+      label: "Activities",
+      description: "Take on work, gather resources, and build your reputation.",
+      icon: "pi pi-bolt",
+      route: "/activity",
+      disabled: true
+    },
+    {
+      label: "Companions",
+      description: "Manage relationships and party composition.",
+      icon: "pi pi-users",
+      route: "/companion",
+      disabled: true
+    },
+    {
+      label: "Inventory",
+      description: "Review equipment, consumables, and loot.",
+      icon: "pi pi-box",
+      route: "/inventory",
+      disabled: true
+    },
+    {
+      label: "Quests",
+      description: "Track active contracts and story chapters.",
+      icon: "pi pi-map",
+      route: "/quest",
+      disabled: true
+    },
+    {
+      label: "Combat",
+      description: "Enter the arena or respond to an encounter.",
+      icon: "pi pi-shield",
+      route: "/combat",
+      disabled: true
+    },
+    {
+      label: "Creator Lab",
+      description: "Register a new adventurer.",
+      icon: "pi pi-user-plus",
+      route: "/creator",
+      disabled: false
+    }
+  ];
 }

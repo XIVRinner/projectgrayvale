@@ -4,7 +4,6 @@ export const samplePlayer: Player = {
   id: "player_lyra_dawnmere",
   name: "Lyra Dawnmere",
   description: "A novice adventurer beginning her first contract in Grayvale.",
-  race: "human",
   raceId: "race_human",
   jobClass: "wanderer",
   progression: {
@@ -12,11 +11,17 @@ export const samplePlayer: Player = {
     experience: 145
   },
   adventurerRank: 1,
+  difficulty: {
+    mode: "normal",
+    expert: false,
+    ironman: false
+  },
+  genderId: "type-1",
   attributes: {
     strength: 7,
     agility: 10,
     vitality: 8,
-    insight: 6
+    mentality: 6
   },
   skills: {
     short_blade: 2,

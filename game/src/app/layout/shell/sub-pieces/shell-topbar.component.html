@@ -1,0 +1,54 @@
+<header class="gv-topbar">
+  <div class="gv-topbar__copy">
+    <span class="gv-topbar__eyebrow">{{ subtitle() }}</span>
+    <h1 class="gv-topbar__title">{{ title() }}</h1>
+  </div>
+
+  <div class="gv-topbar__divider" aria-hidden="true"></div>
+
+  @if (statusItems().length) {
+    @for (item of statusItems(); track item.label) {
+      <span class="gv-topbar__status-chip">
+        <span class="gv-topbar__status-label">{{ item.label }}:</span>
+        <strong class="gv-topbar__status-value">{{ item.value }}</strong>
+      </span>
+    }
+    <div class="gv-topbar__divider" aria-hidden="true"></div>
+  }
+
+  <div class="gv-topbar__save-summary">
+    <button type="button" class="gv-topbar__save-btn" (click)="saveManagerRequested.emit()">
+      <i class="pi pi-user" aria-hidden="true"></i>
+      <span>Character Selection</span>
+    </button>
+    <div class="gv-topbar__save-meta" role="button" tabindex="0" (click)="saveManagerRequested.emit()" (keydown.enter)="saveManagerRequested.emit()" (keydown.space)="saveManagerRequested.emit()">
+      <p class="gv-topbar__save-lead">{{ saveSummary().characterName ?? saveSummary().lead }}</p>
+      @if (saveSummary().lastSaved) {
+        <p class="gv-topbar__save-detail">Last save: {{ saveSummary().lastSaved }}</p>
+      }
+    </div>
+  </div>
+
+  <div class="gv-topbar__spacer" aria-hidden="true"></div>
+
+  <div class="gv-topbar__actions" aria-label="Top bar actions">
+    @for (action of actions(); track action.label) {
+      <button
+        type="button"
+        class="gv-topbar__action"
+        [attr.data-tone]="action.tone"
+        [disabled]="action.disabled ?? false"
+        [attr.title]="action.label"
+      >
+        @if (action.icon) {
+          <i [class]="action.icon" aria-hidden="true"></i>
+        }
+        <span class="gv-topbar__action-label">{{ action.label }}</span>
+        @if (action.badge) {
+          <span class="gv-topbar__action-badge" aria-label="{{ action.badge }} items">{{ action.badge }}</span>
+        }
+      </button>
+    }
+  </div>
+
+</header>

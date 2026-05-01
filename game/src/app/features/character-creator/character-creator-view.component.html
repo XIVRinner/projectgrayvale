@@ -1,0 +1,251 @@
+@if (state().isLoading) {
+  <section class="gv-creator gv-creator--loading">
+    <p>Loading character creator options...</p>
+  </section>
+} @else if (state().errorMessage; as error) {
+  <section class="gv-creator gv-creator--error">
+    <h2>Character Creator</h2>
+    <p>{{ error }}</p>
+  </section>
+} @else {
+  <section class="gv-creator" [class.gv-creator--dialog]="presentation() === 'dialog'">
+    <header class="gv-creator__header">
+      <div>
+        <p class="gv-creator__eyebrow">Character</p>
+        <h2>Create New Character</h2>
+        <p class="gv-creator__lead">Set name, race, class, and portrait.</p>
+      </div>
+      <div class="gv-creator__header-actions">
+        <button type="button" class="gv-creator__randomize" (click)="randomizeRequested.emit()">Randomize</button>
+        <button
+          type="button"
+          class="gv-creator__create"
+          [disabled]="!state().previewPlayer"
+          (click)="createRequested.emit()"
+        >
+          Create Character
+        </button>
+      </div>
+    </header>
+
+    @if (state().saveStatusMessage; as saveStatusMessage) {
+      <p class="gv-creator__save-status">{{ saveStatusMessage }}</p>
+    }
+
+    <div class="gv-creator__grid">
+      <article class="gv-creator__panel">
+        <label class="gv-creator__field">
+          <span>Name</span>
+          <div class="gv-creator__name-field">
+            <input
+              type="text"
+              [value]="state().name"
+              placeholder="Enter adventurer name"
+              (input)="onNameInput($event)"
+            />
+            <button
+              type="button"
+              class="gv-creator__name-randomizer"
+              title="Randomize name"
+              aria-label="Randomize name"
+              (click)="nameRandomizeRequested.emit()"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.8"
+                />
+                <circle cx="9" cy="9" r="1.3" fill="currentColor" />
+                <circle cx="15" cy="15" r="1.3" fill="currentColor" />
+                <circle cx="9" cy="15" r="1.3" fill="currentColor" />
+                <circle cx="15" cy="9" r="1.3" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </label>
+
+        <section class="gv-creator__section">
+          <h3>Gender</h3>
+          <div class="gv-creator__gender-options" aria-label="Gender selection">
+            @for (option of state().genderOptions; track option.id) {
+              <button
+                type="button"
+                class="gv-creator__gender-option"
+                [class.gv-creator__gender-option--selected]="state().selectedGenderId === option.id"
+                [attr.title]="option.label"
+                (click)="genderChanged.emit(option.id)"
+              >
+                <span class="gv-creator__gender-icon-shell" aria-hidden="true">
+                  <img class="gv-creator__gender-icon" [src]="option.iconPath" [alt]="''" />
+                </span>
+                <span class="gv-creator__gender-label">{{ option.label }}</span>
+              </button>
+            }
+          </div>
+        </section>
+
+        <section class="gv-creator__section">
+          <h3>Race</h3>
+          <div class="gv-creator__cards gv-creator__cards--race">
+            @for (entry of state().raceOptions; track entry.race.id) {
+              <gv-character-creator-race-card
+                [entry]="entry"
+                [selected]="entry.race.id === state().selectedRaceId"
+                (selectedRace)="raceChanged.emit($event)"
+              />
+            }
+          </div>
+        </section>
+
+        <section class="gv-creator__section">
+          <h3>Class</h3>
+          <div class="gv-creator__cards">
+            @for (entry of state().classOptions; track entry.option.id) {
+              <gv-character-creator-class-card
+                [entry]="entry"
+                [selected]="entry.option.id === state().selectedClassId"
+                (selectedClass)="classChanged.emit($event)"
+              />
+            }
+          </div>
+        </section>
+
+        <section class="gv-creator__section">
+          <h3>Difficulty</h3>
+          <div class="gv-creator__difficulty">
+            <div class="gv-creator__difficulty-modes" aria-label="Difficulty mode">
+              @for (option of state().difficultyOptions; track option.id) {
+                <button
+                  type="button"
+                  class="gv-creator__difficulty-mode"
+                  [class.gv-creator__difficulty-mode--selected]="state().selectedDifficultyMode === option.id"
+                  [attr.title]="option.description"
+                  (click)="difficultyModeChanged.emit(option.id)"
+                >
+                  <span class="gv-creator__difficulty-mode-label">{{ option.label }}</span>
+                  @for (line of option.statLines; track line) {
+                    <span class="gv-creator__difficulty-mode-stat">{{ line }}</span>
+                  }
+                </button>
+              }
+            </div>
+
+            <div class="gv-creator__difficulty-toggles">
+              <label class="gv-creator__toggle-card">
+                <input
+                  type="checkbox"
+                  [checked]="state().expertMode"
+                  (change)="onExpertModeChange($event)"
+                />
+                <span class="gv-creator__toggle-copy">
+                  <strong>Expert</strong>
+                  <small>Stored on the character for later rule hooks.</small>
+                </span>
+              </label>
+
+              <label class="gv-creator__toggle-card">
+                <input
+                  type="checkbox"
+                  [checked]="state().ironmanMode"
+                  (change)="onIronmanModeChange($event)"
+                />
+                <span class="gv-creator__toggle-copy">
+                  <strong>Ironman</strong>
+                  <small>Stored only for now. No gameplay lockouts yet.</small>
+                </span>
+              </label>
+            </div>
+          </div>
+        </section>
+      </article>
+
+      <aside class="gv-creator__panel gv-creator__panel--preview">
+        <gv-character-creator-portrait-picker
+          [availableVariants]="state().availableVariants"
+          [selectedVariant]="state().selectedVariant"
+          [availablePortraits]="state().availablePortraits"
+          [selectedPortraitIndex]="state().selectedPortraitIndex"
+          [selectedPortraitSrc]="state().selectedPortraitSrc"
+          (variantChanged)="variantChanged.emit($event)"
+          (portraitChanged)="portraitChanged.emit($event)"
+        />
+
+        @if (presentation() === 'dialog') {
+          <section class="gv-creator__preview-block gv-creator__preview-block--summary">
+            <h3>Lineage Summary</h3>
+            <div class="gv-creator__identity">
+              <p class="gv-creator__identity-name">{{ state().name || 'Unregistered Adventurer' }}</p>
+              <p class="gv-creator__identity-meta">
+                {{ state().selectedGenderLabel || 'No gender selected' }}
+                <span> / </span>
+                {{ state().selectedRaceName || 'No race selected' }}
+                @if (state().selectedClassName) {
+                  <span> / {{ state().selectedClassName }}</span>
+                }
+              </p>
+            </div>
+
+            <div class="gv-creator__summary-stack">
+              <div class="gv-creator__summary-card">
+                <p class="gv-creator__summary-eyebrow">Identity</p>
+                <p class="gv-creator__summary-title">{{ state().selectedGenderLabel || 'Awaiting identity' }}</p>
+              </div>
+
+              <div class="gv-creator__summary-card">
+                <p class="gv-creator__summary-eyebrow">Lineage</p>
+                <p class="gv-creator__summary-title">{{ state().selectedRaceName || 'Awaiting lineage' }}</p>
+                @if (state().selectedRaceBonusSummary; as raceBonus) {
+                  <p class="gv-creator__summary-copy">{{ raceBonus }}</p>
+                }
+                @if (state().selectedRaceLore; as raceLore) {
+                  <p class="gv-creator__summary-copy gv-creator__summary-copy--muted">{{ raceLore }}</p>
+                }
+                @if (state().selectedRaceMeta; as raceMeta) {
+                  <p class="gv-creator__summary-meta">{{ raceMeta }}</p>
+                }
+              </div>
+
+              <div class="gv-creator__summary-card">
+                <p class="gv-creator__summary-eyebrow">Talent</p>
+                <p class="gv-creator__summary-title">{{ state().selectedClassName || 'Awaiting talent' }}</p>
+                @if (state().selectedClassBonusSummary; as classBonus) {
+                  <p class="gv-creator__summary-copy">{{ classBonus }}</p>
+                }
+                @if (state().selectedClassLore; as classLore) {
+                  <p class="gv-creator__summary-copy gv-creator__summary-copy--muted">{{ classLore }}</p>
+                }
+                @if (state().selectedClassStatSummary; as classStats) {
+                  <p class="gv-creator__summary-meta">{{ classStats }}</p>
+                }
+              </div>
+
+              <div class="gv-creator__summary-card">
+                <p class="gv-creator__summary-eyebrow">Difficulty</p>
+                <p class="gv-creator__summary-title">
+                  {{ state().difficultyOptions.find(option => option.id === state().selectedDifficultyMode)?.label ?? state().selectedDifficultyMode }}
+                </p>
+                <p class="gv-creator__summary-copy">
+                  Expert: {{ state().expertMode ? 'On' : 'Off' }}
+                  <span> / Ironman: {{ state().ironmanMode ? 'On' : 'Off' }}</span>
+                </p>
+              </div>
+            </div>
+          </section>
+        } @else {
+          <section class="gv-creator__preview-block">
+            <h3>Validated Player Preview</h3>
+            @if (state().previewError; as previewError) {
+              <p class="gv-creator__preview-error">{{ previewError }}</p>
+            } @else {
+              <pre>{{ formatPreview(state().previewPlayer) }}</pre>
+            }
+          </section>
+        }
+      </aside>
+    </div>
+  </section>
+}

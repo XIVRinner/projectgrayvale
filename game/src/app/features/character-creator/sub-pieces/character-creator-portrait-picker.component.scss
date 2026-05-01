@@ -1,0 +1,112 @@
+.gv-portrait-picker {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--gv-color-accent) 16%, transparent), transparent 42%),
+    var(--gv-color-bg-raised);
+  padding: var(--gv-space-md);
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-portrait-picker__header h3,
+.gv-portrait-picker__header p {
+  margin: 0;
+}
+
+.gv-portrait-picker__eyebrow {
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-sm);
+  letter-spacing: calc(var(--gv-space-xs) * 0.4);
+  text-transform: uppercase;
+}
+
+.gv-portrait-picker__header h3 {
+  color: var(--gv-color-accent-warm);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-md);
+}
+
+.gv-portrait-picker__variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-sm);
+}
+
+.gv-portrait-picker__variant {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: var(--gv-color-bg-primary);
+  color: var(--gv-color-text-muted);
+  padding: var(--gv-space-xs) var(--gv-space-md);
+  font: inherit;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.gv-portrait-picker__variant--selected {
+  color: var(--gv-color-text-primary);
+  border-color: var(--gv-color-accent);
+  background: color-mix(in srgb, var(--gv-color-accent) 16%, transparent);
+}
+
+.gv-portrait-picker__hero-frame {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-overlay-strong) 90%, transparent), transparent 30%),
+    var(--gv-color-bg-primary);
+  overflow: hidden;
+  max-inline-size: 22rem;
+  justify-self: center;
+}
+
+.gv-portrait-picker__hero {
+  display: block;
+  inline-size: 100%;
+  max-block-size: 28rem;
+  object-fit: cover;
+}
+
+.gv-portrait-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--gv-space-sm);
+}
+
+.gv-portrait-picker__thumb {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-color-bg-primary);
+  color: var(--gv-color-text-muted);
+  padding: calc(var(--gv-space-xs) * 1.5);
+  display: grid;
+  gap: var(--gv-space-xs);
+  font: inherit;
+  cursor: pointer;
+}
+
+.gv-portrait-picker__thumb img {
+  inline-size: 100%;
+  aspect-ratio: 3 / 4;
+  max-block-size: 5.5rem;
+  object-fit: cover;
+  border-radius: var(--gv-radius-sm);
+}
+
+.gv-portrait-picker__thumb span {
+  font-size: var(--gv-font-size-sm);
+  text-align: center;
+}
+
+.gv-portrait-picker__thumb--selected {
+  color: var(--gv-color-text-primary);
+  border-color: var(--gv-color-accent);
+  background: color-mix(in srgb, var(--gv-color-accent) 14%, transparent);
+}
+
+@media (max-width: 48rem) {
+  .gv-portrait-picker__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

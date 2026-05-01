@@ -1,6 +1,10 @@
+import type { Delta } from "@rinner/grayvale-core";
+
+import { dispatchActions } from "./action.dispatcher";
+import type { Action, ActionRegistry } from "./action.types";
 import { evaluateGuards } from "./guard.logic";
 import type { GuardContext, GuardResolver } from "./guard.types";
-import type { WorldGraph, WorldState } from "./graph.types";
+import type { ActionRule, WorldGraph, WorldState } from "./graph.types";
 
 export const canMove = (
   graph: WorldGraph,
@@ -36,6 +40,66 @@ export const move = (state: WorldState, to: string): WorldState => ({
   currentLocation: to,
   sublocations: []
 });
+
+export const evaluateActionRules = (
+  rules: ActionRule[] | undefined,
+  context: GuardContext,
+  resolver: GuardResolver
+): Action[] => {
+  if (rules === undefined || rules.length === 0) {
+    return [];
+  }
+
+  const actions: Action[] = [];
+
+  for (const rule of rules) {
+    if (evaluateGuards(rule.guards, context, resolver)) {
+      actions.push(...rule.actions);
+    }
+  }
+
+  return actions;
+};
+
+export const collectMoveActions = (
+  graph: WorldGraph,
+  from: string,
+  to: string,
+  context: GuardContext,
+  resolver: GuardResolver
+): Action[] => {
+  if (!canMove(graph, from, to, context, resolver)) {
+    return [];
+  }
+
+  const edge = graph.edges.find(
+    (candidate) => candidate.from === from && candidate.to === to
+  );
+
+  if (edge === undefined) {
+    return [];
+  }
+
+  const location = graph.locations[to];
+
+  return [
+    ...evaluateActionRules(edge.rules, context, resolver),
+    ...evaluateActionRules(location?.rules, context, resolver)
+  ];
+};
+
+export const resolveMoveDeltas = (
+  graph: WorldGraph,
+  from: string,
+  to: string,
+  context: GuardContext,
+  resolver: GuardResolver,
+  registry: ActionRegistry
+): Delta[] => {
+  const actions = collectMoveActions(graph, from, to, context, resolver);
+
+  return dispatchActions(actions, context, registry);
+};
 
 export const enterSublocation = (
   state: WorldState,

@@ -1,0 +1,35 @@
+<button
+  type="button"
+  pButton
+  class="option-card p-button p-component"
+  [class.option-card--selected]="selected()"
+  [attr.title]="entry().loreSummary"
+  (click)="selectedRace.emit(entry().race.id)"
+>
+  <div class="option-card__topline">
+    <span class="option-card__icon option-card__icon--image">
+      <img [src]="entry().iconPath" [alt]="entry().race.name + ' icon'" />
+    </span>
+    <div class="option-card__heading">
+      <span class="option-card__eyebrow">Lineage</span>
+      <span class="option-card__title">{{ entry().race.name }}</span>
+    </div>
+    <span
+      class="option-card__info-icon"
+      pTooltip="{{ entry().loreSummary }}"
+      tooltipPosition="top"
+      aria-hidden="true"
+    >
+      i
+    </span>
+  </div>
+
+  <div class="option-card__bonus-row">
+    <span class="option-card__bonus-label">Bonus</span>
+    <span class="option-card__bonus">{{ entry().bonusSummary }}</span>
+  </div>
+
+  <div class="option-card__footer">
+    <span class="option-card__meta">{{ entry().meta }}</span>
+  </div>
+</button>
