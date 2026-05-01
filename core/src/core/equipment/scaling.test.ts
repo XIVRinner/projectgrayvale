@@ -36,6 +36,8 @@ describe("computeItemScaling", () => {
     const item: Weapon = {
       id: "weapon_plain_blade",
       name: "Plain Blade",
+      rarity: "common",
+      icon: "assets/icons/weapons/plain-blade.png",
       type: "weapon",
       handedness: "oneHanded",
       class: "blade",
@@ -50,6 +52,8 @@ describe("computeItemScaling", () => {
     const item: Weapon = {
       id: "weapon_duelist_blade",
       name: "Duelist Blade",
+      rarity: "uncommon",
+      icon: "assets/icons/weapons/duelist-blade.png",
       type: "weapon",
       handedness: "oneHanded",
       class: "blade",
@@ -71,6 +75,8 @@ describe("computeItemScaling", () => {
     const item: Weapon = {
       id: "weapon_partial_training",
       name: "Partial Training Weapon",
+      rarity: "uncommon",
+      icon: "assets/icons/weapons/partial-training.png",
       type: "weapon",
       handedness: "oneHanded",
       class: "blade",
@@ -92,6 +98,8 @@ describe("computeItemScaling", () => {
     const item: Armor = {
       id: "armor_skillbound_cap",
       name: "Skillbound Cap",
+      rarity: "common",
+      icon: "assets/icons/armor/skillbound-cap.png",
       type: "armor",
       armorType: "light",
       slot: "head",
@@ -108,6 +116,8 @@ describe("computeItemScaling", () => {
     const item: Armor = {
       id: "armor_guard_plate",
       name: "Guard Plate",
+      rarity: "rare",
+      icon: "assets/icons/armor/guard-plate.png",
       type: "armor",
       armorType: "heavy",
       slot: "body",
@@ -128,6 +138,8 @@ describe("computeItemScaling", () => {
     const item: Weapon = {
       id: "weapon_balanced_edge",
       name: "Balanced Edge",
+      rarity: "rare",
+      icon: "assets/icons/weapons/balanced-edge.png",
       type: "weapon",
       handedness: "oneHanded",
       class: "blade",
@@ -150,6 +162,8 @@ describe("computeItemScaling", () => {
     const item: Weapon = {
       id: "weapon_cursed_edge",
       name: "Cursed Edge",
+      rarity: "cursed",
+      icon: "assets/icons/weapons/cursed-edge.png",
       type: "weapon",
       handedness: "oneHanded",
       class: "blade",
@@ -174,6 +188,8 @@ describe("armor typing", () => {
     const armor: Armor = {
       id: "armor_stitched_hood",
       name: "Stitched Hood",
+      rarity: "common",
+      icon: "assets/icons/armor/stitched-hood.png",
       type: "armor",
       armorType: "light",
       slot: "head",

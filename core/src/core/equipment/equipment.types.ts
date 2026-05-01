@@ -1,4 +1,5 @@
 import type { Id, Named } from "../models/base";
+import type { Rarity } from "./rarity.types";
 
 export type EquipmentSlot =
   | "mainHand"
@@ -28,6 +29,8 @@ export type ScalingRule = {
 
 export interface EquipmentItem extends Named {
   id: string;
+  rarity: Rarity;
+  icon?: string;
   allowedSlots: EquipmentSlot[];
   tags?: string[];
   scaling?: ScalingRule;

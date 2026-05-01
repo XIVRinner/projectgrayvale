@@ -32,6 +32,8 @@ const createPlayer = (): Player => ({
 const oneHandedWeapon: EquippableItem = {
   id: "weapon_iron_sword",
   name: "Iron Sword",
+  rarity: "common",
+  icon: "assets/icons/weapons/iron-sword.png",
   type: "weapon",
   handedness: "oneHanded",
   class: "blade",
@@ -42,6 +44,8 @@ const oneHandedWeapon: EquippableItem = {
 const offHandWeapon: EquippableItem = {
   id: "weapon_parrying_dagger",
   name: "Parrying Dagger",
+  rarity: "uncommon",
+  icon: "assets/icons/weapons/parrying-dagger.png",
   type: "weapon",
   handedness: "oneHanded",
   class: "blade",
@@ -52,6 +56,8 @@ const offHandWeapon: EquippableItem = {
 const twoHandedWeapon: EquippableItem = {
   id: "weapon_longbow",
   name: "Longbow",
+  rarity: "rare",
+  icon: "assets/icons/weapons/longbow.png",
   type: "weapon",
   handedness: "twoHanded",
   class: "ranged",
@@ -62,6 +68,8 @@ const twoHandedWeapon: EquippableItem = {
 const headArmor: Armor = {
   id: "armor_iron_helm",
   name: "Iron Helm",
+  rarity: "common",
+  icon: "assets/icons/armor/iron-helm.png",
   type: "armor",
   armorType: "heavy",
   slot: "head",

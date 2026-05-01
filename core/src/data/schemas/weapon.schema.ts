@@ -18,11 +18,28 @@ export const scalingRuleSchema = z
 
 export const weaponHandednessSchema = z.enum(["oneHanded", "twoHanded"]);
 
+export const raritySchema = z.enum([
+  "trash",
+  "common",
+  "uncommon",
+  "rare",
+  "epic",
+  "legendary",
+  "mythical",
+  "ephemeral",
+  "primal",
+  "divine",
+  "infernal",
+  "cursed"
+]);
+
 export const weaponSchema = z
   .object({
     id: idSchema,
     name: nameSchema,
     description: descriptionSchema.optional(),
+    rarity: raritySchema,
+    icon: z.string().min(1).optional(),
     type: z.literal("weapon"),
     handedness: weaponHandednessSchema,
     class: z.string(),
