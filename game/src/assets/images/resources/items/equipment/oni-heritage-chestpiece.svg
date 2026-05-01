@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Heavy work harness -->
+  <path d="M16 20 Q16 24 14 35 Q14 45 32 49 Q50 45 50 35 Q48 24 48 20 Q48 16 32 16 Q16 16 16 20 Z" fill="#8B4513" stroke="#5C2E0F" stroke-width="1.5"/>
+  <!-- Neck opening -->
+  <ellipse cx="32" cy="18" rx="6" ry="4" fill="#5C2E0F"/>
+  <!-- Heavy reinforced panels -->
+  <rect x="24" y="26" width="5" height="16" fill="#696969" stroke="#404040" stroke-width="0.5" opacity="0.7"/>
+  <rect x="35" y="26" width="5" height="16" fill="#696969" stroke="#404040" stroke-width="0.5" opacity="0.7"/>
+  <!-- Thick straps -->
+  <line x1="20" y1="22" x2="24" y2="35" stroke="#5C2E0F" stroke-width="1.5"/>
+  <line x1="44" y1="22" x2="40" y2="35" stroke="#5C2E0F" stroke-width="1.5"/>
+  <!-- Large rivets -->
+  <circle cx="28" cy="30" r="1.5" fill="#D4AF37"/>
+  <circle cx="36" cy="30" r="1.5" fill="#D4AF37"/>
+  <circle cx="28" cy="40" r="1.5" fill="#D4AF37"/>
+  <circle cx="36" cy="40" r="1.5" fill="#D4AF37"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Left bracer -->
+  <ellipse cx="22" cy="32" rx="6" ry="16" fill="#696969" stroke="#404040" stroke-width="1"/>
+  <!-- Right bracer -->
+  <ellipse cx="42" cy="32" rx="6" ry="16" fill="#696969" stroke="#404040" stroke-width="1"/>
+  <!-- Leather straps left -->
+  <rect x="20" y="20" width="4" height="24" fill="#8B7355" opacity="0.8"/>
+  <!-- Leather straps right -->
+  <rect x="40" y="20" width="4" height="24" fill="#8B7355" opacity="0.8"/>
+  <!-- Steel plates left -->
+  <line x1="18" y1="26" x2="26" y2="26" stroke="#A9A9A9" stroke-width="1.5"/>
+  <line x1="18" y1="32" x2="26" y2="32" stroke="#A9A9A9" stroke-width="1.5"/>
+  <line x1="18" y1="38" x2="26" y2="38" stroke="#A9A9A9" stroke-width="1.5"/>
+  <!-- Steel plates right -->
+  <line x1="38" y1="26" x2="46" y2="26" stroke="#A9A9A9" stroke-width="1.5"/>
+  <line x1="38" y1="32" x2="46" y2="32" stroke="#A9A9A9" stroke-width="1.5"/>
+  <line x1="38" y1="38" x2="46" y2="38" stroke="#A9A9A9" stroke-width="1.5"/>
+</svg>

@@ -11,6 +11,7 @@ const createPlayer = (): Player => ({
   name: "Quest Test Player",
   description: "A player used for quest tests.",
   race: "human",
+  raceId: "race_human",
   jobClass: "wanderer",
   progression: {
     level: 1,

@@ -1,0 +1,19 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder for Catfolk Warm Portrait 1 -->
+  <rect width="200" height="200" fill="#d4a574"/>
+  <circle cx="100" cy="80" r="35" fill="#c49050"/>
+  <!-- Ears -->
+  <path d="M 70 50 L 65 20 L 78 35 Z" fill="#b8805d"/>
+  <path d="M 130 50 L 135 20 L 122 35 Z" fill="#b8805d"/>
+  <!-- Eyes -->
+  <circle cx="88" cy="75" r="4" fill="#2a2a2a"/>
+  <circle cx="112" cy="75" r="4" fill="#2a2a2a"/>
+  <!-- Nose -->
+  <polygon points="100,85 97,92 103,92" fill="#a8744f"/>
+  <!-- Mouth -->
+  <path d="M 100 92 Q 85 100 80 110" stroke="#a8744f" stroke-width="2" fill="none"/>
+  <path d="M 100 92 Q 115 100 120 110" stroke="#a8744f" stroke-width="2" fill="none"/>
+  <!-- Body -->
+  <ellipse cx="100" cy="140" rx="30" ry="40" fill="#c49050"/>
+  <text x="100" y="190" text-anchor="middle" font-size="12" fill="#666">Catfolk Placeholder</text>
+</svg>

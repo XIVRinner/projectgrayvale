@@ -7,6 +7,7 @@ const createPlayer = (): Player => ({
   name: "Delta Test Player",
   description: "A player used for delta application tests.",
   race: "human",
+  raceId: "race_human",
   jobClass: "wanderer",
   progression: {
     level: 1,
@@ -29,6 +30,9 @@ const createNpc = (): NPC => ({
   id: "npc_1",
   name: "Mira",
   description: "A companion used for delta application tests.",
+  visual: {
+    default: "assets/npc/mira/default.png"
+  },
   type: "combat",
   skills: {
     swordsmanship: 3

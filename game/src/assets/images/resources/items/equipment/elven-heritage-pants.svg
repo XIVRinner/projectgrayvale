@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Left leg - light green -->
+  <path d="M24 16 L22 22 Q20 35 18 50 Q22 52 28 52 Q30 35 32 20 Z" fill="#3D7939" stroke="#2D5A2D" stroke-width="0.8"/>
+  <!-- Right leg - light green -->
+  <path d="M40 16 L42 22 Q44 35 46 50 Q42 52 36 52 Q34 35 32 20 Z" fill="#3D7939" stroke="#2D5A2D" stroke-width="0.8"/>
+  <!-- Waist/hip -->
+  <ellipse cx="32" cy="18" rx="8" ry="4" fill="#2D5A2D"/>
+  <!-- Forest leaf patterns -->
+  <line x1="24" y1="28" x2="22" y2="38" stroke="#5CB85C" stroke-width="0.8" opacity="0.6"/>
+  <line x1="40" y1="28" x2="42" y2="38" stroke="#5CB85C" stroke-width="0.8" opacity="0.6"/>
+  <!-- Quiet movement fit -->
+  <path d="M28 35 Q32 34 32 38 Q32 34 36 35" fill="none" stroke="#5CB85C" stroke-width="0.5" opacity="0.4"/>
+</svg>

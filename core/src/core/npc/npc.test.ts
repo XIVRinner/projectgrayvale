@@ -10,6 +10,13 @@ const createCombatNPC = (): NPC => ({
   id: "npc_combat_1",
   name: "Lysa",
   description: "A disciplined frontline adventurer.",
+  visual: {
+    default: "assets/npc/lysa/default.png",
+    dialogueHead: "assets/npc/lysa/dialogue.png",
+    eventImages: {
+      trustUp: "assets/npc/lysa/trust-up.png"
+    }
+  },
   type: "combat",
   skills: {
     swordsmanship: 4
@@ -31,13 +38,18 @@ const createCombatNPC = (): NPC => ({
     mainHand: "iron_sword",
     offHand: "tower_shield",
     head: "iron_helm"
-  }
+  },
+  raceId: "race_human",
+  talents: ["talent_vanguard"]
 });
 
 const createNonCombatNPC = (): NPC => ({
   id: "npc_noncombat_1",
   name: "Mira",
   description: "A traveling quartermaster with a sharp memory.",
+  visual: {
+    default: "assets/npc/mira/default.png"
+  },
   type: "noncombat",
   skills: {
     bargaining: 5
@@ -53,7 +65,8 @@ const createNonCombatNPC = (): NPC => ({
   trust: 90,
   trustCap: 100,
   starLevel: 1,
-  bonus: "shop_discount"
+  bonus: "shop_discount",
+  talents: ["talent_tradecraft"]
 });
 
 describe("npc structure", () => {
@@ -77,6 +90,9 @@ describe("npc structure", () => {
     const npc: NPC = {
       id: "npc_combat_2",
       name: "Rook",
+      visual: {
+        default: "assets/npc/rook/default.png"
+      },
       type: "combat",
       skills: {},
       attributes: {},
@@ -126,6 +142,16 @@ describe("npc structure", () => {
     expect(() => assertValidNPC(npc)).toThrow(
       "equipment is only valid for combat NPCs."
     );
+  });
+});
+
+describe("npc visual structure", () => {
+  it("supports default, dialogue, and event image references", () => {
+    const npc = createCombatNPC();
+
+    expect(npc.visual.default).toBe("assets/npc/lysa/default.png");
+    expect(npc.visual.dialogueHead).toBe("assets/npc/lysa/dialogue.png");
+    expect(npc.visual.eventImages?.trustUp).toBe("assets/npc/lysa/trust-up.png");
   });
 });
 

@@ -5,6 +5,7 @@ export const samplePlayer: Player = {
   name: "Lyra Dawnmere",
   description: "A novice adventurer beginning her first contract in Grayvale.",
   race: "human",
+  raceId: "race_human",
   jobClass: "wanderer",
   progression: {
     level: 3,

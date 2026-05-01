@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Main body - green leaf colors -->
+  <path d="M20 20 Q20 25 18 35 Q18 44 32 47 Q46 44 46 35 Q44 25 44 20 Q44 16 32 16 Q20 16 20 20 Z" fill="#3D7939" stroke="#2D5A2D" stroke-width="1"/>
+  <!-- Neck opening -->
+  <ellipse cx="32" cy="18" rx="5" ry="3" fill="#2D5A2D"/>
+  <!-- Leaf patterns -->
+  <path d="M26 28 Q24 32 26 36" fill="none" stroke="#5CB85C" stroke-width="1.2" opacity="0.7"/>
+  <path d="M38 28 Q40 32 38 36" fill="none" stroke="#5CB85C" stroke-width="1.2" opacity="0.7"/>
+  <!-- Center leaf -->
+  <path d="M30 30 Q32 26 34 30 Q32 32 30 30" fill="#6BC76B" opacity="0.6"/>
+  <!-- Reinforced stitching -->
+  <line x1="28" y1="25" x2="36" y2="25" stroke="#2D5A2D" stroke-width="0.5" opacity="0.6"/>
+</svg>

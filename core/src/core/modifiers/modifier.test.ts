@@ -14,6 +14,7 @@ const createPlayer = (): Player => ({
   name: "Modifier Test Player",
   description: "A player used for modifier pipeline tests.",
   race: "human",
+  raceId: "race_human",
   jobClass: "wanderer",
   progression: {
     level: 1,

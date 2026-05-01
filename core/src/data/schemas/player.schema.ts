@@ -11,11 +11,20 @@ export const playerSchema = z
     name: nameSchema,
     description: descriptionSchema.optional(),
     race: z.string(),
+    raceId: z.string(),
     jobClass: z.string(),
     progression: experienceProgressionSchema,
     adventurerRank: z.number(),
     attributes: stringNumberRecordSchema,
     skills: stringNumberRecordSchema,
+    selectedAppearance: z
+      .object({
+        variant: z.enum(["warm", "cool", "exotic"]),
+        imageIndex: z.number().int()
+      })
+      .strict()
+      .optional(),
+    talents: z.array(z.string()).optional(),
     questLog: z
       .object({
         quests: z.record(

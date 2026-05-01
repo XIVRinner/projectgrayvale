@@ -6,11 +6,17 @@ import type { QuestLog } from "../quest";
 
 export interface Player extends Entity, Named {
   race: string;
+  raceId: string;
   jobClass: string;
   progression: ExperienceProgression;
   adventurerRank: number;
   attributes: Record<string, number>;
   skills: Record<string, number>;
+  selectedAppearance?: {
+    variant: "warm" | "cool" | "exotic";
+    imageIndex: number;
+  };
+  talents?: string[];
   questLog?: QuestLog;
   inventory: Inventory;
   equippedItems: EquippedItems;

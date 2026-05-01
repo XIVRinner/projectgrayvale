@@ -5,3 +5,5 @@ export * from "./modifiers";
 export * from "./models";
 export * from "./npc";
 export * from "./quest";
+export * from "./race";
+export * from "./talent";

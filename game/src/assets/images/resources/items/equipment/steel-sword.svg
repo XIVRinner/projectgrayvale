@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Handle -->
+  <rect x="26" y="38" width="12" height="18" fill="#8B7355" rx="2"/>
+  <!-- Crossguard -->
+  <rect x="20" y="36" width="24" height="3" fill="#696969" rx="1"/>
+  <!-- Blade full -->
+  <path d="M32 36 L24 8 L32 2 L40 8 Z" fill="#696969" stroke="#404040" stroke-width="1"/>
+  <!-- Blade steel shine -->
+  <path d="M30 12 L32 3 L34 12" fill="none" stroke="#A9A9A9" stroke-width="2" opacity="0.8"/>
+  <!-- Dark steel edge -->
+  <line x1="32" y1="3" x2="32" y2="34" stroke="#2F4F4F" stroke-width="0.8" opacity="0.6"/>
+</svg>

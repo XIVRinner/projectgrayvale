@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Shield body -->
+  <ellipse cx="32" cy="32" rx="20" ry="22" fill="#A0522D" stroke="#654321" stroke-width="1.5"/>
+  <!-- Metal boss center -->
+  <circle cx="32" cy="28" r="6" fill="#696969" stroke="#404040" stroke-width="1"/>
+  <!-- Rivet holes -->
+  <circle cx="32" cy="20" r="1.5" fill="#2C2C2C"/>
+  <circle cx="22" cy="28" r="1.2" fill="#2C2C2C"/>
+  <circle cx="42" cy="28" r="1.2" fill="#2C2C2C"/>
+  <circle cx="28" cy="42" r="1.2" fill="#2C2C2C"/>
+  <circle cx="36" cy="42" r="1.2" fill="#2C2C2C"/>
+  <!-- Damage marks -->
+  <line x1="20" y1="32" x2="24" y2="38" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+</svg>

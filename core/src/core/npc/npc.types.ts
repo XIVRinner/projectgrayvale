@@ -1,5 +1,6 @@
 import type { Entity, Named } from "../models/base";
 import type { EquippedItems } from "../models/equipment";
+import type { NPCVisual } from "./npc.visual";
 
 export type NPCType = "combat" | "noncombat";
 
@@ -13,6 +14,7 @@ export interface NPCProgression {
 export type NPCEquipment = EquippedItems;
 
 export interface NPC extends Entity, Named {
+  visual: NPCVisual;
   type: NPCType;
   skills: Record<string, number>;
   attributes: Record<string, number>;
@@ -25,6 +27,8 @@ export interface NPC extends Entity, Named {
   availableRoles?: NPCRole[];
   equipment?: NPCEquipment;
   bonus?: string;
+  raceId?: string;
+  talents?: string[];
 }
 
 export type CombatNPC = NPC & {

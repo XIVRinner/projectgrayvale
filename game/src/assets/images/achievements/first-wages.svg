@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">First Wages</title>
+  <desc id="desc">A warm village payment pouch resting on a workbench.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2b1d12"/>
+      <stop offset="100%" stop-color="#6d4321"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd978"/>
+      <stop offset="100%" stop-color="#e59d2f"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#bg)"/>
+  <circle cx="496" cy="142" r="84" fill="#f7b14a" fill-opacity="0.18"/>
+  <rect x="118" y="360" width="404" height="118" rx="24" fill="#2f2218"/>
+  <path d="M226 236c0-42 42-78 94-78s94 36 94 78v48c0 27-17 52-42 68l-28 18-28-18c-25-16-42-41-42-68z" fill="#7e5331"/>
+  <path d="M244 222h152" stroke="#d9b08d" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="264" cy="404" r="54" fill="url(#coin)"/>
+  <circle cx="320" cy="420" r="54" fill="url(#coin)"/>
+  <circle cx="382" cy="404" r="54" fill="url(#coin)"/>
+  <text x="320" y="555" fill="#f3dec2" font-family="Georgia, serif" font-size="44" text-anchor="middle">FIRST WAGES</text>
+</svg>

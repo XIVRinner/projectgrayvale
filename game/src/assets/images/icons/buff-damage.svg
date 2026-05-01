@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bonus damage">
+  <circle cx="32" cy="32" r="26" fill="#2a1208" stroke="#ff9a52" stroke-width="3"/>
+  <path d="M32 12l6 14 14 6-14 6-6 14-6-14-14-6 14-6 6-14z" fill="#ffd88c" stroke="#fff1cf" stroke-width="1.5"/>
+</svg>

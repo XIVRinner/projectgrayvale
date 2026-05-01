@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">Love Is In The Air</title>
+  <desc id="desc">A warm heart over a blacksmith anvil, symbolizing affection born at the forge.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a0f15"/>
+      <stop offset="100%" stop-color="#4f1f2a"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8ea3"/>
+      <stop offset="100%" stop-color="#ff4b6e"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d7dde8"/>
+      <stop offset="100%" stop-color="#8c97ab"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="url(#bg)"/>
+  <circle cx="500" cy="124" r="92" fill="#ff6c86" fill-opacity="0.15"/>
+  <circle cx="144" cy="520" r="88" fill="#f7a7b8" fill-opacity="0.12"/>
+
+  <path d="M208 430h228l-14 56H222z" fill="#2a2f3f"/>
+  <path d="M236 258h196v84h-52l-30 58h-96v-58h-18z" fill="url(#steel)"/>
+  <rect x="286" y="214" width="96" height="38" rx="14" fill="#59637a"/>
+
+  <path d="M320 206c-15-26-52-40-80-15-24 21-24 59 0 86l80 73 80-73c24-27 24-65 0-86-28-25-65-11-80 15z" fill="url(#heart)"/>
+  <path d="M320 219c-10-17-35-27-53-11-16 14-16 40 0 58l53 48 53-48c16-18 16-44 0-58-18-16-43-6-53 11z" fill="#ffd4dc" fill-opacity="0.35"/>
+
+  <text x="320" y="554" fill="#ffe0e7" font-family="Georgia, serif" font-size="38" text-anchor="middle">LOVE IS IN THE AIR</text>
+</svg>

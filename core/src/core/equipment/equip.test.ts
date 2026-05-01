@@ -8,6 +8,7 @@ const createPlayer = (): Player => ({
   name: "Test Player",
   description: "Equipment test player",
   race: "human",
+  raceId: "race_human",
   jobClass: "wanderer",
   progression: {
     level: 1,

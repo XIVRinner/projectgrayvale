@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tank shield">
+  <defs>
+    <linearGradient id="shieldBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9fd3ff"/>
+      <stop offset="100%" stop-color="#2b6dff"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 6 52 14v16c0 13.5-8.4 22.7-20 28C20.4 52.7 12 43.5 12 30V14L32 6Z" fill="url(#shieldBlue)" stroke="#d9efff" stroke-width="3"/>
+  <path d="M32 16v28" stroke="#eaf6ff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M20 28h24" stroke="#eaf6ff" stroke-width="4" stroke-linecap="round"/>
+</svg>

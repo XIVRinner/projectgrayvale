@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Dark wrap body -->
+  <path d="M20 20 Q20 24 18 34 Q18 43 32 46 Q46 43 46 34 Q44 24 44 20 Q44 17 32 17 Q20 17 20 20 Z" fill="#1a1a2e" stroke="#16213e" stroke-width="1"/>
+  <!-- Neck opening -->
+  <ellipse cx="32" cy="19" rx="5" ry="3" fill="#16213e"/>
+  <!-- Shoulder reinforcement -->
+  <path d="M22 24 Q24 20 28 22" fill="none" stroke="#2F4F4F" stroke-width="1.5" opacity="0.7"/>
+  <path d="M42 24 Q40 20 36 22" fill="none" stroke="#2F4F4F" stroke-width="1.5" opacity="0.7"/>
+  <!-- Rib reinforcement -->
+  <line x1="28" y1="28" x2="36" y2="28" stroke="#2F4F4F" stroke-width="1" opacity="0.6"/>
+  <line x1="26" y1="34" x2="38" y2="34" stroke="#2F4F4F" stroke-width="1" opacity="0.6"/>
+  <line x1="28" y1="40" x2="36" y2="40" stroke="#2F4F4F" stroke-width="1" opacity="0.6"/>
+  <!-- Purple/dark accent -->
+  <circle cx="32" cy="32" r="2.5" fill="#4B0082" opacity="0.5"/>
+</svg>

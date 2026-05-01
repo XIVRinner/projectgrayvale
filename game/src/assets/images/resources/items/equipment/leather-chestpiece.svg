@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Neck opening -->
+  <ellipse cx="32" cy="15" rx="6" ry="5" fill="#8B4513"/>
+  <!-- Main body -->
+  <path d="M20 18 Q20 25 18 35 Q18 45 32 48 Q46 45 46 35 Q44 25 44 18 Q44 15 32 15 Q20 15 20 18 Z" fill="#A0522D" stroke="#654321" stroke-width="1"/>
+  <!-- Leather stitching lines -->
+  <line x1="32" y1="18" x2="32" y2="45" stroke="#654321" stroke-width="0.5" opacity="0.6"/>
+  <line x1="24" y1="28" x2="40" y2="28" stroke="#654321" stroke-width="0.5" opacity="0.4"/>
+  <!-- Armor plates -->
+  <rect x="26" y="28" width="4" height="12" fill="#8B7355" opacity="0.7"/>
+  <rect x="34" y="28" width="4" height="12" fill="#8B7355" opacity="0.7"/>
+  <!-- Straps -->
+  <line x1="22" y1="25" x2="26" y2="35" stroke="#654321" stroke-width="1"/>
+  <line x1="42" y1="25" x2="38" y2="35" stroke="#654321" stroke-width="1"/>
+</svg>
