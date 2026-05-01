@@ -102,6 +102,114 @@ describe("applyDelta", () => {
         }
       });
     });
+
+    it("supports interaction-state button press deltas", () => {
+      const state = createState();
+
+      expect(
+        applyDeltas(state, [
+          {
+            type: "add",
+            target: "player",
+            path: ["interactionState", "totalButtonPresses"],
+            value: 1
+          },
+          {
+            type: "set",
+            target: "player",
+            path: ["interactionState", "lastButtonPress"],
+            value: {
+              actionId: "leave-chief-house",
+              actionKind: "sublocation-exit",
+              occurredAt: "2026-05-01T08:30:00.000Z",
+              locationId: "village-arkama",
+              sublocationId: "chief-house"
+            }
+          },
+          {
+            type: "set",
+            target: "player",
+            path: ["interactionState", "recentButtonPresses"],
+            value: [
+              {
+                actionId: "leave-chief-house",
+                actionKind: "sublocation-exit",
+                occurredAt: "2026-05-01T08:30:00.000Z",
+                locationId: "village-arkama",
+                sublocationId: "chief-house"
+              }
+            ]
+          }
+        ])
+      ).toEqual({
+        ...state,
+        player: {
+          ...state.player,
+          interactionState: {
+            totalButtonPresses: 1,
+            lastButtonPress: {
+              actionId: "leave-chief-house",
+              actionKind: "sublocation-exit",
+              occurredAt: "2026-05-01T08:30:00.000Z",
+              locationId: "village-arkama",
+              sublocationId: "chief-house"
+            },
+            recentButtonPresses: [
+              {
+                actionId: "leave-chief-house",
+                actionKind: "sublocation-exit",
+                occurredAt: "2026-05-01T08:30:00.000Z",
+                locationId: "village-arkama",
+                sublocationId: "chief-house"
+              }
+            ]
+          }
+        }
+      });
+    });
+
+    it("supports nested activity availability state", () => {
+      const state = createState();
+
+      expect(
+        applyDeltas(state, [
+          {
+            type: "set",
+            target: "player",
+            path: ["story", "currentChapter"],
+            value: 2
+          },
+          {
+            type: "set",
+            target: "player",
+            path: ["activityState", "availability", "recover", "status"],
+            value: "disabled"
+          },
+          {
+            type: "set",
+            target: "player",
+            path: ["activityState", "availability", "recover", "disabledReason"],
+            value: "You are still too injured to recover properly."
+          }
+        ])
+      ).toEqual({
+        ...state,
+        player: {
+          ...state.player,
+          story: {
+            currentChapter: 2
+          },
+          activityState: {
+            availability: {
+              recover: {
+                status: "disabled",
+                disabledReason: "You are still too injured to recover properly."
+              }
+            }
+          }
+        }
+      });
+    });
   });
 
   describe("npc updates", () => {

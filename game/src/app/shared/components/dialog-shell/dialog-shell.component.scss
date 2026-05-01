@@ -36,6 +36,20 @@
   max-block-size: 96dvh;
 }
 
+.gv-dialog-shell[data-width="dialogue"] {
+  inline-size: 80vw;
+  block-size: 80vh;
+  max-block-size: 80vh;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.gv-dialog-shell[data-width="dialogue"] .gv-dialog-shell__body {
+  min-block-size: 0;
+  block-size: 100%;
+  overflow: hidden;
+}
+
 .gv-dialog-shell[data-width="creator"] {
   inline-size: min(95vw, 100%);
   block-size: 95dvh;
@@ -67,6 +81,16 @@
   background:
     radial-gradient(circle at top, color-mix(in srgb, var(--gv-color-accent-deep-orange) 18%, transparent), transparent 38%),
     var(--gv-color-bg-surface);
+}
+
+.gv-dialog-shell[data-variant="game-dialogue"] {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-overlay-soft) 90%, transparent), transparent 34%),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--gv-color-accent-warm) 18%, transparent), transparent 32%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--gv-color-accent-cool) 12%, transparent), transparent 28%),
+    color-mix(in srgb, var(--gv-color-bg-primary) 90%, black 10%);
+  border-color: color-mix(in srgb, var(--gv-color-accent-warm) 18%, var(--gv-color-border-subtle));
+  box-shadow: 0 2rem 5rem color-mix(in srgb, var(--gv-color-bg-primary) 92%, transparent);
 }
 
 .gv-dialog-shell__header {

@@ -28,6 +28,7 @@ export type ShellActionTone =
   | "talk"
   | "quest"
   | "combat"
+  | "activity"
   | "travel"
   | "craft"
   | "trade";
@@ -35,6 +36,8 @@ export type ShellActionTone =
 export interface ShellActionChoice {
   readonly id: string;
   readonly label: string;
+  readonly disabled?: boolean;
+  readonly disabledReason?: string;
 }
 
 export interface ShellActionGroup {

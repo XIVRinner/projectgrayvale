@@ -1,4 +1,4 @@
-import { Component, input } from "@angular/core";
+import { Component, input, output } from "@angular/core";
 
 import { ShellActionGroup } from "../shell.types";
 
@@ -10,4 +10,5 @@ import { ShellActionGroup } from "../shell.types";
 })
 export class ShellActionPanelComponent {
   readonly groups = input.required<readonly ShellActionGroup[]>();
+  readonly actionSelected = output<string>();
 }

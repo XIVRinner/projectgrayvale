@@ -26,6 +26,7 @@
 [data-tone="talk"]   { --gv-action-color: var(--gv-color-accent); }
 [data-tone="quest"]  { --gv-action-color: var(--gv-color-success); }
 [data-tone="combat"] { --gv-action-color: var(--gv-color-danger); }
+[data-tone="activity"] { --gv-action-color: var(--gv-color-accent-warm); }
 [data-tone="travel"] { --gv-action-color: var(--gv-color-accent-cool); }
 [data-tone="craft"]  { --gv-action-color: var(--gv-color-accent-warm); }
 [data-tone="trade"]  { --gv-action-color: #c89b3c; }
@@ -88,9 +89,15 @@
     background var(--gv-anim-fast),
     color var(--gv-anim-fast);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--gv-action-color, var(--gv-color-accent)) 10%, transparent);
     color: var(--gv-action-color, var(--gv-color-accent));
+  }
+
+  &:disabled {
+    color: color-mix(in srgb, var(--gv-color-text-muted) 72%, white 28%);
+    cursor: not-allowed;
+    opacity: 0.72;
   }
 }
 
@@ -103,8 +110,12 @@
   flex-shrink: 0;
   opacity: 0.7;
 
-  .gv-action-panel__choice:hover & {
+  .gv-action-panel__choice:hover:not(:disabled) & {
     opacity: 1;
+  }
+
+  .gv-action-panel__choice:disabled & {
+    opacity: 0.4;
   }
 }
 

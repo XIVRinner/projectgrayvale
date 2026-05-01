@@ -1,0 +1,20 @@
+[
+  {
+    "id": "narrator",
+    "name": "Narrator",
+    "title": "Fading Consciousness",
+    "portraitPath": "assets/images/dialogue-heads/narrator.png"
+  },
+  {
+    "id": "village-chief",
+    "name": "Village Chief",
+    "title": "Chief of Arkama",
+    "portraitPath": "assets/images/dialogue-heads/village-chief.png"
+  },
+  {
+    "id": "player",
+    "name": "You",
+    "title": "Unknown Adventurer",
+    "portraitPath": "assets/images/player-avatar.svg"
+  }
+]

@@ -16,6 +16,9 @@
               type="button"
               class="gv-action-panel__choice"
               [attr.data-id]="choice.id"
+              [disabled]="choice.disabled ?? false"
+              [attr.title]="choice.disabledReason ?? choice.label"
+              (click)="actionSelected.emit(choice.id)"
             >
               <span class="gv-action-panel__choice-marker" aria-hidden="true"></span>
               <span class="gv-action-panel__choice-label">{{ choice.label }}</span>

@@ -17,33 +17,17 @@
     </aside>
 
     <section class="gv-shell__middle-stack">
-      <article class="gv-shell__panel gv-shell__feature-panel">
-        <router-outlet></router-outlet>
-      </article>
+      <article class="gv-shell__panel gv-shell__feature-panel" aria-hidden="true"></article>
 
       <article class="gv-shell__panel gv-shell__action-panel">
-        <gv-shell-action-panel [groups]="actionGroups()" />
+        <gv-shell-action-panel
+          [groups]="actionGroups()"
+          (actionSelected)="actionSelected.emit($event)"
+        />
       </article>
     </section>
 
-    <aside class="gv-shell__panel gv-shell__intel-panel">
-      <nav class="gv-shell__nav" aria-label="Primary">
-        @for (item of navItems(); track item.label) {
-          <a
-            [routerLink]="item.route"
-            routerLinkActive="is-active"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="gv-shell__nav-link"
-          >
-            <span class="gv-shell__nav-label">{{ item.label }}</span>
-          </a>
-        }
-      </nav>
-
-      <section class="gv-shell__ops-panel" aria-label="Operations">
-        <h2 class="gv-shell__panel-title">Operations</h2>
-      </section>
-    </aside>
+    <aside class="gv-shell__panel gv-shell__intel-panel" aria-hidden="true"></aside>
   </main>
 
   <gv-shell-footer [version]="version()" />
@@ -69,5 +53,11 @@
     [required]="isCharacterCreationRequired()"
     (closed)="characterCreationCloseRequested.emit()"
     (characterCreated)="characterCreated.emit()"
+  />
+
+  <gv-game-dialog
+    [session]="gameDialogSession()"
+    (advanceRequested)="gameDialogAdvanceRequested.emit()"
+    (choiceSelected)="gameDialogChoiceSelected.emit($event)"
   />
 </div>

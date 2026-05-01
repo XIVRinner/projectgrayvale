@@ -1,0 +1,10 @@
+[
+  {
+    "id": "recover",
+    "name": "Recover",
+    "description": "Steady your breathing and let the worst of the pain pass.",
+    "tags": ["recovery", "rest"],
+    "governingAttributes": ["vitality"],
+    "difficulty": 5
+  }
+]

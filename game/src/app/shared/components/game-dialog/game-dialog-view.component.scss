@@ -1,0 +1,284 @@
+:host {
+  display: block;
+  min-block-size: 0;
+  --gv-game-dialog-surface: color-mix(in srgb, var(--gv-color-bg-primary) 86%, var(--gv-color-bg-surface));
+  --gv-game-dialog-surface-raised: color-mix(in srgb, var(--gv-color-bg-raised) 88%, black 12%);
+  --gv-game-dialog-border: var(--gv-border-subtle);
+  --gv-game-dialog-accent: var(--gv-color-accent-warm);
+  --gv-game-dialog-narration: color-mix(in srgb, var(--gv-color-text-muted) 86%, white 14%);
+}
+
+/* ── Root: two-column split ──────────────────────────────────────── */
+
+.gv-game-dialog-view {
+  display: grid;
+  grid-template-columns: minmax(14rem, 2fr) minmax(0, 3fr);
+  min-block-size: 0;
+  block-size: 100%;
+  overflow: hidden;
+}
+
+/* ── Left panel: scene image ─────────────────────────────────────── */
+
+.gv-game-dialog-view__left {
+  position: relative;
+  border-inline-end: var(--gv-game-dialog-border);
+  background: var(--gv-game-dialog-surface-raised);
+  overflow: hidden;
+}
+
+.gv-game-dialog-view__scene {
+  margin: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.gv-game-dialog-view__scene img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.gv-game-dialog-view__scene-placeholder {
+  inline-size: 100%;
+  block-size: 100%;
+  background: linear-gradient(180deg, var(--gv-color-bg-raised), var(--gv-game-dialog-surface));
+}
+
+/* ── Right panel: chat window ────────────────────────────────────── */
+
+.gv-game-dialog-view__right {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  background: var(--gv-game-dialog-surface);
+}
+
+/* Scrollable chat log */
+.gv-game-dialog-view__chat {
+  flex: 1 1 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-md);
+  padding-block-end: var(--gv-space-sm);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Chat entries — salvaged from oldgame/dialogue-renderer.component.scss */
+.gv-game-dialog-view__entry {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--gv-space-sm);
+  inline-size: min(100%, 52rem);
+}
+
+/* Portrait box */
+.gv-game-dialog-view__entry-portrait-box {
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  border-radius: var(--gv-radius-md);
+  padding: 0.2rem;
+  background: linear-gradient(180deg, var(--gv-color-bg-raised), var(--gv-color-bg-primary));
+  border: var(--gv-game-dialog-border);
+  box-shadow: inset 0 0 0 1px var(--gv-color-overlay-soft);
+  flex-shrink: 0;
+}
+
+.gv-game-dialog-view__entry-avatar {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: calc(var(--gv-radius-md) - 2px);
+  border: 1px solid var(--gv-color-overlay-strong);
+  object-fit: cover;
+  object-position: center top;
+  background: var(--gv-color-bg-primary);
+  pointer-events: none;
+}
+
+.gv-game-dialog-view__entry-avatar--empty {
+  background: var(--gv-game-dialog-surface-raised);
+}
+
+/* Speech bubble */
+.gv-game-dialog-view__entry-bubble {
+  display: grid;
+  gap: var(--gv-space-xs);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  border-radius: var(--gv-radius-md) var(--gv-radius-md) var(--gv-radius-md) var(--gv-radius-sm);
+  background: linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
+    var(--gv-game-dialog-surface);
+  border: var(--gv-game-dialog-border);
+}
+
+/* Actor name label */
+.gv-game-dialog-view__entry-actor {
+  margin: 0;
+  font-size: var(--gv-font-size-sm);
+  font-family: var(--gv-font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gv-color-accent-warm);
+  display: flex;
+  align-items: baseline;
+  gap: var(--gv-space-sm);
+  flex-wrap: wrap;
+}
+
+.gv-game-dialog-view__entry-actor-title {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  letter-spacing: 0.06em;
+}
+
+.gv-game-dialog-view__entry-text {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  line-height: 1.56;
+}
+
+/* Past entries: dimmed */
+.gv-game-dialog-view__entry:not(.gv-game-dialog-view__entry--current) .gv-game-dialog-view__entry-bubble {
+  opacity: 0.6;
+}
+
+/* ── Player: flip layout to the right ────────────────────────────── */
+
+.gv-game-dialog-view__entry[data-speaker-role="player"] {
+  grid-template-columns: minmax(0, 1fr) 4.5rem;
+  margin-inline-start: auto;
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="player"] .gv-game-dialog-view__entry-bubble {
+  grid-column: 1;
+  grid-row: 1;
+  border-radius: var(--gv-radius-md) var(--gv-radius-md) var(--gv-radius-sm) var(--gv-radius-md);
+  background: linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
+    color-mix(in srgb, var(--gv-color-accent-cool) 12%, var(--gv-game-dialog-surface));
+  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 35%, var(--gv-color-border-subtle));
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="player"] .gv-game-dialog-view__entry-portrait-box {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="player"] .gv-game-dialog-view__entry-actor {
+  color: var(--gv-color-accent-cool);
+  justify-content: flex-end;
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="player"] .gv-game-dialog-view__entry-text {
+  text-align: right;
+}
+
+/* ── Narrator: portrait left, amber-tinted bubble ────────────────── */
+
+.gv-game-dialog-view__entry[data-speaker-role="narrator"] {
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  margin-inline: auto;
+  inline-size: min(100%, 52rem);
+  text-align: left;
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="narrator"] .gv-game-dialog-view__entry-bubble {
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-accent) 12%, transparent), transparent),
+    color-mix(in srgb, var(--gv-color-accent) 6%, var(--gv-color-bg-raised));
+  border-color: color-mix(in srgb, var(--gv-color-accent-warm) 38%, var(--gv-color-border-subtle));
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="narrator"] .gv-game-dialog-view__entry-actor {
+  color: var(--gv-color-accent-yellow);
+  justify-content: flex-start;
+}
+
+.gv-game-dialog-view__entry[data-speaker-role="narrator"] .gv-game-dialog-view__entry-text {
+  color: var(--gv-game-dialog-narration);
+  font-style: italic;
+}
+
+/* ── Footer: choices / advance ───────────────────────────────────── */
+
+.gv-game-dialog-view__footer {
+  flex-shrink: 0;
+  padding: var(--gv-space-md);
+  border-block-start: var(--gv-game-dialog-border);
+  background: var(--gv-game-dialog-surface-raised);
+}
+
+.gv-game-dialog-view__choices,
+.gv-game-dialog-view__controls {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-game-dialog-view__choice,
+.gv-game-dialog-view__advance {
+  border: var(--gv-game-dialog-border);
+  border-radius: var(--gv-radius-sm);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
+    var(--gv-game-dialog-surface);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-md);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  text-align: left;
+  transition:
+    border-color var(--gv-anim-fast),
+    background var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
+
+.gv-game-dialog-view__choice:hover,
+.gv-game-dialog-view__advance:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gv-game-dialog-accent) 45%, var(--gv-color-border-subtle));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-game-dialog-accent) 14%, transparent), transparent),
+    var(--gv-game-dialog-surface);
+  transform: translateY(calc(var(--gv-space-xs) * -0.25));
+}
+
+.gv-game-dialog-view__choice--seen {
+  color: var(--gv-color-text-muted);
+  border-color: color-mix(in srgb, var(--gv-color-success) 25%, var(--gv-color-border-subtle));
+}
+
+.gv-game-dialog-view__choice-check {
+  display: inline-block;
+  margin-inline-end: var(--gv-space-xs);
+  color: var(--gv-color-success);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1;
+}
+
+.gv-game-dialog-view__advance {
+  justify-self: end;
+  min-inline-size: 10rem;
+}
+
+.gv-game-dialog-view__advance:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ── Responsive: stack on narrow viewports ───────────────────────── */
+
+@media (max-width: 48rem) {
+  .gv-game-dialog-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: 12rem 1fr;
+  }
+
+  .gv-game-dialog-view__scene img {
+    block-size: 12rem;
+  }
+}

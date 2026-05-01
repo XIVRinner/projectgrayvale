@@ -1,8 +1,8 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "node16",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "types": ["jest", "node"],
@@ -11,5 +11,5 @@
     "lib": ["ES2022", "DOM"]
   },
   "files": ["jest.setup.ts"],
-  "include": ["**/*.spec.ts", "**/*.d.ts"]
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts"]
 }

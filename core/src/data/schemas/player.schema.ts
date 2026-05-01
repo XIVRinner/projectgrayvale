@@ -13,6 +13,44 @@ export const playerDifficultySchema = z
   })
   .strict();
 
+export const buttonPressPayloadSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean()])
+);
+
+export const buttonPressRecordSchema = z
+  .object({
+    actionId: z.string(),
+    actionKind: z.string(),
+    occurredAt: z.string(),
+    locationId: z.string().optional(),
+    sublocationId: z.string().optional(),
+    payload: buttonPressPayloadSchema.optional()
+  })
+  .strict();
+
+export const playerInteractionStateSchema = z
+  .object({
+    totalButtonPresses: z.number().int(),
+    lastButtonPress: buttonPressRecordSchema.optional(),
+    recentButtonPresses: z.array(buttonPressRecordSchema).optional()
+  })
+  .strict();
+
+export const playerActivityAvailabilityEntrySchema = z
+  .object({
+    status: z.enum(["locked", "enabled", "disabled"]),
+    disabledReason: z.string().optional()
+  })
+  .strict();
+
+export const playerActivityStateSchema = z
+  .object({
+    availability: z.record(z.string(), playerActivityAvailabilityEntrySchema),
+    activeActivityId: z.string().nullable().optional()
+  })
+  .strict();
+
 export const playerSchema = z
   .object({
     id: idSchema,
@@ -63,6 +101,8 @@ export const playerSchema = z
       })
       .strict()
       .optional(),
+    activityState: playerActivityStateSchema.optional(),
+    interactionState: playerInteractionStateSchema.optional(),
     inventory: inventorySchema,
     equippedItems: equippedItemsSchema
   })

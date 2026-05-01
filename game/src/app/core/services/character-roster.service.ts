@@ -1,7 +1,12 @@
 import { Injectable, computed, signal } from "@angular/core";
-import { type Player } from "@rinner/grayvale-core";
+import { applyDeltas, type Delta, type Player } from "@rinner/grayvale-core";
 
 import { safeParsePlayer } from "../validation/core-runtime-validation";
+import {
+  cloneSaveSlotWorldState,
+  DEFAULT_SAVE_SLOT_WORLD_STATE,
+  type SaveSlotWorldState
+} from "./world-state.models";
 
 const STORAGE_KEY = "grayvale:save-slots:v1";
 
@@ -10,6 +15,7 @@ export interface CharacterSaveSlot {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly player: Player;
+  readonly world: SaveSlotWorldState;
 }
 
 interface PersistedRoster {
@@ -36,6 +42,7 @@ export class CharacterRosterService {
   });
 
   readonly activeCharacter = computed(() => this.activeSlot()?.player ?? null);
+  readonly activeWorld = computed(() => this.activeSlot()?.world ?? null);
 
   constructor() {
     this.hydrate();
@@ -43,11 +50,13 @@ export class CharacterRosterService {
 
   createCharacter(player: Player): CharacterSaveSlot {
     const nowIso = new Date().toISOString();
+    const seededPlayer = seedNewCharacter(player);
     const nextSlot = {
       id: buildNextSlotId(this.slotsState()),
       createdAt: nowIso,
       updatedAt: nowIso,
-      player
+      player: seededPlayer,
+      world: cloneSaveSlotWorldState()
     } satisfies CharacterSaveSlot;
 
     this.slotsState.update((slots) => [...slots, nextSlot]);
@@ -120,6 +129,49 @@ export class CharacterRosterService {
     return roster.slots.length;
   }
 
+  applyActiveCharacterDeltas(deltas: readonly Delta[]): CharacterSaveSlot | null {
+    if (deltas.length === 0) {
+      return this.activeSlot();
+    }
+
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      player: applyDeltas(
+        {
+          player: slot.player,
+          npcs: {}
+        },
+        [...deltas]
+      ).player
+    }));
+  }
+
+  updateActiveWorld(world: SaveSlotWorldState): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      world: cloneSaveSlotWorldState(world)
+    }));
+  }
+
+  applyActiveCharacterAndWorldUpdate(
+    deltas: readonly Delta[],
+    world: SaveSlotWorldState
+  ): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      player: deltas.length
+        ? applyDeltas(
+            {
+              player: slot.player,
+              npcs: {}
+            },
+            [...deltas]
+          ).player
+        : slot.player,
+      world: cloneSaveSlotWorldState(world)
+    }));
+  }
+
   private hydrate(): void {
     try {
       const rawValue = localStorage.getItem(STORAGE_KEY);
@@ -143,6 +195,41 @@ export class CharacterRosterService {
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  private updateActiveSlot(
+    updater: (slot: CharacterSaveSlot) => CharacterSaveSlot
+  ): CharacterSaveSlot | null {
+    const activeSlotId = this.activeSlotIdState();
+
+    if (!activeSlotId) {
+      return null;
+    }
+
+    let nextActiveSlot: CharacterSaveSlot | null = null;
+
+    this.slotsState.update((slots) =>
+      slots.map((slot) => {
+        if (slot.id !== activeSlotId) {
+          return slot;
+        }
+
+        const updatedSlot = updater(slot);
+        nextActiveSlot = {
+          ...updatedSlot,
+          updatedAt: new Date().toISOString()
+        };
+
+        return nextActiveSlot;
+      })
+    );
+
+    if (!nextActiveSlot) {
+      return null;
+    }
+
+    this.persist();
+    return nextActiveSlot;
   }
 }
 
@@ -181,7 +268,7 @@ function parseSlot(raw: unknown, index: number): CharacterSaveSlot {
   const updatedAt = ensureString(record["updatedAt"], `slots[${index}].updatedAt`);
   const playerResult = safeParsePlayer(record["player"]);
 
-  if (!playerResult.success) {
+  if (playerResult.success === false) {
     throw new Error(
       `slots[${index}].player failed validation: ${playerResult.error}`
     );
@@ -191,7 +278,25 @@ function parseSlot(raw: unknown, index: number): CharacterSaveSlot {
     id,
     createdAt,
     updatedAt,
-    player: playerResult.data
+    player: playerResult.data,
+    world: parseWorldState(record["world"], `slots[${index}].world`)
+  };
+}
+
+function parseWorldState(raw: unknown, label: string): SaveSlotWorldState {
+  if (raw === undefined) {
+    return cloneSaveSlotWorldState(DEFAULT_SAVE_SLOT_WORLD_STATE);
+  }
+
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error(`${label} must be an object.`);
+  }
+
+  const record = raw as Record<string, unknown>;
+
+  return {
+    currentLocation: ensureString(record["currentLocation"], `${label}.currentLocation`),
+    sublocations: ensureStringArray(record["sublocations"], `${label}.sublocations`)
   };
 }
 
@@ -201,6 +306,14 @@ function ensureString(raw: unknown, label: string): string {
   }
 
   return raw;
+}
+
+function ensureStringArray(raw: unknown, label: string): string[] {
+  if (!Array.isArray(raw)) {
+    throw new Error(`${label} must be an array.`);
+  }
+
+  return raw.map((entry, index) => ensureString(entry, `${label}[${index}]`));
 }
 
 function buildNextSlotId(slots: readonly CharacterSaveSlot[]): string {
@@ -215,4 +328,21 @@ function buildNextSlotId(slots: readonly CharacterSaveSlot[]): string {
   }, 0);
 
   return `slot_${maxSlotNumber + 1}`;
+}
+
+function seedNewCharacter(player: Player): Player {
+  return {
+    ...player,
+    story: player.story ?? {
+      currentArcId: "prologue",
+      currentChapter: 1
+    },
+    activityState: {
+      availability: {
+        ...(player.activityState?.availability ?? {})
+      },
+      activeActivityId:
+        player.activityState?.activeActivityId ?? null
+    }
+  };
 }

@@ -1,4 +1,6 @@
 import type {
+  PlayerActivityAvailabilityEntry,
+  ButtonPressRecord,
   Modifier,
   Player,
   PlayerDifficultyMode,
@@ -42,6 +44,8 @@ function parsePlayer(raw: unknown): Player {
   const talents = parseStringArray(record["talents"], "player.talents");
   const questLog = parseQuestLog(record["questLog"]);
   const story = parseStory(record["story"]);
+  const activityState = parseActivityState(record["activityState"]);
+  const interactionState = parseInteractionState(record["interactionState"]);
   const difficulty = parseDifficulty(record["difficulty"]);
 
   return {
@@ -60,6 +64,8 @@ function parsePlayer(raw: unknown): Player {
     talents,
     questLog,
     story,
+    activityState,
+    interactionState,
     inventory: parseInventory(record["inventory"]),
     equippedItems: parseEquippedItems(record["equippedItems"])
   };
@@ -212,6 +218,57 @@ function parseInventory(raw: unknown): Player["inventory"] {
   };
 }
 
+function parseActivityState(raw: unknown): Player["activityState"] {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const record = ensureRecord(raw, "player.activityState");
+  const availabilityRecord = ensureRecord(
+    record["availability"],
+    "player.activityState.availability"
+  );
+  const availability: Record<string, PlayerActivityAvailabilityEntry> = {};
+
+  for (const [activityId, value] of Object.entries(availabilityRecord)) {
+    availability[activityId] = parseActivityAvailabilityEntry(
+      value,
+      `player.activityState.availability.${activityId}`
+    );
+  }
+
+  return {
+    availability,
+    activeActivityId: parseNullableString(
+      record["activeActivityId"],
+      "player.activityState.activeActivityId"
+    )
+  };
+}
+
+function parseInteractionState(raw: unknown): Player["interactionState"] {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const record = ensureRecord(raw, "player.interactionState");
+
+  return {
+    totalButtonPresses: ensureNumber(
+      record["totalButtonPresses"],
+      "player.interactionState.totalButtonPresses"
+    ),
+    lastButtonPress: parseButtonPressRecord(
+      record["lastButtonPress"],
+      "player.interactionState.lastButtonPress"
+    ),
+    recentButtonPresses: parseButtonPressRecordArray(
+      record["recentButtonPresses"],
+      "player.interactionState.recentButtonPresses"
+    )
+  };
+}
+
 function parseEquippedItems(raw: unknown): Player["equippedItems"] {
   const record = ensureRecord(raw, "player.equippedItems");
   const result: Player["equippedItems"] = {};
@@ -229,6 +286,63 @@ function parseEquippedItems(raw: unknown): Player["equippedItems"] {
   return result;
 }
 
+function parseButtonPressRecord(
+  raw: unknown,
+  label: string
+): ButtonPressRecord | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const record = ensureRecord(raw, label);
+
+  return {
+    actionId: ensureString(record["actionId"], `${label}.actionId`),
+    actionKind: ensureString(record["actionKind"], `${label}.actionKind`),
+    occurredAt: ensureString(record["occurredAt"], `${label}.occurredAt`),
+    locationId: parseOptionalString(record["locationId"], `${label}.locationId`),
+    sublocationId: parseOptionalString(record["sublocationId"], `${label}.sublocationId`),
+    payload: parseButtonPressPayload(record["payload"], `${label}.payload`)
+  };
+}
+
+function parseButtonPressRecordArray(
+  raw: unknown,
+  label: string
+): ButtonPressRecord[] | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(raw)) {
+    throw new Error(`${label} must be an array.`);
+  }
+
+  return raw.map((entry, index) => parseButtonPressRecord(entry, `${label}[${index}]`)!);
+}
+
+function parseButtonPressPayload(
+  raw: unknown,
+  label: string
+): Record<string, string | number | boolean> | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const record = ensureRecord(raw, label);
+  const result: Record<string, string | number | boolean> = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+      throw new Error(`${label}.${key} must be a string, number, or boolean.`);
+    }
+
+    result[key] = value;
+  }
+
+  return result;
+}
+
 function parseNumberRecord(raw: unknown, label: string): Record<string, number> {
   const record = ensureRecord(raw, label);
   const result: Record<string, number> = {};
@@ -238,6 +352,27 @@ function parseNumberRecord(raw: unknown, label: string): Record<string, number> 
   }
 
   return result;
+}
+
+function parseActivityAvailabilityEntry(
+  raw: unknown,
+  label: string
+): PlayerActivityAvailabilityEntry {
+  const record = ensureRecord(raw, label);
+  const status = ensureString(record["status"], `${label}.status`);
+
+  if (
+    status !== "locked" &&
+    status !== "enabled" &&
+    status !== "disabled"
+  ) {
+    throw new Error(`${label}.status must be locked, enabled, or disabled.`);
+  }
+
+  return {
+    status,
+    disabledReason: parseOptionalString(record["disabledReason"], `${label}.disabledReason`)
+  };
 }
 
 function parseStringArray(raw: unknown, label: string): string[] | undefined {
@@ -267,6 +402,18 @@ function parseNumberArray(raw: unknown, label: string): number[] | undefined {
 function parseOptionalString(raw: unknown, label: string): string | undefined {
   if (raw === undefined) {
     return undefined;
+  }
+
+  return ensureString(raw, label);
+}
+
+function parseNullableString(raw: unknown, label: string): string | null | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  if (raw === null) {
+    return null;
   }
 
   return ensureString(raw, label);

@@ -1,6 +1,7 @@
 import { Component, computed, input, output } from "@angular/core";
-import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 
+import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
+import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
 import { ShellFooterComponent } from "./shell-footer.component";
 import { ShellCharacterPanelComponent } from "./sub-pieces/shell-character-panel.component";
 import { ShellCharacterCreationDialogComponent } from "./sub-pieces/shell-character-creation-dialog.component";
@@ -21,9 +22,7 @@ import {
 @Component({
   selector: "gv-shell-view",
   imports: [
-    RouterLink,
-    RouterLinkActive,
-    RouterOutlet,
+    GameDialogComponent,
     ShellCharacterPanelComponent,
     ShellCharacterCreationDialogComponent,
     ShellFooterComponent,
@@ -50,6 +49,7 @@ export class ShellViewComponent {
   readonly isSaveManagerOpen = input.required<boolean>();
   readonly transferPayload = input.required<string>();
   readonly transferStatusMessage = input<string | null>(null);
+  readonly gameDialogSession = input<GameDialogSessionView | null>(null);
   readonly version = input.required<string>();
 
   readonly characterCreationOpenRequested = output<void>();
@@ -64,6 +64,9 @@ export class ShellViewComponent {
   readonly saveImportRequested = output<void>();
   readonly saveResetRequested = output<void>();
   readonly saveTransferPayloadChanged = output<string>();
+  readonly actionSelected = output<string>();
+  readonly gameDialogAdvanceRequested = output<void>();
+  readonly gameDialogChoiceSelected = output<number>();
 
   protected readonly isCommandCenter = computed(
     () => this.layoutPreset() === "command-center"

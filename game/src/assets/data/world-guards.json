@@ -1,0 +1,16 @@
+{
+  "guards": [
+    {
+      "type": "player_level_at_least",
+      "failureMessageTemplate": "Reach level {minimumLevel} before traveling there."
+    },
+    {
+      "type": "adventurer_rank_at_least",
+      "failureMessageTemplate": "Reach adventurer rank {minimumRank} before traveling there."
+    },
+    {
+      "type": "story_chapter_at_least",
+      "failureMessageTemplate": "Advance the story to chapter {minimumChapter} before traveling there."
+    }
+  ]
+}

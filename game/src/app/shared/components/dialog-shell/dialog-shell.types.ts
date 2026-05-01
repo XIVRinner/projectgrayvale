@@ -1,1 +1,5 @@
-export type DialogShellVariant = "character-system" | "reference" | "alert";
+export type DialogShellVariant =
+  | "character-system"
+  | "reference"
+  | "alert"
+  | "game-dialogue";

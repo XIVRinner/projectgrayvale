@@ -1,0 +1,83 @@
+<section class="gv-game-dialog-view" aria-label="Game dialogue">
+  <div class="gv-game-dialog-view__left">
+    @if (sceneImagePath(); as path) {
+      <figure class="gv-game-dialog-view__scene">
+        <img [src]="path" alt="" />
+      </figure>
+    } @else {
+      <div class="gv-game-dialog-view__scene-placeholder"></div>
+    }
+  </div>
+
+  <div class="gv-game-dialog-view__right">
+    <div class="gv-game-dialog-view__chat" #chatViewport aria-label="Dialogue transcript">
+      @for (entry of transcript(); track entry.id; let isLast = $last) {
+        <article
+          class="gv-game-dialog-view__entry"
+          [class.gv-game-dialog-view__entry--current]="isLast"
+          [attr.data-kind]="entry.kind"
+          [attr.data-speaker-role]="speakerRole(entry)"
+        >
+          <div class="gv-game-dialog-view__entry-portrait-box" aria-hidden="true">
+            @if (entry.kind === "say" && entry.actor?.portraitPath; as src) {
+              <img
+                class="gv-game-dialog-view__entry-avatar"
+                [src]="src"
+                [alt]="entry.actor!.name"
+                loading="lazy"
+              />
+            } @else {
+              <div class="gv-game-dialog-view__entry-avatar gv-game-dialog-view__entry-avatar--empty"></div>
+            }
+          </div>
+
+          <div class="gv-game-dialog-view__entry-bubble">
+            @if (entry.kind === "say" && entry.actor; as actor) {
+              <p class="gv-game-dialog-view__entry-actor">
+                {{ actor.name }}
+                @if (isLast && actor.title; as title) {
+                  <span class="gv-game-dialog-view__entry-actor-title">{{ title }}</span>
+                }
+              </p>
+            } @else if (entry.kind === "narration") {
+              <p class="gv-game-dialog-view__entry-actor">Narrator</p>
+            }
+            <p class="gv-game-dialog-view__entry-text">{{ entry.text }}</p>
+          </div>
+        </article>
+      }
+    </div>
+
+    <footer class="gv-game-dialog-view__footer">
+      @if (choices().length > 0) {
+        <nav class="gv-game-dialog-view__choices" aria-label="Dialogue choices">
+          @for (choice of choices(); track choice.index) {
+            <button
+              type="button"
+              class="gv-game-dialog-view__choice"
+              [class.gv-game-dialog-view__choice--seen]="choice.seen"
+              (click)="choiceSelected.emit(choice.index)"
+            >
+              @if (choice.seen) {
+                <span class="gv-game-dialog-view__choice-check" aria-label="Already chosen">✓</span>
+              }
+              {{ choice.label }}
+            </button>
+          }
+        </nav>
+      } @else {
+        <div class="gv-game-dialog-view__controls">
+          <button
+            type="button"
+            class="gv-game-dialog-view__advance"
+            aria-keyshortcuts="Enter Space"
+            [disabled]="!canAdvance()"
+            (click)="advanceRequested.emit()"
+          >
+            Continue
+          </button>
+        </div>
+      }
+    </footer>
+  </div>
+</section>

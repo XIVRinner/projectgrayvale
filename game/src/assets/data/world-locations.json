@@ -1,0 +1,44 @@
+{
+  "defaultState": {
+    "currentLocation": "village-arkama",
+    "sublocations": ["chief-house"]
+  },
+  "locations": [
+    {
+      "id": "village-arkama",
+      "label": "Arkama Village",
+      "subtitle": "The unofficial name the locals use for their nameless settlement.",
+      "sceneImagePath": "assets/images/location-backgrounds/village.png",
+      "availableNpcIds": ["village-chief"],
+      "sublocations": [
+        {
+          "id": "chief-house",
+          "label": "Chief House",
+          "subtitle": "A quiet recovery room under the village chief's roof.",
+          "sceneImagePath": "assets/images/location-backgrounds/prologue.png",
+          "availableNpcIds": ["village-chief"],
+          "isReturnable": true,
+          "entryActionLabel": "Return to chief house",
+          "exitActionLabel": "Leave chief house"
+        },
+        {
+          "id": "tavern",
+          "label": "Tavern",
+          "subtitle": "A warm common room built on gossip, soup, and stubborn planks.",
+          "sceneImagePath": "assets/images/location-backgrounds/tavern.png",
+          "availableNpcIds": ["bartender"],
+          "isReturnable": true,
+          "entryActionLabel": "Enter tavern",
+          "exitActionLabel": "Leave tavern"
+        }
+      ]
+    },
+    {
+      "id": "camp",
+      "label": "Camp",
+      "subtitle": "A placeholder camp route kept live for future flows and testing.",
+      "sceneImagePath": "assets/images/location-backgrounds/camp.png",
+      "availableNpcIds": []
+    }
+  ]
+}

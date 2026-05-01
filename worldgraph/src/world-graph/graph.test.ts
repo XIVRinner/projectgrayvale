@@ -1,6 +1,7 @@
 import {
   canMove,
   enterSublocation,
+  hasSublocation,
   leaveSublocation,
   move,
   type GuardContext,
@@ -188,6 +189,14 @@ describe("move", () => {
 });
 
 describe("sublocation helpers", () => {
+  it("detects authored sublocations by location id", () => {
+    const graph = createGraph();
+
+    expect(hasSublocation(graph, "town", "square")).toBe(true);
+    expect(hasSublocation(graph, "town", "grove")).toBe(false);
+    expect(hasSublocation(graph, "missing", "square")).toBe(false);
+  });
+
   it("pushes a sublocation immutably", () => {
     const state = createState();
     const result = enterSublocation(state, "inn_room");

@@ -1,5 +1,7 @@
 import {
   LocationRouter,
+  type GuardContext,
+  type GuardResolver,
   type LifecycleEvent,
   type WorldGraph,
   type WorldState
@@ -28,6 +30,37 @@ const createState = (): WorldState => ({
   currentLocation: "town",
   sublocations: []
 });
+
+const createContext = (): GuardContext => ({
+  player: {
+    id: "player_router_test",
+    name: "Router Test Player",
+    description: "A player used for router tests.",
+    raceId: "race_human",
+    jobClass: "wanderer",
+    progression: {
+      level: 1,
+      experience: 0
+    },
+    adventurerRank: 1,
+    attributes: {},
+    skills: {},
+    inventory: {
+      items: {}
+    },
+    equippedItems: {}
+  },
+  npcs: {},
+  world: createState()
+});
+
+const allowForestResolver: GuardResolver = (guard) => {
+  if (guard.type === "allow_forest") {
+    return true;
+  }
+
+  return false;
+};
 
 describe("LocationRouter", () => {
   it("emits a new state when movement is valid", () => {
@@ -103,6 +136,61 @@ describe("LocationRouter", () => {
     });
 
     subscription.unsubscribe();
+  });
+
+  it("respects guard context and resolver when provided", () => {
+    const guardedGraph: WorldGraph = {
+      locations: createGraph().locations,
+      edges: [
+        {
+          from: "town",
+          to: "forest",
+          guards: [
+            {
+              type: "allow_forest"
+            }
+          ]
+        }
+      ]
+    };
+    const router = new LocationRouter(guardedGraph, createState(), {
+      getGuardContext: () => createContext(),
+      guardResolver: allowForestResolver
+    });
+
+    router.moveTo("forest");
+
+    expect(router.getSnapshot()).toEqual({
+      currentLocation: "forest",
+      sublocations: []
+    });
+  });
+
+  it("blocks guarded movement when a resolver is missing", () => {
+    const guardedGraph: WorldGraph = {
+      locations: createGraph().locations,
+      edges: [
+        {
+          from: "town",
+          to: "forest",
+          guards: [
+            {
+              type: "allow_forest"
+            }
+          ]
+        }
+      ]
+    };
+    const router = new LocationRouter(guardedGraph, createState(), {
+      getGuardContext: () => createContext()
+    });
+
+    router.moveTo("forest");
+
+    expect(router.getSnapshot()).toEqual({
+      currentLocation: "town",
+      sublocations: []
+    });
   });
 
   it("emits updates for sublocation enter and leave", () => {

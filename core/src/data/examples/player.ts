@@ -37,6 +37,61 @@ export const samplePlayer: Player = {
       }
     }
   },
+  story: {
+    currentArcId: "prologue",
+    currentChapter: 2,
+    completedChapters: [1]
+  },
+  activityState: {
+    availability: {
+      recover: {
+        status: "disabled",
+        disabledReason: "You are still too injured to recover properly."
+      }
+    },
+    activeActivityId: null
+  },
+  interactionState: {
+    totalButtonPresses: 3,
+    lastButtonPress: {
+      actionId: "travel-to-camp",
+      actionKind: "world-travel",
+      occurredAt: "2026-05-01T08:00:00.000Z",
+      locationId: "village-arkama",
+      sublocationId: "chief-house",
+      payload: {
+        targetLocationId: "camp"
+      }
+    },
+    recentButtonPresses: [
+      {
+        actionId: "leave-chief-house",
+        actionKind: "sublocation-exit",
+        occurredAt: "2026-05-01T07:55:00.000Z",
+        locationId: "village-arkama",
+        sublocationId: "chief-house"
+      },
+      {
+        actionId: "enter-tavern",
+        actionKind: "sublocation-enter",
+        occurredAt: "2026-05-01T07:57:00.000Z",
+        locationId: "village-arkama",
+        payload: {
+          targetSublocationId: "tavern"
+        }
+      },
+      {
+        actionId: "travel-to-camp",
+        actionKind: "world-travel",
+        occurredAt: "2026-05-01T08:00:00.000Z",
+        locationId: "village-arkama",
+        sublocationId: "chief-house",
+        payload: {
+          targetLocationId: "camp"
+        }
+      }
+    ]
+  },
   inventory: {
     items: {
       weapon_dagger_rustleaf: 1,

@@ -6,8 +6,14 @@ import {
   leaveSublocation,
   move
 } from "../world-graph/graph.logic";
+import type { GuardContext, GuardResolver } from "../world-graph/guard.types";
 import type { WorldGraph, WorldState } from "../world-graph/graph.types";
 import type { LifecycleEvent } from "./lifecycle.types";
+
+export interface LocationRouterOptions {
+  getGuardContext?: () => GuardContext;
+  guardResolver?: GuardResolver;
+}
 
 export class LocationRouter {
   private readonly state$: BehaviorSubject<WorldState>;
@@ -15,7 +21,8 @@ export class LocationRouter {
 
   public constructor(
     private readonly graph: WorldGraph,
-    initialState: WorldState
+    initialState: WorldState,
+    private readonly options: LocationRouterOptions = {}
   ) {
     this.state$ = new BehaviorSubject<WorldState>({
       currentLocation: initialState.currentLocation,
@@ -38,8 +45,10 @@ export class LocationRouter {
 
   public moveTo(to: string): void {
     const state = this.state$.getValue();
+    const guardContext = this.options.getGuardContext?.();
+    const guardResolver = this.options.guardResolver;
 
-    if (!canMove(this.graph, state.currentLocation, to)) {
+    if (!canMove(this.graph, state.currentLocation, to, guardContext, guardResolver)) {
       return;
     }
 

@@ -1,0 +1,21 @@
+{
+  "locations": {
+    "village-arkama": {
+      "id": "village-arkama",
+      "sublocations": ["chief-house", "tavern"]
+    },
+    "camp": {
+      "id": "camp"
+    }
+  },
+  "edges": [
+    {
+      "from": "village-arkama",
+      "to": "camp"
+    },
+    {
+      "from": "camp",
+      "to": "village-arkama"
+    }
+  ]
+}

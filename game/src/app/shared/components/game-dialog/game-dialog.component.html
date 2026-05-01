@@ -1,0 +1,33 @@
+@if (session(); as session) {
+  <gv-dialog-shell
+    [open]="isOpen()"
+    [title]="session.title"
+    [eyebrow]="session.eyebrow ?? null"
+    [subtitle]="session.subtitle ?? null"
+    [ariaLabel]="session.title"
+    [variant]="'game-dialogue'"
+    [width]="'dialogue'"
+    [closeDisabled]="true"
+    [showCloseButton]="false"
+  >
+    @switch (session.mode) {
+      @case ("valeflow") {
+        <gv-game-dialog-view
+          [transcript]="session.transcript"
+          [currentEntry]="session.currentEntry"
+          [choices]="session.choices"
+          [canAdvance]="session.canAdvance"
+          [sceneImagePath]="session.sceneImagePath ?? null"
+          (advanceRequested)="advanceRequested.emit()"
+          (choiceSelected)="choiceSelected.emit($event)"
+        />
+      }
+      @default {
+        <!-- GAP: Combat and non-ValeFlow game-dialog modes -->
+        <!-- Blocked on: design -->
+        <!-- Needs: concrete payload shapes for combat/activity dialog content -->
+        <!-- Do not implement until: those popup contracts are specified -->
+      }
+    }
+  </gv-dialog-shell>
+}

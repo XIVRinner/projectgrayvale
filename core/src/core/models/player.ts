@@ -13,6 +13,33 @@ export interface PlayerDifficultySettings {
   ironman: boolean;
 }
 
+export interface ButtonPressRecord {
+  actionId: string;
+  actionKind: string;
+  occurredAt: string;
+  locationId?: string;
+  sublocationId?: string;
+  payload?: Record<string, string | number | boolean>;
+}
+
+export interface PlayerInteractionState {
+  totalButtonPresses: number;
+  lastButtonPress?: ButtonPressRecord;
+  recentButtonPresses?: ButtonPressRecord[];
+}
+
+export type PlayerActivityAvailabilityStatus = "locked" | "enabled" | "disabled";
+
+export interface PlayerActivityAvailabilityEntry {
+  status: PlayerActivityAvailabilityStatus;
+  disabledReason?: string;
+}
+
+export interface PlayerActivityState {
+  availability: Record<string, PlayerActivityAvailabilityEntry>;
+  activeActivityId?: string | null;
+}
+
 export interface Player extends Entity, Named {
   raceId: string;
   jobClass: string;
@@ -29,6 +56,8 @@ export interface Player extends Entity, Named {
   talents?: string[];
   questLog?: QuestLog;
   story?: StoryState;
+  activityState?: PlayerActivityState;
+  interactionState?: PlayerInteractionState;
   inventory: Inventory;
   equippedItems: EquippedItems;
 }

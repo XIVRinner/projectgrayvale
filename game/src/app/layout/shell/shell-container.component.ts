@@ -1,8 +1,12 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { type ActivityDefinition, type Player } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
+import { GameDialogService } from "../../core/services/game-dialog.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
+import { WorldStateService } from "../../core/services/world-state.service";
+import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import {
   CharacterCreatorOptions,
   CharacterCreatorOptionsLoader
@@ -41,7 +45,11 @@ import {
       [isSaveManagerOpen]="isSaveManagerOpen()"
       [transferPayload]="transferPayload()"
       [transferStatusMessage]="transferStatusMessage()"
+      [gameDialogSession]="gameDialog.session()"
       [version]="version"
+      (actionSelected)="handleActionSelected($event)"
+      (gameDialogAdvanceRequested)="advanceGameDialog()"
+      (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
       (characterCreationOpenRequested)="openCharacterCreation()"
       (characterCreationCloseRequested)="closeCharacterCreation()"
       (characterCreated)="handleCharacterCreated()"
@@ -59,13 +67,17 @@ import {
 })
 export class ShellContainerComponent {
   private readonly roster = inject(CharacterRosterService);
+  private readonly activitiesLoader = inject(ActivitiesLoader);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
+  protected readonly gameDialog = inject(GameDialogService);
   private readonly gameSettings = inject(GameSettingsService);
+  private readonly worldState = inject(WorldStateService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
   protected readonly isSaveManagerOpen = signal(false);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
+  private readonly activities = signal<readonly ActivityDefinition[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
 
   readonly version = "0.0.1";
@@ -96,7 +108,35 @@ export class ShellContainerComponent {
     { label: "Creator Lab", route: "/creator" }
   ]);
 
-  readonly statusItems = signal<readonly ShellStatusItem[]>([]);
+  readonly statusItems = computed<readonly ShellStatusItem[]>(() => {
+    const items: ShellStatusItem[] = [];
+    const locationLabel = this.worldState.currentLocationLabel();
+    const sublocationLabel = this.worldState.currentSublocationLabel();
+    const loadError = this.worldState.loadError();
+
+    if (locationLabel) {
+      items.push({
+        label: "Location",
+        value: locationLabel
+      });
+    }
+
+    if (sublocationLabel) {
+      items.push({
+        label: "Sublocation",
+        value: sublocationLabel
+      });
+    }
+
+    if (loadError) {
+      items.push({
+        label: "World",
+        value: "Unavailable"
+      });
+    }
+
+    return items;
+  });
 
   readonly characterMetadata = computed<ShellCharacterMetadata>(() => {
     const options = this.creatorOptions();
@@ -119,6 +159,18 @@ export class ShellContainerComponent {
         },
         error: () => {
           this.creatorOptions.set(null);
+        }
+      });
+
+    this.activitiesLoader
+      .load()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (activities) => {
+          this.activities.set(activities);
+        },
+        error: () => {
+          this.activities.set([]);
         }
       });
 
@@ -175,24 +227,23 @@ export class ShellContainerComponent {
     { label: "Settings", icon: "pi pi-cog", tone: "default", disabled: true }
   ]);
 
-  readonly actionGroups = signal<readonly ShellActionGroup[]>([
-    {
-      label: "Talk",
-      tone: "talk",
-      choices: [
-        { id: "talk-1", label: "What is this place?" },
-        { id: "talk-2", label: "How did you find me?" },
-        { id: "talk-3", label: "Where am I in the world?" }
-      ]
-    },
-    {
-      label: "Quest",
-      tone: "quest",
-      choices: [
-        { id: "quest-1", label: "I can stand. Let me try." }
-      ]
-    }
-  ]);
+  readonly actionGroups = computed<readonly ShellActionGroup[]>(() =>
+    buildShellActionGroups(
+      this.roster.activeCharacter(),
+      this.roster.activeWorld(),
+      this.activities(),
+      this.worldState.actionGroups().map((group) => ({
+        label: group.label,
+        tone: group.tone,
+        choices: group.choices.map((choice) => ({
+          id: choice.id,
+          label: choice.label,
+          disabled: choice.disabled,
+          disabledReason: choice.disabledReason
+        }))
+      }))
+    )
+  );
 
   readonly characterPanel = computed<ShellCharacterPanel>(() => {
     return buildShellCharacterPanel(this.roster.activeCharacter(), this.characterMetadata());
@@ -287,7 +338,38 @@ export class ShellContainerComponent {
   protected setTransferPayload(value: string): void {
     this.transferPayload.set(value);
   }
+
+  protected handleActionSelected(actionId: string): void {
+    if (actionId === WAKE_UP_ACTION_ID) {
+      this.gameDialog.startPrologue();
+      return;
+    }
+
+    if (actionId.startsWith(ACTIVITY_ACTION_PREFIX)) {
+      // GAP: Activity runtime
+      // Blocked on: design / future activity executor
+      // Needs: actual tick runner, activity-start flow, and reward/stat progression rules
+      // Do not implement until: an authored activity runtime contract exists beyond availability state
+      return;
+    }
+
+    this.worldState.executeAction(actionId);
+  }
+
+  protected advanceGameDialog(): void {
+    this.gameDialog.advance();
+  }
+
+  protected chooseGameDialogOption(index: number): void {
+    this.gameDialog.choose(index);
+  }
 }
+
+const WAKE_UP_ACTION_ID = "story:wake-up";
+const ACTIVITY_ACTION_PREFIX = "activity:";
+const PROLOGUE_ARC_ID = "prologue";
+const PROLOGUE_COMPLETE_CHAPTER = 2;
+const RECOVER_ACTIVITY_ID = "recover";
 
 function formatSaveTimestamp(value: string): string {
   const parsedDate = new Date(value);
@@ -309,4 +391,75 @@ function errorToMessage(error: unknown): string {
   }
 
   return "Import failed due to an unknown error.";
+}
+
+function buildShellActionGroups(
+  player: Player | null,
+  world: ReturnType<CharacterRosterService["activeWorld"]>,
+  activities: readonly ActivityDefinition[],
+  worldActionGroups: readonly ShellActionGroup[]
+): readonly ShellActionGroup[] {
+  if (!player || !world) {
+    return [];
+  }
+
+  if (isWakeUpPrologueState(player, world)) {
+    return [
+      {
+        label: "Story",
+        tone: "talk",
+        choices: [
+          {
+            id: WAKE_UP_ACTION_ID,
+            label: "Wake up"
+          }
+        ]
+      }
+    ];
+  }
+
+  const activityGroup = buildRecoveryGroup(player, activities);
+
+  if (!activityGroup) {
+    return worldActionGroups;
+  }
+
+  return [...worldActionGroups, activityGroup];
+}
+
+function isWakeUpPrologueState(
+  player: Player,
+  world: NonNullable<ReturnType<CharacterRosterService["activeWorld"]>>
+): boolean {
+  return (
+    world.currentLocation === "village-arkama" &&
+    world.sublocations.at(-1) === "chief-house" &&
+    player.story?.currentArcId === PROLOGUE_ARC_ID &&
+    player.story.currentChapter < PROLOGUE_COMPLETE_CHAPTER
+  );
+}
+
+function buildRecoveryGroup(
+  player: Player,
+  activities: readonly ActivityDefinition[]
+): ShellActionGroup | null {
+  const recoverActivity = activities.find((activity) => activity.id === RECOVER_ACTIVITY_ID);
+  const availability = player.activityState?.availability?.[RECOVER_ACTIVITY_ID];
+
+  if (!recoverActivity || !availability || availability.status !== "disabled") {
+    return null;
+  }
+
+  return {
+    label: "Recovery",
+    tone: "activity",
+    choices: [
+      {
+        id: `${ACTIVITY_ACTION_PREFIX}${recoverActivity.id}`,
+        label: recoverActivity.name,
+        disabled: true,
+        disabledReason: availability.disabledReason
+      }
+    ]
+  };
 }

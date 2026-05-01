@@ -1,0 +1,43 @@
+declare narrator = Actor("narrator")
+declare chief = Actor("village-chief")
+declare player = Player()
+
+chapter START:
+    narrator "Pain drags you back to the world one pulse at a time."
+    choice:
+        "Open your eyes" -> AWAKE
+
+chapter AWAKE:
+    chief "Easy now. You are safe enough, ${player.raceName}, but only just."
+    chief "The river left you half dead on our border. We pulled you out before the cold finished the work."
+    goto QUESTIONS
+
+chapter QUESTIONS:
+    choice:
+        -> "What happened to me?":
+            player "What happened to me? I don't remember anything."
+            chief "Bandits, beasts, river-stone. Pick whichever story hurts the least."
+            chief "What matters is that you survived when most would not have."
+            goto QUESTIONS
+        -> "Where am I?":
+            player "Where am I? I don't recognize anything around here."
+            chief "You are in Kingdom Alpha, if you care about what the banners say. The kingdom is a mess, but the people are good enough."
+            chief "A village the kingdom forgot and the road barely remembers."
+            chief "The locals call it Arkama Village. It is not the officialy name though. It will have to shelter you until your feet remember their work."
+            goto QUESTIONS
+        -> "Why help me?":
+            player "Why are you helping me? I am a stranger to you."
+            chief "Because someone once did the same for me."
+            chief "This world is cruel enough without us learning to ignore the dying."
+            goto QUESTIONS
+        -> "Get up":
+            goto GET_UP
+
+chapter GET_UP:
+    chief "Easy now, lady. You are still weak and the world is not kind to the weak."
+    chief "What's your name?"
+    player "I am ${player.name}, from the Duchy of Beta."
+    chief "Then keep breathing, ${player.name}. The rest can wait until your strength returns."
+    call ApplyPlayerSet("story.currentChapter", 2)
+    call ApplyPlayerSet("activityState.availability.recover.status", "disabled")
+    call ApplyPlayerSet("activityState.availability.recover.disabledReason", "You are still too injured to recover properly.")

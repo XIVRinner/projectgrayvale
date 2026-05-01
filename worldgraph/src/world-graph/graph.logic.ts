@@ -41,6 +41,16 @@ export const move = (state: WorldState, to: string): WorldState => ({
   sublocations: []
 });
 
+export const hasSublocation = (
+  graph: WorldGraph,
+  locationId: string,
+  subId: string
+): boolean => {
+  const location = graph.locations[locationId];
+
+  return location?.sublocations?.includes(subId) ?? false;
+};
+
 export const evaluateActionRules = (
   rules: ActionRule[] | undefined,
   context: GuardContext,

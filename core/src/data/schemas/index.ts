@@ -1,3 +1,4 @@
+export * from "./activity.schema";
 export * from "./equipment.schema";
 export * from "./inventory.schema";
 export * from "./player.schema";
