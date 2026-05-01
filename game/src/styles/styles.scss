@@ -1,0 +1,22 @@
+@use "../app/shared/theme/tokens";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-md);
+  color: var(--gv-color-text-primary);
+  background:
+    radial-gradient(circle at top, rgba(255, 193, 69, 0.16), transparent 30%),
+    radial-gradient(circle at 10% 10%, var(--gv-color-bg-shade) 0%, transparent 35%),
+    radial-gradient(circle at 90% 80%, var(--gv-color-bg-glow) 0%, transparent 40%),
+    linear-gradient(180deg, var(--gv-color-bg-primary) 0%, #04070d 100%);
+}

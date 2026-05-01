@@ -1,5 +1,5 @@
 {
-  "name": "@rinner/valeflow",
+  "name": "@rinner/grayvale-dialogue",
   "version": "0.2.0",
   "description": "A TypeScript-first dialogue scripting engine and DSL for branching narratives, featuring a step-based runtime, scoped variables, and extensible hooks.",
   "type": "module",

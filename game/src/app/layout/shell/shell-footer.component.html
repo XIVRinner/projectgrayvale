@@ -1,0 +1,35 @@
+<footer class="gv-footer">
+  <div class="gv-footer__tip">
+    <strong class="gv-footer__tip-title">
+      <span class="gv-footer__tip-icon" aria-hidden="true">&#128161;</span>
+      <span>Tip</span>
+    </strong>
+    <p class="gv-footer__tip-text">{{ tip() }}</p>
+  </div>
+
+  <div class="gv-footer__links">
+    <!-- GAP: ChangelogModalService not yet available — button is a visual placeholder -->
+    <button type="button" class="gv-footer__btn gv-footer__btn--version" disabled>
+      v{{ version() }}
+    </button>
+
+    <!-- GAP: WikiModalService not yet available — button is a visual placeholder -->
+    <button type="button" class="gv-footer__btn" disabled>
+      Game Wiki
+    </button>
+
+    <span class="gv-footer__author">Tear Star</span>
+
+    <a
+      class="gv-footer__repo-link"
+      href="https://github.com/XIVRinner/grayvale"
+      target="_blank"
+      rel="noreferrer noopener"
+      aria-label="Private GitHub repository for Tear Star"
+    >
+      <span aria-hidden="true">&#xe90e;</span>
+      GitHub
+      <span class="gv-footer__repo-lock" aria-hidden="true">&#128274;</span>
+    </a>
+  </div>
+</footer>

@@ -1,0 +1,18 @@
+{
+  "name": "@rinner/grayvale",
+  "version": "0.0.1",
+  "description": "ProjectGrayVale monorepo",
+  "private": true,
+  "workspaces": [
+    "core",
+    "dialogue",
+    "worldgraph",
+    "game"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=core --workspace=worldgraph --workspace=dialogue --workspace=game",
+    "build:libs": "npm run build --workspace=core --workspace=worldgraph --workspace=dialogue",
+    "test": "npm run test --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present"
+  }
+}

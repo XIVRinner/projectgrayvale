@@ -1,0 +1,41 @@
+:root {
+  --gv-color-bg-primary: #050a12;
+  --gv-color-bg-surface: #08111d;
+  --gv-color-bg-raised: #0b1220;
+  --gv-color-bg-shade: #102036;
+  --gv-color-bg-glow: #18304b;
+  --gv-color-text-primary: #f5f7ff;
+  --gv-color-text-muted: #f5f1e8;
+  --gv-color-border-subtle: #ffffff1a;
+  --gv-color-border-strong: #ffc14566;
+  --gv-color-overlay-soft: #ffffff08;
+  --gv-color-overlay-strong: #ffffff14;
+  --gv-color-accent: #ffc145;
+  --gv-color-accent-warm: #ffd88c;
+  --gv-color-accent-cool: #5bc0be;
+  --gv-color-accent-yellow: #f1d499;
+  --gv-color-accent-purple: #a78bfa;
+  --gv-color-accent-deep-orange: #cf7a52;
+
+  --gv-space-xs: 0.25rem;
+  --gv-space-sm: 0.5rem;
+  --gv-space-md: 1rem;
+  --gv-space-lg: 1.5rem;
+  --gv-space-xl: 2.5rem;
+
+  --gv-font-ui: Bahnschrift, "Aptos", "Segoe UI", sans-serif;
+  --gv-font-dialogue: "Cinzel", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  --gv-font-size-sm: 0.875rem;
+  --gv-font-size-md: 1rem;
+  --gv-font-size-lg: 1.25rem;
+  --gv-font-size-title: 1.875rem;
+
+  --gv-anim-fast: 100ms ease;
+  --gv-anim-normal: 220ms ease;
+  --gv-anim-slow: 360ms ease;
+
+  --gv-radius-sm: 6px;
+  --gv-radius-md: 12px;
+  --gv-radius-lg: 20px;
+  --gv-border-subtle: 1px solid var(--gv-color-border-subtle);
+}

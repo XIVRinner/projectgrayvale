@@ -1,0 +1,12 @@
+<section class="gv-home">
+  <header class="gv-home__header">
+    <h2 class="gv-home__heading">{{ heading() }}</h2>
+    <p class="gv-home__summary">{{ summary() }}</p>
+  </header>
+
+  <div class="gv-home__grid">
+    @for (section of sections(); track section.location) {
+      <gv-home-section-card [section]="section" />
+    }
+  </div>
+</section>

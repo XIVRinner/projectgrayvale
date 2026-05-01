@@ -20,6 +20,9 @@
     "e2e:install": "playwright install"
   },
   "dependencies": {
+    "@rinner/grayvale-core": "*",
+    "@rinner/grayvale-worldgraph": "*",
+    "@rinner/grayvale-dialogue": "*",
     "@angular/common": "^21.2.0",
     "@angular/compiler": "^21.2.0",
     "@angular/core": "^21.2.0",
