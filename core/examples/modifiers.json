@@ -1,0 +1,41 @@
+{
+  "baseStats": {
+    "damage": 10,
+    "defense": 20
+  },
+  "attributeModifiers": [
+    {
+      "stat": "strength",
+      "type": "add",
+      "value": 5
+    },
+    {
+      "stat": "vitality",
+      "type": "add",
+      "value": 3
+    }
+  ],
+  "skillModifiers": [
+    {
+      "stat": "swordsmanship",
+      "type": "add",
+      "value": 2
+    }
+  ],
+  "equipmentModifiers": [
+    {
+      "stat": "damage",
+      "type": "add",
+      "value": 4
+    },
+    {
+      "stat": "defense",
+      "type": "multiply",
+      "value": 1.1
+    }
+  ],
+  "finalStatsExample": {
+    "damage": 14,
+    "defense": 22
+  }
+}

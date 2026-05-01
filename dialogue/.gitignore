@@ -1,0 +1,9 @@
+node_modules/
+.angular/
+.vscode/
+dist/
+
+# Angular demo build output (deployed via CI, not committed)
+examples/angular-demo/dist/
+examples/angular-demo/node_modules/
+examples/angular-demo/.angular/

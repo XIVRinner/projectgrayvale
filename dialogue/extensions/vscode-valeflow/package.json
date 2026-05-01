@@ -1,0 +1,66 @@
+{
+  "name": "valeflow-language",
+  "displayName": "ValeFlow Language",
+  "description": "Syntax highlighting, snippets, and editor support for ValeFlow files.",
+  "version": "0.0.2",
+  "publisher": "local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XIVRinner/valeflow"
+  },
+  "homepage": "https://github.com/XIVRinner/valeflow",
+  "bugs": {
+    "url": "https://github.com/XIVRinner/valeflow/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "valeflow",
+    "dialogue",
+    "dsl",
+    "narrative"
+  ],
+  "scripts": {
+    "build": "npx @vscode/vsce package"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "valeflow",
+        "aliases": [
+          "ValeFlow"
+        ],
+        "extensions": [
+          ".fsc",
+          ".vfc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "valeflow",
+        "scopeName": "source.valeflow",
+        "path": "./syntaxes/valeflow.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "valeflow",
+        "path": "./snippets/valeflow.code-snippets"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "valeflow-file-icons",
+        "label": "ValeFlow File Icons",
+        "path": "./fileicons/valeflow-file-icon-theme.json"
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "@rinner/valeflow",
+  "version": "0.2.0",
+  "description": "A TypeScript-first dialogue scripting engine and DSL for branching narratives, featuring a step-based runtime, scoped variables, and extensible hooks.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XIVRinner/valeflow.git"
+  },
+  "homepage": "https://xivrinner.github.io/valeflow/",
+  "bugs": {
+    "url": "https://github.com/XIVRinner/valeflow/issues"
+  },
+  "keywords": [
+    "dialogue",
+    "scripting",
+    "DSL",
+    "narrative",
+    "game",
+    "engine",
+    "visual-novel",
+    "typescript"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --outDir dist",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "pretest": "npm run build",
+    "test": "node test/run.mjs"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

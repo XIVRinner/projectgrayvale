@@ -1,0 +1,26 @@
+{
+  "definitions": [
+    {
+      "id": "mining",
+      "name": "Mining",
+      "description": "Extract ore from resource nodes over time.",
+      "tags": ["gathering", "resource"],
+      "governingAttributes": ["mining"],
+      "difficulty": 20,
+      "itemId": "copper_ore"
+    }
+  ],
+  "tickDeltas": [
+    {
+      "type": "activity_tick",
+      "payload": {
+        "activityId": "mining",
+        "difficulty": 20,
+        "governingAttributes": ["mining"],
+        "tags": ["gathering", "resource"],
+        "tickDelta": 1,
+        "itemId": "copper_ore"
+      }
+    }
+  ]
+}

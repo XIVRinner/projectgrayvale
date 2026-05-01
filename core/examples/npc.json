@@ -1,0 +1,50 @@
+{
+  "combatNpc": {
+    "id": "npc_lysa",
+    "name": "Lysa",
+    "description": "A disciplined frontline adventurer.",
+    "type": "combat",
+    "skills": {
+      "swordsmanship": 4
+    },
+    "attributes": {
+      "strength": 8,
+      "vitality": 6
+    },
+    "progression": {
+      "level": 10,
+      "adventurerRank": 3
+    },
+    "trust": 40,
+    "trustCap": 100,
+    "starLevel": 1,
+    "role": "tank",
+    "availableRoles": ["tank", "dps"],
+    "equipment": {
+      "mainHand": "iron_sword",
+      "offHand": "tower_shield",
+      "head": "iron_helm"
+    }
+  },
+  "nonCombatNpc": {
+    "id": "npc_mira",
+    "name": "Mira",
+    "description": "A traveling quartermaster with a sharp memory.",
+    "type": "noncombat",
+    "skills": {
+      "bargaining": 5
+    },
+    "attributes": {
+      "insight": 7
+    },
+    "progression": {
+      "level": 6,
+      "adventurerRank": 2
+    },
+    "affection": 10,
+    "trust": 90,
+    "trustCap": 100,
+    "starLevel": 1,
+    "bonus": "shop_discount"
+  }
+}

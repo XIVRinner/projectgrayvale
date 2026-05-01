@@ -1,0 +1,12 @@
+{
+  "iconDefinitions": {
+    "valeflow-file": {
+      "iconPath": "../resources/valeflow-icon.svg"
+    }
+  },
+  "fileExtensions": {
+    "fsc": "valeflow-file",
+    "vfc": "valeflow-file",
+    "flow": "valeflow-file"
+  }
+}

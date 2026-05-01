@@ -1,0 +1,67 @@
+name: Validate NPM Packages (PR)
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-package:
+    name: Validate ${{ matrix.package_name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package_name: core
+            package_path: core
+          - package_name: worldgraph
+            package_path: worldgraph
+          - package_name: dialogue
+            package_path: dialogue
+          - package_name: dialogue-angular-demo
+            package_path: dialogue/examples/angular-demo
+          - package_name: valeflow-vscode-extension
+            package_path: dialogue/extensions/vscode-valeflow
+          - package_name: game
+            package_path: game
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.package_path }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run package validation scripts
+        working-directory: ${{ matrix.package_path }}
+        run: |
+          if npm run | grep -q " check"; then
+            npm run check
+          fi
+
+          if npm run | grep -q " test"; then
+            npm run test
+          fi
+
+          if npm run | grep -q " build"; then
+            npm run build
+          fi

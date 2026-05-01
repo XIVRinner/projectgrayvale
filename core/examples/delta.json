@@ -1,0 +1,73 @@
+{
+  "state": {
+    "player": {
+      "id": "player_delta_example",
+      "name": "Delta Example Player",
+      "description": "A player used to demonstrate immutable delta application.",
+      "race": "human",
+      "jobClass": "wanderer",
+      "progression": {
+        "level": 1,
+        "experience": 0
+      },
+      "adventurerRank": 1,
+      "attributes": {
+        "strength": 5
+      },
+      "skills": {
+        "mining": 2
+      },
+      "inventory": {
+        "items": {}
+      },
+      "equippedItems": {}
+    },
+    "npcs": {
+      "npc_1": {
+        "id": "npc_1",
+        "name": "Mira",
+        "description": "A companion used for delta examples.",
+        "type": "combat",
+        "skills": {
+          "swordsmanship": 3
+        },
+        "attributes": {
+          "vitality": 4
+        },
+        "progression": {
+          "level": 2,
+          "adventurerRank": 1
+        },
+        "trust": 15,
+        "trustCap": 100,
+        "starLevel": 1,
+        "role": "dps",
+        "equipment": {
+          "mainHand": "training_blade"
+        }
+      }
+    }
+  },
+  "deltas": [
+    {
+      "type": "add",
+      "target": "player",
+      "path": ["skills", "mining"],
+      "value": 3
+    },
+    {
+      "type": "set",
+      "target": "npc",
+      "targetId": "npc_1",
+      "path": ["equipment", "mainHand"],
+      "value": "iron_sword"
+    },
+    {
+      "type": "add",
+      "target": "npc",
+      "targetId": "npc_1",
+      "path": ["trust"],
+      "value": 5
+    }
+  ]
+}
