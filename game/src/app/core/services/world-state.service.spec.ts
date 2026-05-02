@@ -33,14 +33,14 @@ describe("WorldStateService", () => {
     expect(service.currentSublocationLabel()).toBe("Chief House");
     expect(service.actionGroups()).toEqual([
       {
-        label: "Local",
-        tone: "travel",
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
         choices: [
           {
             id: "leave-chief-house",
             label: "Leave chief house",
             kind: "sublocation-exit",
-            tone: "travel",
             payload: {
               sublocationId: "chief-house"
             }
@@ -166,14 +166,14 @@ describe("WorldStateService", () => {
 
     expect(service.actionGroups()).toEqual([
       {
-        label: "Local",
-        tone: "travel",
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
         choices: [
           {
             id: "enter-chief-house",
             label: "Return to chief house",
             kind: "sublocation-enter",
-            tone: "travel",
             payload: {
               sublocationId: "chief-house"
             }
@@ -182,7 +182,6 @@ describe("WorldStateService", () => {
             id: "enter-tavern",
             label: "Enter tavern",
             kind: "sublocation-enter",
-            tone: "travel",
             payload: {
               sublocationId: "tavern"
             }
@@ -190,14 +189,14 @@ describe("WorldStateService", () => {
         ]
       },
       {
-        label: "Travel",
-        tone: "travel",
+        kind: "travel",
+        label: "TRAVEL",
+        themeKey: "travel",
         choices: [
           {
             id: "travel-village-arkama-to-camp",
             label: "Travel to Camp",
             kind: "world-travel",
-            tone: "travel",
             disabled: true,
             disabledReason: "Reach level 2 before traveling there.",
             payload: {

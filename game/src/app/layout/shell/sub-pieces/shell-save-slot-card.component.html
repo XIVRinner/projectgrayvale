@@ -1,0 +1,58 @@
+<article
+  class="gv-save-slot-card"
+  [class.gv-save-slot-card--selected]="selected()"
+  [class.gv-save-slot-card--active]="slot().isActive"
+  role="button"
+  tabindex="0"
+  (click)="onSelected()"
+  (keydown.enter)="onSelected()"
+  (keydown.space)="onSelected()"
+>
+  <header class="gv-save-slot-card__header">
+    <strong>{{ slot().name }}</strong>
+    <div class="gv-save-slot-card__badges">
+      @if (selected()) {
+        <span class="gv-save-slot-card__badge gv-save-slot-card__badge--selected">Selected</span>
+      }
+      @if (slot().isActive) {
+        <span class="gv-save-slot-card__badge gv-save-slot-card__badge--active">Active</span>
+      }
+      <span>{{ slot().id }}</span>
+    </div>
+  </header>
+
+  <div class="gv-save-slot-card__hero">
+    <img
+      class="gv-save-slot-card__portrait"
+      [src]="portraitSrc(slot())"
+      [alt]="slot().portraitAlt ?? slot().name + ' portrait'"
+      (error)="onPortraitError($event)"
+    />
+
+    <div class="gv-save-slot-card__content">
+      <div class="gv-save-slot-card__tags" role="list" aria-label="Character tags">
+        @for (tag of tags(slot()); track isTagObject(tag) ? tag.type : tag) {
+          @if (isTagObject(tag)) {
+            <span class="gv-save-slot-card__tag" [attr.data-tag-type]="tag.type" [attr.data-difficulty]="tag.difficulty" role="listitem">{{ tag.label }}</span>
+          } @else {
+            <span class="gv-save-slot-card__tag" role="listitem">{{ tag }}</span>
+          }
+        }
+      </div>
+
+      <p class="gv-save-slot-card__meta">Updated: {{ slot().updatedAt }}</p>
+    </div>
+  </div>
+
+  <div class="gv-save-slot-card__actions">
+    <button type="button" class="gv-save-slot-card__action" [disabled]="slot().isActive" (click)="onLoad($event)">
+      Load
+    </button>
+    <button type="button" class="gv-save-slot-card__action" (click)="onExport($event)">
+      Export
+    </button>
+    <button type="button" class="gv-save-slot-card__action gv-save-slot-card__action--danger" (click)="onDelete($event)">
+      Delete
+    </button>
+  </div>
+</article>

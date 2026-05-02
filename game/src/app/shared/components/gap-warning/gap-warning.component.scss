@@ -1,0 +1,85 @@
+:host {
+  display: block;
+}
+
+.gv-gap-warning {
+  display: grid;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-md);
+  border: 2px dashed var(--gv-color-accent-deep-orange);
+  border-radius: var(--gv-radius-sm);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--gv-color-accent-deep-orange) 18%, transparent) 0 0.65rem,
+      color-mix(in srgb, var(--gv-color-accent-yellow) 18%, transparent) 0.65rem 1.3rem
+    ),
+    color-mix(in srgb, var(--gv-color-bg-primary) 92%, white 8%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gv-color-text-primary) 12%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--gv-color-accent-yellow) 28%, transparent);
+}
+
+.gv-gap-warning__header,
+.gv-gap-warning__section {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-gap-warning__header {
+  align-items: start;
+}
+
+.gv-gap-warning__body {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-gap-warning__flag,
+.gv-gap-warning__key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gv-space-xs);
+  width: fit-content;
+  padding: 0.15rem var(--gv-space-xs);
+  background: color-mix(in srgb, var(--gv-color-bg-primary) 88%, transparent);
+  color: var(--gv-color-accent-yellow);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.gv-gap-warning__title,
+.gv-gap-warning__value p,
+.gv-gap-warning__note {
+  margin: 0;
+}
+
+.gv-gap-warning__title {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-lg);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.gv-gap-warning__value {
+  display: grid;
+  gap: var(--gv-space-xs);
+  padding: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: color-mix(in srgb, var(--gv-color-bg-primary) 90%, transparent);
+}
+
+.gv-gap-warning__value p,
+.gv-gap-warning__note {
+  color: var(--gv-color-text-primary);
+  line-height: 1.45;
+}
+
+.gv-gap-warning__note {
+  padding: var(--gv-space-sm);
+  border-left: 4px solid var(--gv-color-accent-yellow);
+  background: color-mix(in srgb, var(--gv-color-bg-primary) 82%, transparent);
+}

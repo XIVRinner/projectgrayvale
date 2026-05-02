@@ -8,20 +8,14 @@
   min-height: 100%;
 }
 
-.gv-character-panel__card,
-.gv-character-panel__identity-card,
-.gv-character-panel__attribute-chip,
-.gv-character-panel__focus-item {
+.gv-character-panel__card {
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-md);
   background: var(--gv-color-bg-raised);
 }
 
 .gv-character-panel__card,
-.gv-character-panel__role-lines,
-.gv-character-panel__metrics,
-.gv-character-panel__identity-grid,
-.gv-character-panel__focus-list {
+.gv-character-panel__metrics {
   display: grid;
   gap: var(--gv-space-sm);
 }
@@ -29,6 +23,7 @@
 .gv-character-panel__card {
   min-height: 100%;
   padding: var(--gv-space-md);
+  gap: var(--gv-space-md);
   border-radius: var(--gv-radius-lg);
   background: var(--gv-color-bg-raised);
 }
@@ -37,7 +32,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--gv-space-sm);
-  align-items: start;
+  align-items: center;
 }
 
 .gv-character-panel__header-actions {
@@ -62,11 +57,7 @@
 }
 
 .gv-character-panel__name,
-.gv-character-panel__subtitle,
-.gv-character-panel__role-line,
-.gv-character-panel__identity-detail,
-.gv-character-panel__focus-title,
-.gv-character-panel__focus-detail {
+.gv-character-panel__subtitle {
   margin: 0;
 }
 
@@ -77,54 +68,33 @@
   line-height: 1.05;
 }
 
-.gv-character-panel__subtitle,
-.gv-character-panel__role-line,
-.gv-character-panel__identity-detail,
-.gv-character-panel__focus-detail,
-.gv-character-panel__attribute-label {
-  color: var(--gv-color-text-muted);
-  line-height: 1.4;
-}
-
 .gv-character-panel__subtitle {
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.gv-character-panel__role-line {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--gv-space-xs);
+  color: var(--gv-color-text-muted);
   font-size: var(--gv-font-size-sm);
-}
-
-.gv-character-panel__role-line strong,
-.gv-character-panel__identity-title,
-.gv-character-panel__attribute-value,
-.gv-character-panel__focus-title {
-  color: var(--gv-color-text-primary);
-}
-
-.gv-character-panel__role-label {
-  color: color-mix(in srgb, var(--gv-color-text-primary) 48%, transparent);
-  font-size: 0.72rem;
-  font-weight: 700;
   letter-spacing: 0.08em;
+  line-height: 1.3;
   text-transform: uppercase;
 }
 
-.gv-character-panel__role-meta {
-  color: color-mix(in srgb, var(--gv-color-accent) 80%, transparent);
+.gv-character-panel__subtitle-divider {
+  color: color-mix(in srgb, var(--gv-color-text-primary) 38%, transparent);
 }
 
-.gv-character-panel__identity-eyebrow,
-.gv-character-panel__attribute-abbr {
-  color: var(--gv-color-accent);
-  font-size: var(--gv-font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.gv-character-panel__gender-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gv-space-xs);
+}
+
+.gv-character-panel__gender-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 .gv-character-panel__avatar-stage {
@@ -175,98 +145,36 @@
 }
 
 .gv-character-panel__level {
-  display: inline-flex;
-  border: var(--gv-border-subtle);
-  border-radius: var(--gv-radius-lg);
-  background: color-mix(in srgb, var(--gv-color-bg-primary) 88%, transparent);
+  display: grid;
+  place-items: center;
   position: absolute;
   left: var(--gv-space-sm);
   bottom: var(--gv-space-sm);
-  color: var(--gv-color-accent);
-  padding: var(--gv-space-xs) var(--gv-space-sm);
-}
-
-.gv-character-panel__rank {
-  position: absolute;
-  right: var(--gv-space-sm);
-  bottom: var(--gv-space-sm);
+  min-width: 3.5rem;
+  min-height: 2.5rem;
   border: var(--gv-border-subtle);
-  border-radius: var(--gv-radius-lg);
-  background: color-mix(in srgb, var(--gv-color-bg-primary) 92%, transparent);
-  color: var(--gv-color-accent-warm);
-  font-size: var(--gv-font-size-sm);
-  font-weight: 700;
-  padding: var(--gv-space-xs) var(--gv-space-sm);
-}
-
-.gv-character-panel__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gv-space-xs);
-}
-
-.gv-character-panel__badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.gv-character-panel__badge[data-tone="expert"] {
-  background: color-mix(in srgb, var(--gv-color-accent-deep-orange) 30%, transparent);
-  color: var(--gv-color-accent-warm);
-}
-
-.gv-character-panel__badge[data-tone="mode"] {
-  background: color-mix(in srgb, var(--gv-color-accent-purple) 22%, transparent);
-  color: var(--gv-color-text-primary);
+  background: radial-gradient(
+    circle at top,
+    color-mix(in srgb, var(--gv-color-accent-warm) 20%, var(--gv-color-bg-primary)),
+    color-mix(in srgb, var(--gv-color-bg-primary) 90%, transparent)
+  );
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gv-color-accent) 18%, transparent);
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-md);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: var(--gv-space-xs) var(--gv-space-sm);
 }
 
 .gv-character-panel__metrics {
   grid-template-columns: 1fr;
 }
 
-.gv-character-panel__identity-grid {
-  grid-template-columns: 1fr;
-}
-
-.gv-character-panel__identity-card,
-.gv-character-panel__focus-item {
-  padding: var(--gv-space-md);
-}
-
-.gv-character-panel__attributes {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--gv-space-sm);
-}
-
-.gv-character-panel__attribute-chip {
+.gv-character-panel__metric-stack {
   display: grid;
   gap: var(--gv-space-xs);
-  padding: var(--gv-space-sm) var(--gv-space-md);
-}
-
-.gv-character-panel__attribute-value {
-  font-size: var(--gv-font-size-md);
-}
-
-.gv-character-panel__focus-item {
-  border-left: 2px solid transparent;
-}
-
-.gv-character-panel__focus-item[data-tone="accent"] {
-  border-left-color: color-mix(in srgb, var(--gv-color-accent) 55%, transparent);
-}
-
-.gv-character-panel__focus-item[data-tone="cool"] {
-  border-left-color: color-mix(in srgb, var(--gv-color-accent-cool) 55%, transparent);
-}
-
-.gv-character-panel__focus-item[data-tone="warm"] {
-  border-left-color: color-mix(in srgb, var(--gv-color-accent-deep-orange) 55%, transparent);
 }
 
 @media (max-width: 42rem) {
@@ -276,9 +184,5 @@
 
   .gv-character-panel__header-actions {
     justify-content: flex-start;
-  }
-
-  .gv-character-panel__attributes {
-    grid-template-columns: 1fr;
   }
 }

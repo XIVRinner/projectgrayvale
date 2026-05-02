@@ -27,8 +27,9 @@ describe("ShellContainerComponent", () => {
 
     expect(component.actionGroups()).toEqual([
       {
-        label: "Story",
-        tone: "talk",
+        kind: "talk",
+        label: "TALK",
+        themeKey: "talk",
         choices: [
           {
             id: "story:wake-up",
@@ -68,8 +69,9 @@ describe("ShellContainerComponent", () => {
 
     expect(component.actionGroups()).toEqual([
       {
-        label: "Local",
-        tone: "travel",
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
         choices: [
           {
             id: "leave-chief-house",
@@ -78,8 +80,9 @@ describe("ShellContainerComponent", () => {
         ]
       },
       {
-        label: "Recovery",
-        tone: "activity",
+        kind: "activity",
+        label: "ACTIVITY",
+        themeKey: "activity",
         choices: [
           {
             id: "activity:recover",
@@ -91,6 +94,57 @@ describe("ShellContainerComponent", () => {
       }
     ]);
   });
+
+  it("renders persisted HP data through the shell health bar", async () => {
+    const { component, roster } = await createFixture();
+
+    roster.updateActiveHealth({
+      currentHp: 31,
+      maxHp: 52
+    });
+
+    expect(component.characterPanel().progressBars[0]).toMatchObject({
+      label: "Health",
+      valueLabel: "31 / 52",
+      current: 31,
+      max: 52,
+      tone: "health"
+    });
+  });
+
+  it("scales the experience bar from the active difficulty curve", async () => {
+    const { component, roster, gameSettings } = await createFixture();
+
+    expect(component.characterPanel().progressBars[1]).toMatchObject({
+      label: "Experience",
+      valueLabel: "145 / 529 XP",
+      current: 145,
+      max: 529,
+      tone: "experience",
+      detail: "384 XP to Level 4"
+    });
+    expect(component.characterPanel().progressBars[1].gapWarning).toBeUndefined();
+    expect(gameSettings.difficultyCurveFor).toHaveBeenCalledWith("normal");
+
+    roster.applyActiveCharacterDeltas([
+      {
+        type: "set",
+        target: "player",
+        path: ["difficulty", "mode"],
+        value: "hard"
+      }
+    ]);
+
+    expect(component.characterPanel().progressBars[1]).toMatchObject({
+      label: "Experience",
+      valueLabel: "145 / 870 XP",
+      current: 145,
+      max: 870,
+      tone: "experience",
+      detail: "725 XP to Level 4"
+    });
+    expect(gameSettings.difficultyCurveFor).toHaveBeenCalledWith("hard");
+  });
 });
 
 async function createFixture(): Promise<{
@@ -101,6 +155,12 @@ async function createFixture(): Promise<{
     startPrologue: jest.Mock;
     advance: jest.Mock;
     choose: jest.Mock;
+  };
+  gameSettings: {
+    balanceProfileFor: jest.Mock;
+    difficultyCurveFor: jest.Mock;
+    attributesById: ReturnType<typeof signal<Map<string, never>>>;
+    skillsById: ReturnType<typeof signal<Map<string, never>>>;
   };
 }> {
   const roster = new CharacterRosterService();
@@ -147,6 +207,44 @@ async function createFixture(): Promise<{
     advance: jest.fn(),
     choose: jest.fn()
   };
+  const gameSettings = {
+    balanceProfileFor: jest.fn(() => ({
+      id: "player_health_v1",
+      scalars: {
+        attributes: {
+          vitality: 4
+        },
+        resources: {
+          maxHpFlat: 20
+        }
+      }
+    })),
+    difficultyCurveFor: jest.fn((mode: "easy" | "normal" | "hard") => {
+      if (mode === "easy") {
+        return {
+          baseXp: 100,
+          growthFactor: 1,
+          exponent: 1.1
+        };
+      }
+
+      if (mode === "hard") {
+        return {
+          baseXp: 100,
+          growthFactor: 1.5,
+          exponent: 1.6
+        };
+      }
+
+      return {
+        baseXp: 100,
+        growthFactor: 1.2,
+        exponent: 1.35
+      };
+    }),
+    attributesById: signal(new Map()),
+    skillsById: signal(new Map())
+  };
 
   await TestBed.configureTestingModule({
     imports: [ShellContainerComponent],
@@ -160,11 +258,7 @@ async function createFixture(): Promise<{
       { provide: GameDialogService, useValue: gameDialog },
       {
         provide: GameSettingsService,
-        useValue: {
-          difficultyCurveFor: jest.fn(() => null),
-          attributesById: signal(new Map()),
-          skillsById: signal(new Map())
-        }
+        useValue: gameSettings
       },
       {
         provide: WorldStateService,
@@ -174,8 +268,9 @@ async function createFixture(): Promise<{
           loadError: signal<string | null>(null),
           actionGroups: signal([
             {
-              label: "Local",
-              tone: "travel",
+              kind: "movement",
+              label: "MOVEMENT",
+              themeKey: "movement",
               choices: [
                 {
                   id: "leave-chief-house",
@@ -195,6 +290,7 @@ async function createFixture(): Promise<{
   return {
     roster,
     gameDialog,
+    gameSettings,
     component: fixture.componentInstance
   };
 }

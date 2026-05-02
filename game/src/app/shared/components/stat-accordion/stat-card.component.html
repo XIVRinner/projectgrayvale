@@ -1,0 +1,19 @@
+<article
+  class="gv-stat-card"
+  [attr.data-variant]="variant()"
+  [attr.data-locked]="item().isLocked ? 'true' : 'false'"
+  [attr.aria-label]="ariaLabel()"
+  [pTooltip]="tooltipText()"
+  tooltipPosition="top"
+  tabindex="0"
+>
+  <span class="gv-stat-card__abbr">{{ item().abbreviation }}</span>
+  @if (item().isLocked) {
+    <span class="gv-stat-card__lock" aria-hidden="true">
+      <i class="pi pi-lock"></i>
+      <span class="gv-stat-card__lock-label">Locked</span>
+    </span>
+  } @else {
+    <strong class="gv-stat-card__value">{{ compactValue() }}</strong>
+  }
+</article>

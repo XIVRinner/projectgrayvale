@@ -7,15 +7,24 @@ import {
   DEFAULT_SAVE_SLOT_WORLD_STATE,
   type SaveSlotWorldState
 } from "./world-state.models";
+import { type SaveSlotHealthState } from "./health-balance";
 
 const STORAGE_KEY = "grayvale:save-slots:v1";
+const VITALITY_ATTRIBUTE_ID = "vitality";
+
+export interface CharacterStatUnlockState {
+  readonly attributes: Readonly<Record<string, boolean>>;
+  readonly skills: Readonly<Record<string, boolean>>;
+}
 
 export interface CharacterSaveSlot {
   readonly id: string;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly player: Player;
+  readonly statUnlocks: CharacterStatUnlockState;
   readonly world: SaveSlotWorldState;
+  readonly health?: SaveSlotHealthState;
 }
 
 interface PersistedRoster {
@@ -43,20 +52,27 @@ export class CharacterRosterService {
 
   readonly activeCharacter = computed(() => this.activeSlot()?.player ?? null);
   readonly activeWorld = computed(() => this.activeSlot()?.world ?? null);
+  readonly activeHealth = computed(() => this.activeSlot()?.health ?? null);
 
   constructor() {
     this.hydrate();
   }
 
-  createCharacter(player: Player): CharacterSaveSlot {
+  createCharacter(
+    player: Player,
+    health: SaveSlotHealthState | undefined = undefined
+  ): CharacterSaveSlot {
     const nowIso = new Date().toISOString();
     const seededPlayer = seedNewCharacter(player);
+    const statUnlocks = buildDefaultStatUnlocks(seededPlayer);
     const nextSlot = {
       id: buildNextSlotId(this.slotsState()),
       createdAt: nowIso,
       updatedAt: nowIso,
       player: seededPlayer,
-      world: cloneSaveSlotWorldState()
+      statUnlocks,
+      world: cloneSaveSlotWorldState(),
+      health: cloneHealthState(health)
     } satisfies CharacterSaveSlot;
 
     this.slotsState.update((slots) => [...slots, nextSlot]);
@@ -150,6 +166,42 @@ export class CharacterRosterService {
     return this.updateActiveSlot((slot) => ({
       ...slot,
       world: cloneSaveSlotWorldState(world)
+    }));
+  }
+
+  updateActiveHealth(health: SaveSlotHealthState): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      health: cloneHealthState(health)
+    }));
+  }
+
+  setActiveAttributeUnlocked(
+    attributeId: string,
+    unlocked: boolean
+  ): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      statUnlocks: {
+        ...slot.statUnlocks,
+        attributes: {
+          ...slot.statUnlocks.attributes,
+          [attributeId]: unlocked
+        }
+      }
+    }));
+  }
+
+  setActiveSkillUnlocked(skillId: string, unlocked: boolean): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      statUnlocks: {
+        ...slot.statUnlocks,
+        skills: {
+          ...slot.statUnlocks.skills,
+          [skillId]: unlocked
+        }
+      }
     }));
   }
 
@@ -279,7 +331,34 @@ function parseSlot(raw: unknown, index: number): CharacterSaveSlot {
     createdAt,
     updatedAt,
     player: playerResult.data,
-    world: parseWorldState(record["world"], `slots[${index}].world`)
+    statUnlocks: parseStatUnlocks(record["statUnlocks"], `slots[${index}].statUnlocks`, playerResult.data),
+    world: parseWorldState(record["world"], `slots[${index}].world`),
+    health: parseHealthState(record["health"], `slots[${index}].health`)
+  };
+}
+
+function parseStatUnlocks(
+  raw: unknown,
+  label: string,
+  player: Player
+): CharacterStatUnlockState {
+  const fallback = buildDefaultStatUnlocks(player);
+
+  if (raw === undefined) {
+    return fallback;
+  }
+
+  const record = ensureRecord(raw, label);
+
+  return {
+    attributes: {
+      ...fallback.attributes,
+      ...parseBooleanRecord(record["attributes"], `${label}.attributes`)
+    },
+    skills: {
+      ...fallback.skills,
+      ...parseBooleanRecord(record["skills"], `${label}.skills`)
+    }
   };
 }
 
@@ -300,6 +379,23 @@ function parseWorldState(raw: unknown, label: string): SaveSlotWorldState {
   };
 }
 
+function parseHealthState(raw: unknown, label: string): SaveSlotHealthState | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error(`${label} must be an object.`);
+  }
+
+  const record = raw as Record<string, unknown>;
+
+  return {
+    currentHp: ensureNumber(record["currentHp"], `${label}.currentHp`),
+    maxHp: ensureNumber(record["maxHp"], `${label}.maxHp`)
+  };
+}
+
 function ensureString(raw: unknown, label: string): string {
   if (typeof raw !== "string" || raw.trim().length === 0) {
     throw new Error(`${label} must be a non-empty string.`);
@@ -308,12 +404,43 @@ function ensureString(raw: unknown, label: string): string {
   return raw;
 }
 
+function ensureRecord(raw: unknown, label: string): Record<string, unknown> {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error(`${label} must be an object.`);
+  }
+
+  return raw as Record<string, unknown>;
+}
+
 function ensureStringArray(raw: unknown, label: string): string[] {
   if (!Array.isArray(raw)) {
     throw new Error(`${label} must be an array.`);
   }
 
   return raw.map((entry, index) => ensureString(entry, `${label}[${index}]`));
+}
+
+function ensureNumber(raw: unknown, label: string): number {
+  if (typeof raw !== "number" || Number.isNaN(raw)) {
+    throw new Error(`${label} must be a number.`);
+  }
+
+  return raw;
+}
+
+function parseBooleanRecord(raw: unknown, label: string): Record<string, boolean> {
+  const record = ensureRecord(raw, label);
+  const result: Record<string, boolean> = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value !== "boolean") {
+      throw new Error(`${label}.${key} must be a boolean.`);
+    }
+
+    result[key] = value;
+  }
+
+  return result;
 }
 
 function buildNextSlotId(slots: readonly CharacterSaveSlot[]): string {
@@ -344,5 +471,35 @@ function seedNewCharacter(player: Player): Player {
       activeActivityId:
         player.activityState?.activeActivityId ?? null
     }
+  };
+}
+
+function buildDefaultStatUnlocks(player: Player): CharacterStatUnlockState {
+  const attributes = Object.fromEntries(
+    Object.keys(player.attributes).map((attributeId) => [
+      attributeId,
+      attributeId === VITALITY_ATTRIBUTE_ID
+    ])
+  );
+  const skills = Object.fromEntries(
+    Object.keys(player.skills).map((skillId) => [skillId, false])
+  );
+
+  return {
+    attributes,
+    skills
+  };
+}
+
+function cloneHealthState(
+  health: SaveSlotHealthState | undefined
+): SaveSlotHealthState | undefined {
+  if (!health) {
+    return undefined;
+  }
+
+  return {
+    currentHp: health.currentHp,
+    maxHp: health.maxHp
   };
 }

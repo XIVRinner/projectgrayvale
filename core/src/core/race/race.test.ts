@@ -12,6 +12,7 @@ describe("race structure", () => {
     const race: Race = {
       id: "race_human",
       name: "Human",
+      adjective: "Human",
       slug: "human",
       imageBasePath: "assets/races/human",
       variants: {
@@ -32,6 +33,7 @@ describe("getRaceImagePath", () => {
     const race: Race = {
       id: "race_elf",
       name: "Elf",
+      adjective: "Elven",
       slug: "elf",
       imageBasePath: "assets/races/elf"
     };
@@ -43,6 +45,7 @@ describe("getRaceImagePath", () => {
     const race: Race = {
       id: "race_orc",
       name: "Orc",
+      adjective: "Orcish",
       slug: "orc",
       imageBasePath: "assets/races/orc///"
     };

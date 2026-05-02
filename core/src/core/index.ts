@@ -1,4 +1,5 @@
 export * from "./activity";
+export * from "./balance";
 export * from "./delta";
 export * from "./equipment";
 export * from "./modifiers";

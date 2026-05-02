@@ -1,20 +1,31 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { type ActivityDefinition, type Player } from "@rinner/grayvale-core";
+import { type ActivityDefinition, type Player, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
+import {
+  healthStatesEqual,
+  PLAYER_HEALTH_BALANCE_PROFILE_ID,
+  reconcileHealthState
+} from "../../core/services/health-balance";
 import { WorldStateService } from "../../core/services/world-state.service";
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import {
   CharacterCreatorOptions,
   CharacterCreatorOptionsLoader
 } from "../../data/loaders/character-creator-options.loader";
+import {
+  buildActionPanelGroup,
+  mergeActionPanelGroups,
+  type ActionPanelGroupDraft
+} from "../../shared/models/action-panel-group.model";
 
 import { buildShellCharacterPanel, ShellCharacterMetadata } from "./shell-character-panel.mapper";
 import { ShellViewComponent } from "./shell-view.component";
 import {
+  ShellActionChoice,
   ShellActionGroup,
   ShellCharacterPanel,
   ShellLayoutPreset,
@@ -182,10 +193,45 @@ export class ShellContainerComponent {
       this.isCharacterCreationOpenState.set(true);
       this.isSaveManagerOpen.set(false);
     });
+
+    effect(() => {
+      const activeSlot = this.roster.activeSlot();
+      const healthProfile =
+        this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined;
+
+      if (!activeSlot || !healthProfile) {
+        return;
+      }
+
+      const reconciledHealth = reconcileHealthState(
+        activeSlot.player,
+        activeSlot.health,
+        healthProfile
+      );
+
+      if (healthStatesEqual(activeSlot.health, reconciledHealth)) {
+        return;
+      }
+
+      queueMicrotask(() => {
+        const latestSlot = this.roster.activeSlot();
+
+        if (!latestSlot || latestSlot.id !== activeSlot.id) {
+          return;
+        }
+
+        if (healthStatesEqual(latestSlot.health, reconciledHealth)) {
+          return;
+        }
+
+        this.roster.updateActiveHealth(reconciledHealth);
+      });
+    });
   }
 
   readonly saveSlots = computed<readonly ShellSaveSlotSummary[]>(() => {
     const activeSlotId = this.roster.activeSlotId();
+    const racesById = new Map(this.creatorOptions()?.races.map((race) => [race.id, race]) ?? []);
 
     return this.roster.slots().map((slot) => ({
       id: slot.id,
@@ -193,6 +239,13 @@ export class ShellContainerComponent {
       raceId: slot.player.raceId,
       classId: slot.player.jobClass,
       level: slot.player.progression.level,
+      locationId: slot.world.currentLocation,
+      difficultyMode: slot.player.difficulty?.mode ?? "normal",
+      expertMode: slot.player.difficulty?.expert ?? false,
+      ironmanMode: slot.player.difficulty?.ironman ?? false,
+      talents: slot.player.talents ?? [],
+      portraitSrc: resolveSaveSlotPortraitPath(slot.player, racesById),
+      portraitAlt: `${slot.player.name} portrait`,
       createdAt: formatSaveTimestamp(slot.createdAt),
       updatedAt: formatSaveTimestamp(slot.updatedAt),
       isActive: slot.id === activeSlotId
@@ -233,8 +286,7 @@ export class ShellContainerComponent {
       this.roster.activeWorld(),
       this.activities(),
       this.worldState.actionGroups().map((group) => ({
-        label: group.label,
-        tone: group.tone,
+        kind: group.kind,
         choices: group.choices.map((choice) => ({
           id: choice.id,
           label: choice.label,
@@ -246,7 +298,18 @@ export class ShellContainerComponent {
   );
 
   readonly characterPanel = computed<ShellCharacterPanel>(() => {
-    return buildShellCharacterPanel(this.roster.activeCharacter(), this.characterMetadata());
+    const activeSlot = this.roster.activeSlot();
+    const activeCharacter = activeSlot?.player ?? null;
+    const difficultyMode = activeCharacter?.difficulty?.mode ?? "normal";
+
+    return buildShellCharacterPanel(
+      activeCharacter,
+      this.characterMetadata(),
+      activeSlot?.statUnlocks,
+      this.roster.activeHealth(),
+      this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined,
+      this.gameSettings.difficultyCurveFor(difficultyMode) ?? undefined
+    );
   });
 
   protected openCharacterCreation(): void {
@@ -393,11 +456,31 @@ function errorToMessage(error: unknown): string {
   return "Import failed due to an unknown error.";
 }
 
+function resolveSaveSlotPortraitPath(
+  player: Player,
+  racesById: ReadonlyMap<string, Race>
+): string | undefined {
+  const race = racesById.get(player.raceId);
+  const appearance = player.selectedAppearance;
+
+  if (!race || !appearance) {
+    return undefined;
+  }
+
+  const portraitFile = race.variants?.[appearance.variant]?.[appearance.imageIndex];
+
+  if (!portraitFile) {
+    return undefined;
+  }
+
+  return `${race.imageBasePath}/${appearance.variant}/${portraitFile}`;
+}
+
 function buildShellActionGroups(
   player: Player | null,
   world: ReturnType<CharacterRosterService["activeWorld"]>,
   activities: readonly ActivityDefinition[],
-  worldActionGroups: readonly ShellActionGroup[]
+  worldActionGroups: readonly ActionPanelGroupDraft<ShellActionChoice>[]
 ): readonly ShellActionGroup[] {
   if (!player || !world) {
     return [];
@@ -405,26 +488,22 @@ function buildShellActionGroups(
 
   if (isWakeUpPrologueState(player, world)) {
     return [
-      {
-        label: "Story",
-        tone: "talk",
-        choices: [
-          {
-            id: WAKE_UP_ACTION_ID,
-            label: "Wake up"
-          }
-        ]
-      }
+      buildActionPanelGroup("talk", [
+        {
+          id: WAKE_UP_ACTION_ID,
+          label: "Wake up"
+        }
+      ])
     ];
   }
 
   const activityGroup = buildRecoveryGroup(player, activities);
 
   if (!activityGroup) {
-    return worldActionGroups;
+    return mergeActionPanelGroups(worldActionGroups);
   }
 
-  return [...worldActionGroups, activityGroup];
+  return mergeActionPanelGroups([...worldActionGroups, activityGroup]);
 }
 
 function isWakeUpPrologueState(
@@ -442,7 +521,7 @@ function isWakeUpPrologueState(
 function buildRecoveryGroup(
   player: Player,
   activities: readonly ActivityDefinition[]
-): ShellActionGroup | null {
+): ActionPanelGroupDraft<ShellActionChoice> | null {
   const recoverActivity = activities.find((activity) => activity.id === RECOVER_ACTIVITY_ID);
   const availability = player.activityState?.availability?.[RECOVER_ACTIVITY_ID];
 
@@ -451,8 +530,7 @@ function buildRecoveryGroup(
   }
 
   return {
-    label: "Recovery",
-    tone: "activity",
+    kind: "activity",
     choices: [
       {
         id: `${ACTIVITY_ACTION_PREFIX}${recoverActivity.id}`,

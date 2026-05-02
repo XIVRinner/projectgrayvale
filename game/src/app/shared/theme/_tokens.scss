@@ -16,6 +16,21 @@
   --gv-color-accent-yellow: #f1d499;
   --gv-color-accent-purple: #a78bfa;
   --gv-color-accent-deep-orange: #cf7a52;
+  --gv-color-success: #8dd8a7;
+  --gv-color-danger: #ff8e7e;
+
+  --gv-color-action-pinned: #f5f7ff;
+  --gv-color-action-movement: var(--gv-color-accent-cool);
+  --gv-color-action-travel: #7fd3ff;
+  --gv-color-action-fast-travel: #bca4ff;
+  --gv-color-action-talk: var(--gv-color-accent-purple);
+  --gv-color-action-activity: var(--gv-color-accent-warm);
+  --gv-color-action-combat: var(--gv-color-danger);
+  --gv-color-action-raid: var(--gv-color-accent-deep-orange);
+  --gv-color-action-dungeon: #8fb8ff;
+  --gv-color-action-shop: var(--gv-color-accent);
+  --gv-color-action-crafting: #ffb36b;
+  --gv-color-action-quest: var(--gv-color-success);
 
   --gv-space-xs: 0.25rem;
   --gv-space-sm: 0.5rem;

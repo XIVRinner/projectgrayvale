@@ -1,0 +1,56 @@
+@if (slot(); as slot) {
+  <section class="gv-save-slot-detail">
+    <p class="gv-save-slot-detail__eyebrow">Load Character</p>
+
+    <div class="gv-save-slot-detail__hero">
+      <img
+        class="gv-save-slot-detail__portrait"
+        [src]="portraitSrc(slot)"
+        [alt]="slot.portraitAlt ?? slot.name + ' portrait'"
+        (error)="onPortraitError($event)"
+      />
+
+      <div class="gv-save-slot-detail__copy">
+        <h3>{{ slot.name }}</h3>
+        <p>{{ prettyLabel(slot.classId) }} | {{ prettyLabel(slot.raceId) }}</p>
+        <div class="gv-save-slot-detail__tags" role="list" aria-label="Selected character tags">
+          @for (tag of tags(slot); track isTagObject(tag) ? tag.type : tag) {
+            @if (isTagObject(tag)) {
+              <span class="gv-save-slot-detail__tag" [attr.data-tag-type]="tag.type" [attr.data-difficulty]="tag.difficulty" role="listitem">{{ tag.label }}</span>
+            } @else {
+              <span class="gv-save-slot-detail__tag" role="listitem">{{ tag }}</span>
+            }
+          }
+        </div>
+      </div>
+    </div>
+
+    <dl class="gv-save-slot-detail__facts">
+      <div>
+        <dt>Created</dt>
+        <dd>{{ slot.createdAt }}</dd>
+      </div>
+      <div>
+        <dt>Updated</dt>
+        <dd>{{ slot.updatedAt }}</dd>
+      </div>
+      <div>
+        <dt>Status</dt>
+        <dd>{{ slot.isActive ? "Active" : "Standby" }}</dd>
+      </div>
+    </dl>
+
+    <button
+      type="button"
+      class="gv-save-slot-detail__load"
+      [disabled]="slot.isActive"
+      (click)="onLoad(slot)"
+    >
+      {{ slot.isActive ? "Already Loaded" : "Load Slot" }}
+    </button>
+  </section>
+} @else {
+  <section class="gv-save-slot-detail gv-save-slot-detail--empty">
+    <p>Select a slot to preview and load it.</p>
+  </section>
+}

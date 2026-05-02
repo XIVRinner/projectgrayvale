@@ -1,3 +1,9 @@
+import type {
+  ActionPanelGroupKind,
+  ActionPanelGroupThemeKey,
+  ActionPanelGroupView
+} from "../../shared/models/action-panel-group.model";
+
 export type ShellLayoutPreset = "story-focus" | "command-center";
 
 export interface ShellNavItem {
@@ -24,14 +30,8 @@ export interface ShellTopbarAction {
   readonly disabled?: boolean;
 }
 
-export type ShellActionTone =
-  | "talk"
-  | "quest"
-  | "combat"
-  | "activity"
-  | "travel"
-  | "craft"
-  | "trade";
+export type ShellActionGroupKind = ActionPanelGroupKind;
+export type ShellActionGroupThemeKey = ActionPanelGroupThemeKey;
 
 export interface ShellActionChoice {
   readonly id: string;
@@ -40,11 +40,7 @@ export interface ShellActionChoice {
   readonly disabledReason?: string;
 }
 
-export interface ShellActionGroup {
-  readonly label: string;
-  readonly tone: ShellActionTone;
-  readonly choices: readonly ShellActionChoice[];
-}
+export interface ShellActionGroup extends ActionPanelGroupView<ShellActionChoice> {}
 
 export interface ShellTopbarSaveSummary {
   readonly characterName?: string;
@@ -60,6 +56,13 @@ export interface ShellSaveSlotSummary {
   readonly raceId: string;
   readonly classId: string;
   readonly level: number;
+  readonly locationId: string;
+  readonly difficultyMode: string;
+  readonly expertMode: boolean;
+  readonly ironmanMode: boolean;
+  readonly talents: readonly string[];
+  readonly portraitSrc?: string;
+  readonly portraitAlt?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly isActive: boolean;
@@ -83,10 +86,12 @@ export interface ShellCharacterAction {
   readonly icon?: string;
 }
 
-export interface ShellCharacterAttribute {
+export interface ShellCharacterStatItem {
   readonly abbreviation: string;
   readonly label: string;
-  readonly value: string;
+  readonly value: number;
+  readonly isLocked: boolean;
+  readonly tags?: readonly string[];
 }
 
 export interface ShellCharacterMetric {
@@ -108,6 +113,15 @@ export interface ShellProgressBarItem {
   readonly max: number;
   readonly detail?: string;
   readonly tone: ShellProgressBarTone;
+  readonly gapWarning?: ShellGapWarning;
+}
+
+export interface ShellGapWarning {
+  readonly title: string;
+  readonly blockedOn: string | readonly string[];
+  readonly needs: string | readonly string[];
+  readonly doNotImplementUntil: string | readonly string[];
+  readonly note?: string;
 }
 
 export interface ShellCharacterBadge {
@@ -128,12 +142,16 @@ export interface ShellCharacterPanel {
   readonly rank: string;
   readonly name: string;
   readonly subtitle: string;
+  readonly genderLabel?: string;
+  readonly genderIconPath?: string;
   readonly roleLines: readonly ShellCharacterRoleLine[];
   readonly actions: readonly ShellCharacterAction[];
-  readonly levelLabel: string;
+  readonly levelValue: number;
+  readonly levelTitle: string;
   readonly badges: readonly ShellCharacterBadge[];
   readonly progressBars: readonly ShellProgressBarItem[];
   readonly identityCards: readonly ShellCharacterIdentityCard[];
-  readonly attributes: readonly ShellCharacterAttribute[];
+  readonly attributes: readonly ShellCharacterStatItem[];
+  readonly skills: readonly ShellCharacterStatItem[];
   readonly focusItems: readonly ShellCharacterFocusItem[];
 }

@@ -1,0 +1,39 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Checker pattern -->
+  <defs>
+    <pattern id="checker" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="32" height="32" fill="#ff00ff"/>
+      <rect x="32" width="32" height="32" fill="#000000"/>
+      <rect y="32" width="32" height="32" fill="#000000"/>
+      <rect x="32" y="32" width="32" height="32" fill="#ff00ff"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" fill="url(#checker)"/>
+
+  <!-- Thick border -->
+  <rect x="4" y="4" width="248" height="248"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="8"/>
+
+  <!-- Bold warning text -->
+  <text x="50%" y="48%"
+        text-anchor="middle"
+        fill="#ffffff"
+        font-family="Arial Black, Impact, sans-serif"
+        font-size="26">
+    NO TEXTURE
+  </text>
+
+  <text x="50%" y="65%"
+        text-anchor="middle"
+        fill="#ffffff"
+        font-family="Arial Black, Impact, sans-serif"
+        font-size="20">
+    YET
+  </text>
+
+</svg>

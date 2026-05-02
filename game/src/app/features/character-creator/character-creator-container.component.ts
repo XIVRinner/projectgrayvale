@@ -22,6 +22,10 @@ import {
 } from "../../data/loaders/character-name-library.loader";
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
+import {
+  PLAYER_HEALTH_BALANCE_PROFILE_ID,
+  reconcileHealthState
+} from "../../core/services/health-balance";
 import { safeParsePlayer } from "../../core/validation/core-runtime-validation";
 import {
   CHARACTER_CREATOR_DEFAULT_GENDER_ID,
@@ -445,7 +449,14 @@ export class CharacterCreatorContainerComponent {
       return;
     }
 
-    const savedSlot = this.roster.createCharacter(previewPlayer);
+    const savedSlot = this.roster.createCharacter(
+      previewPlayer,
+      reconcileHealthState(
+        previewPlayer,
+        undefined,
+        this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined
+      )
+    );
     this.saveStatusMessage.set(`Saved to ${savedSlot.id.replace("_", " ").toUpperCase()}.`);
     this.characterCreated.emit();
   }

@@ -1,0 +1,17 @@
+{
+  "id": "test_profile",
+  "scalars": {
+    "attributes": {
+      "strength": 0.5
+    }
+  },
+  "overrides": {
+    "scaling": [
+      {
+        "target": "weapon.shortBlade",
+        "attribute": "strength",
+        "multiplier": 2.0
+      }
+    ]
+  }
+}

@@ -31,6 +31,11 @@ import {
   evaluateWorldGuardsDetailed,
   validateWorldGuardCatalogUsage
 } from "./world-guard-evaluator";
+import {
+  buildActionPanelGroup,
+  mergeActionPanelGroups,
+  type ActionPanelGroupView
+} from "../../shared/models/action-panel-group.model";
 
 export type WorldActionKind = "sublocation-enter" | "sublocation-exit" | "world-travel";
 
@@ -38,17 +43,12 @@ export interface WorldActionView {
   readonly id: string;
   readonly label: string;
   readonly kind: WorldActionKind;
-  readonly tone: "travel";
   readonly disabled?: boolean;
   readonly disabledReason?: string;
   readonly payload?: Record<string, string | number | boolean>;
 }
 
-export interface WorldActionGroupView {
-  readonly label: string;
-  readonly tone: "travel";
-  readonly choices: readonly WorldActionView[];
-}
+export interface WorldActionGroupView extends ActionPanelGroupView<WorldActionView> {}
 
 @Injectable({ providedIn: "root" })
 export class WorldStateService {
@@ -122,22 +122,17 @@ export class WorldStateService {
 
     if (currentSublocation) {
       return [
-        {
-          label: "Local",
-          tone: "travel",
-          choices: [
-            {
-              id: buildExitSublocationActionId(currentSublocation.id),
-              label:
-                currentSublocation.exitActionLabel ?? `Leave ${currentSublocation.label}`,
-              kind: "sublocation-exit",
-              tone: "travel",
-              payload: {
-                sublocationId: currentSublocation.id
-              }
+        buildActionPanelGroup("movement", [
+          {
+            id: buildExitSublocationActionId(currentSublocation.id),
+            label:
+              currentSublocation.exitActionLabel ?? `Leave ${currentSublocation.label}`,
+            kind: "sublocation-exit",
+            payload: {
+              sublocationId: currentSublocation.id
             }
-          ]
-        }
+          }
+        ])
       ];
     }
 
@@ -147,7 +142,6 @@ export class WorldStateService {
         id: buildEnterSublocationActionId(entry.id),
         label: entry.entryActionLabel ?? `Enter ${entry.label}`,
         kind: "sublocation-enter",
-        tone: "travel",
         payload: {
           sublocationId: entry.id
         }
@@ -173,7 +167,6 @@ export class WorldStateService {
           id: buildTravelActionId(edge.from, edge.to),
           label: `Travel to ${destination.label}`,
           kind: "world-travel",
-          tone: "travel",
           disabled: !access.passes,
           disabledReason: access.failureReason,
           payload: {
@@ -184,25 +177,16 @@ export class WorldStateService {
       })
       .filter((entry): entry is WorldActionView => entry !== null);
 
-    const groups: WorldActionGroupView[] = [];
-
-    if (localChoices.length > 0) {
-      groups.push({
-        label: "Local",
-        tone: "travel",
+    return mergeActionPanelGroups<WorldActionView>([
+      {
+        kind: "movement",
         choices: localChoices
-      });
-    }
-
-    if (travelChoices.length > 0) {
-      groups.push({
-        label: "Travel",
-        tone: "travel",
+      },
+      {
+        kind: "travel",
         choices: travelChoices
-      });
-    }
-
-    return groups;
+      }
+    ]);
   });
 
   private readonly actionsById = computed(() => {

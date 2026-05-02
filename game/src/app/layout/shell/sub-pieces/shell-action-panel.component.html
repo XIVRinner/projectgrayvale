@@ -3,8 +3,8 @@
     <p class="gv-action-panel__empty">No actions available.</p>
   }
 
-  @for (group of groups(); track group.label) {
-    <div class="gv-action-panel__group" [attr.data-tone]="group.tone">
+  @for (group of groups(); track group.kind) {
+    <div class="gv-action-panel__group" [attr.data-theme]="group.themeKey">
       <div class="gv-action-panel__group-header" aria-hidden="true">
         <span class="gv-action-panel__group-label">{{ group.label }}</span>
       </div>

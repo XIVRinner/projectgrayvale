@@ -1,0 +1,14 @@
+[
+  {
+    "id": "player_health_v1",
+    "description": "Temporary HP tuning profile for the shell and save-state health snapshot.",
+    "scalars": {
+      "attributes": {
+        "vitality": 4
+      },
+      "resources": {
+        "maxHpFlat": 20
+      }
+    }
+  }
+]

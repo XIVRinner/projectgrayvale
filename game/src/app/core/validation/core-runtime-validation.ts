@@ -15,6 +15,7 @@ export function parseRace(raw: unknown): Race {
   return {
     id: ensureString(record["id"], "race.id"),
     name: ensureString(record["name"], "race.name"),
+    adjective: ensureString(record["adjective"], "race.adjective"),
     slug: ensureString(record["slug"], "race.slug"),
     imageBasePath: ensureString(record["imageBasePath"], "race.imageBasePath"),
     variants: parseVariants(record["variants"]),

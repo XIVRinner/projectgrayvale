@@ -3,19 +3,18 @@
     <header class="gv-character-panel__header">
       <div>
         <h2 class="gv-character-panel__name">{{ panel().name }}</h2>
-        <p class="gv-character-panel__subtitle">{{ panel().subtitle }}</p>
-
-        <div class="gv-character-panel__role-lines">
-          @for (line of panel().roleLines; track line.label) {
-            <p class="gv-character-panel__role-line">
-              <span class="gv-character-panel__role-label">{{ line.label }}:</span>
-              <strong>{{ line.value }}</strong>
-              @if (line.meta) {
-                <span class="gv-character-panel__role-meta">{{ line.meta }}</span>
+        <p class="gv-character-panel__subtitle">
+          <span>{{ panel().subtitle }}</span>
+          @if (panel().genderLabel; as genderLabel) {
+            <span class="gv-character-panel__subtitle-divider" aria-hidden="true">·</span>
+            <span class="gv-character-panel__gender-chip">
+              @if (panel().genderIconPath; as genderIconPath) {
+                <img class="gv-character-panel__gender-icon" [src]="genderIconPath" [alt]="''" />
               }
-            </p>
+              <span>{{ genderLabel }}</span>
+            </span>
           }
-        </div>
+        </p>
       </div>
 
       <div class="gv-character-panel__header-actions" aria-label="Character actions">
@@ -37,7 +36,7 @@
           [src]="panel().portraitSrc!"
           [alt]="panel().portraitAlt ?? panel().name"
           [title]="panel().name + ' portrait'"
-          [subtitle]="panel().subtitle"
+          [subtitle]="null"
           eyebrow="Character portrait"
           triggerLabel="Open portrait at full size"
         >
@@ -47,75 +46,54 @@
               [src]="panel().portraitSrc!"
               [alt]="panel().portraitAlt ?? panel().name"
             />
-            <span class="gv-character-panel__level">{{ panel().levelLabel }}</span>
-            <span class="gv-character-panel__rank">{{ panel().rank }}</span>
+            <span
+              class="gv-character-panel__level"
+              [attr.aria-label]="panel().levelTitle"
+              [attr.title]="panel().levelTitle"
+            >
+              Lv {{ panel().levelValue }}
+            </span>
           </div>
         </gv-image-preview>
       } @else {
         <div class="gv-character-panel__portrait-frame">
           <span class="gv-character-panel__portrait">{{ panel().initials }}</span>
-          <span class="gv-character-panel__level">{{ panel().levelLabel }}</span>
-          <span class="gv-character-panel__rank">{{ panel().rank }}</span>
+          <span
+            class="gv-character-panel__level"
+            [attr.aria-label]="panel().levelTitle"
+            [attr.title]="panel().levelTitle"
+          >
+            Lv {{ panel().levelValue }}
+          </span>
         </div>
       }
     </div>
 
-    @if (panel().badges.length) {
-      <div class="gv-character-panel__badges">
-        @for (badge of panel().badges; track badge.label) {
-          <span class="gv-character-panel__badge" [attr.data-tone]="badge.tone">{{ badge.label }}</span>
-        }
-      </div>
-    }
-
-    <section class="gv-character-panel__metrics" aria-label="Combat status">
+    <section class="gv-character-panel__metrics" aria-label="Character progress">
       @for (bar of panel().progressBars; track bar.label) {
-        <gv-progress-bar
-          [label]="bar.label"
-          [valueLabel]="bar.valueLabel"
-          [current]="bar.current"
-          [max]="bar.max"
-          [detail]="bar.detail ?? ''"
-          [tone]="bar.tone"
-        />
+        <div class="gv-character-panel__metric-stack">
+          <gv-progress-bar
+            [label]="bar.label"
+            [valueLabel]="bar.valueLabel"
+            [current]="bar.current"
+            [max]="bar.max"
+            [detail]="bar.detail ?? ''"
+            [tone]="bar.tone"
+          />
+
+          @if (bar.gapWarning; as gapWarning) {
+            <gv-gap-warning
+              [title]="gapWarning.title"
+              [blockedOn]="gapWarning.blockedOn"
+              [needs]="gapWarning.needs"
+              [doNotImplementUntil]="gapWarning.doNotImplementUntil"
+              [note]="gapWarning.note ?? null"
+            />
+          }
+        </div>
       }
     </section>
 
-    <div class="gv-character-panel__identity-grid">
-    @for (card of panel().identityCards; track card.eyebrow) {
-      <article class="gv-character-panel__identity-card" [attr.title]="card.detail ?? null">
-        <span class="gv-character-panel__identity-eyebrow">{{ card.eyebrow }}</span>
-        <strong class="gv-character-panel__identity-title">{{ card.title }}</strong>
-        @if (card.detail) {
-          <p class="gv-character-panel__identity-detail">{{ card.detail }}</p>
-        }
-      </article>
-    }
-    </div>
-
-    <div class="gv-character-panel__attributes" aria-label="Core attributes">
-    @for (attribute of panel().attributes; track attribute.abbreviation) {
-      <article class="gv-character-panel__attribute-chip">
-        <span class="gv-character-panel__attribute-abbr">{{ attribute.abbreviation }}</span>
-        <span class="gv-character-panel__attribute-label">{{ attribute.label }}</span>
-        <strong class="gv-character-panel__attribute-value">{{ attribute.value }}</strong>
-      </article>
-    }
-    </div>
-
-    <div class="gv-character-panel__focus-list" aria-label="Current focus">
-    @for (item of panel().focusItems; track item.title) {
-      <article
-        class="gv-character-panel__focus-item"
-        [attr.data-tone]="item.tone"
-        [attr.title]="item.detail ?? null"
-      >
-        <h3 class="gv-character-panel__focus-title">{{ item.title }}</h3>
-        @if (item.detail) {
-          <p class="gv-character-panel__focus-detail">{{ item.detail }}</p>
-        }
-      </article>
-    }
-    </div>
+    <gv-stat-accordion [attributes]="panel().attributes" [skills]="panel().skills" />
   </article>
 </section>

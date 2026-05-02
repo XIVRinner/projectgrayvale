@@ -54,11 +54,11 @@ Captured: 2026-05-01. Reflects the live state of the game running at `http://loc
 ║  │             │  ║  └───────────────────────────┘   ║                        ║
 ║  └─────────────┘  ║                                   ║                        ║
 ╠═══════════════════╩═══════════════════════════════════╩════════════════════════╣
-║  FOOTER (game-footer-toolbar)                                                    ║
+║  FOOTER (game-footer-toolbar)                                                   ║
 ║  ┌──────────────────────────────────────────────────────────────────────────┐   ║
-║  │ 💡 Tip of the day                                    [Game Wiki] [v0.6.0] │   ║
-║  │ "Did you know? If your HP drops to 0, you become     Author: Tear Star    │   ║
-║  │  dramatically less alive."                          [GitHub] [🔒 Tear Star]│  ║
+║  │ 💡 Tip of the day                                    [Game Wiki] [v0.6.0] │  ║
+║  │ "Did you know? If your HP drops to 0, you become     Author: Tear Star    │  ║
+║  │  dramatically less alive."                          [GitHub] [🔒 Tear Star]│ ║
 ║  └──────────────────────────────────────────────────────────────────────────┘   ║
 ╚══════════════════════════════════════════════════════════════════════════════════╝
 ```

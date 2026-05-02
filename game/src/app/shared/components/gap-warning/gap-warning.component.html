@@ -1,0 +1,48 @@
+<aside class="gv-gap-warning" role="note" aria-live="polite">
+  <header class="gv-gap-warning__header">
+    <span class="gv-gap-warning__flag">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      {{ label() }}
+    </span>
+    <strong class="gv-gap-warning__title">{{ title() }}</strong>
+  </header>
+
+  <div class="gv-gap-warning__body">
+    @if (blockedOnLines().length) {
+      <section class="gv-gap-warning__section">
+        <span class="gv-gap-warning__key">Blocked on</span>
+        <div class="gv-gap-warning__value">
+          @for (line of blockedOnLines(); track line) {
+            <p>{{ line }}</p>
+          }
+        </div>
+      </section>
+    }
+
+    @if (needsLines().length) {
+      <section class="gv-gap-warning__section">
+        <span class="gv-gap-warning__key">Needs</span>
+        <div class="gv-gap-warning__value">
+          @for (line of needsLines(); track line) {
+            <p>{{ line }}</p>
+          }
+        </div>
+      </section>
+    }
+
+    @if (doNotImplementUntilLines().length) {
+      <section class="gv-gap-warning__section">
+        <span class="gv-gap-warning__key">Do not implement until</span>
+        <div class="gv-gap-warning__value">
+          @for (line of doNotImplementUntilLines(); track line) {
+            <p>{{ line }}</p>
+          }
+        </div>
+      </section>
+    }
+
+    @if (note(); as note) {
+      <p class="gv-gap-warning__note">{{ note }}</p>
+    }
+  </div>
+</aside>

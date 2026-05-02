@@ -3,6 +3,7 @@
     {
       "id": "race_human",
       "name": "Human",
+      "adjective": "Human",
       "slug": "human",
       "imageBasePath": "assets/images/portraits/human",
       "variants": {
@@ -44,6 +45,7 @@
     {
       "id": "race_elven",
       "name": "Elven",
+      "adjective": "Elven",
       "slug": "elven",
       "imageBasePath": "assets/images/portraits/elven",
       "variants": {
@@ -81,6 +83,7 @@
     {
       "id": "race_high_goblin",
       "name": "High Goblin",
+      "adjective": "Goblin",
       "slug": "high-goblin",
       "imageBasePath": "assets/images/portraits/high-goblin",
       "variants": {
@@ -120,6 +123,7 @@
     {
       "id": "race_night_elf",
       "name": "Night Elf",
+      "adjective": "Night Elven",
       "slug": "night-elf",
       "imageBasePath": "assets/images/portraits/night-elf",
       "variants": {
@@ -158,6 +162,7 @@
     {
       "id": "race_oni",
       "name": "Oni",
+      "adjective": "Oni",
       "slug": "oni",
       "imageBasePath": "assets/images/portraits/oni",
       "variants": {
@@ -197,6 +202,7 @@
     {
       "id": "race_catfolk",
       "name": "Catfolk",
+      "adjective": "Feline",
       "slug": "catfolk",
       "imageBasePath": "assets/images/portraits/catfolk",
       "variants": {
@@ -236,6 +242,7 @@
     {
       "id": "race_golem",
       "name": "Golem",
+      "adjective": "Golem",
       "slug": "golem",
       "imageBasePath": "assets/images/portraits/golem",
       "variants": {

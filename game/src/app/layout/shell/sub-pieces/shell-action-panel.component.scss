@@ -22,14 +22,19 @@
   text-align: center;
 }
 
-/* Per-group tone tokens */
-[data-tone="talk"]   { --gv-action-color: var(--gv-color-accent); }
-[data-tone="quest"]  { --gv-action-color: var(--gv-color-success); }
-[data-tone="combat"] { --gv-action-color: var(--gv-color-danger); }
-[data-tone="activity"] { --gv-action-color: var(--gv-color-accent-warm); }
-[data-tone="travel"] { --gv-action-color: var(--gv-color-accent-cool); }
-[data-tone="craft"]  { --gv-action-color: var(--gv-color-accent-warm); }
-[data-tone="trade"]  { --gv-action-color: #c89b3c; }
+/* Per-group theme tokens */
+[data-theme="pinned"] { --gv-action-color: var(--gv-color-action-pinned); }
+[data-theme="movement"] { --gv-action-color: var(--gv-color-action-movement); }
+[data-theme="travel"] { --gv-action-color: var(--gv-color-action-travel); }
+[data-theme="fast-travel"] { --gv-action-color: var(--gv-color-action-fast-travel); }
+[data-theme="talk"] { --gv-action-color: var(--gv-color-action-talk); }
+[data-theme="activity"] { --gv-action-color: var(--gv-color-action-activity); }
+[data-theme="combat"] { --gv-action-color: var(--gv-color-action-combat); }
+[data-theme="raid"] { --gv-action-color: var(--gv-color-action-raid); }
+[data-theme="dungeon"] { --gv-action-color: var(--gv-color-action-dungeon); }
+[data-theme="shop"] { --gv-action-color: var(--gv-color-action-shop); }
+[data-theme="crafting"] { --gv-action-color: var(--gv-color-action-crafting); }
+[data-theme="quest"] { --gv-action-color: var(--gv-color-action-quest); }
 
 .gv-action-panel__group {
   display: flex;

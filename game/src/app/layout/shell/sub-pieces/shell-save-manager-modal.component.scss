@@ -1,6 +1,5 @@
 .gv-save-manager__status,
 .gv-save-manager__panel h3,
-.gv-save-manager__slot-meta,
 .gv-save-manager__transfer-copy,
 .gv-save-manager__empty {
   margin: 0;
@@ -13,21 +12,44 @@
   color: var(--gv-color-text-primary);
   padding: var(--gv-space-sm) var(--gv-space-md);
   font-size: var(--gv-font-size-sm);
+  position: relative;
+  z-index: 3;
 }
 
 .gv-save-manager__grid {
+  position: relative;
   display: grid;
   gap: var(--gv-space-md);
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+:host ::ng-deep .gv-dialog-shell[data-variant="character-system"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--gv-color-bg-primary) 30%, transparent),
+      color-mix(in srgb, var(--gv-color-bg-primary) 58%, transparent)
+    ),
+    url('/assets/images/gray-vale-1.png') center / cover no-repeat,
+    var(--gv-color-bg-surface);
 }
 
 .gv-save-manager__panel {
+  position: relative;
+  z-index: 1;
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-md);
-  background: var(--gv-color-bg-raised);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 88%, transparent);
   padding: var(--gv-space-md);
   display: grid;
   gap: var(--gv-space-sm);
+}
+
+.gv-save-manager__right-column {
+  display: grid;
+  gap: var(--gv-space-md);
 }
 
 .gv-save-manager__panel-header {
@@ -51,32 +73,11 @@
   gap: var(--gv-space-sm);
 }
 
-.gv-save-manager__slot {
-  border: var(--gv-border-subtle);
-  border-radius: var(--gv-radius-sm);
-  background: var(--gv-color-bg-surface);
-  padding: var(--gv-space-sm);
-  display: grid;
-  gap: var(--gv-space-xs);
+.gv-save-manager__slot-list li {
+  margin: 0;
+  padding: 0;
 }
 
-.gv-save-manager__slot--active {
-  border-color: var(--gv-color-accent);
-}
-
-.gv-save-manager__slot-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gv-space-sm);
-}
-
-.gv-save-manager__slot-header strong {
-  color: var(--gv-color-text-primary);
-}
-
-.gv-save-manager__slot-header span,
-.gv-save-manager__slot-meta,
 .gv-save-manager__transfer-copy,
 .gv-save-manager__empty {
   color: var(--gv-color-text-muted);

@@ -5,6 +5,7 @@ export type RaceVariant = "warm" | "cool" | "exotic";
 export interface Race {
   id: string;
   name: string;
+  adjective: string;
   slug: string;
   imageBasePath: string;
   variants?: {

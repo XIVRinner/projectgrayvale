@@ -2,7 +2,7 @@
   <gv-dialog-shell
     [open]="open()"
     variant="character-system"
-    width="wide"
+    width="creator"
     eyebrow="Persistent Roster"
     title="Character Selection"
     subtitle="Manage save slots, transfer roster data, and open the character creator from the same character-and-system dialog wrapper."
@@ -16,7 +16,7 @@
     <div class="gv-save-manager__grid">
       <section class="gv-save-manager__panel gv-save-manager__slots">
         <div class="gv-save-manager__panel-header">
-          <h3>Save Slots</h3>
+          <h3>Save Manager</h3>
           <div class="gv-save-manager__header-actions">
             <button type="button" class="gv-save-manager__small-action" (click)="characterCreationRequested.emit()">
               Create Character
@@ -30,52 +30,48 @@
         } @else {
           <ul class="gv-save-manager__slot-list" role="list">
             @for (slot of slots(); track slot.id) {
-              <li class="gv-save-manager__slot" [class.gv-save-manager__slot--active]="slot.isActive">
-                <div class="gv-save-manager__slot-header">
-                  <strong>{{ slot.name }}</strong>
-                  <span>{{ slot.id }}</span>
-                </div>
-
-                <p class="gv-save-manager__slot-meta">
-                  {{ slot.raceId }} | {{ slot.classId }} | Level {{ slot.level }}
-                </p>
-                <p class="gv-save-manager__slot-meta">Created: {{ slot.createdAt }}</p>
-                <p class="gv-save-manager__slot-meta">Updated: {{ slot.updatedAt }}</p>
-
-                <div class="gv-save-manager__slot-actions">
-                  <button type="button" class="gv-save-manager__small-action" [disabled]="slot.isActive" (click)="slotLoadRequested.emit(slot.id)">
-                    Load
-                  </button>
-                  <button type="button" class="gv-save-manager__small-action" (click)="slotExportRequested.emit(slot.id)">
-                    Export
-                  </button>
-                  <button type="button" class="gv-save-manager__small-action gv-save-manager__small-action--danger" (click)="requestDelete(slot)">
-                    Delete
-                  </button>
-                </div>
+              <li>
+                <gv-shell-save-slot-card
+                  [slot]="slot"
+                  [selected]="selectedSlot()?.id === slot.id"
+                  (selectedRequested)="selectSlot($event)"
+                  (loadRequested)="slotLoadRequested.emit($event)"
+                  (exportRequested)="slotExportRequested.emit($event)"
+                  (deleteRequested)="requestDelete($event)"
+                />
               </li>
             }
           </ul>
         }
       </section>
 
-      <section class="gv-save-manager__panel gv-save-manager__transfer">
-        <h3>Transfer</h3>
-        <p class="gv-save-manager__transfer-copy">Paste a roster JSON payload to import, or export a slot to this box.</p>
+      <div class="gv-save-manager__right-column">
+        <section class="gv-save-manager__panel">
+          <h3>Load Character @if (selectedSlotIndex(); as index) { Slot {{ index }} }</h3>
+          <gv-shell-save-slot-detail
+            [slot]="selectedSlot()"
+            (loadRequested)="slotLoadRequested.emit($event)"
+          />
+        </section>
 
-        <textarea
-          [value]="transferPayload()"
-          (input)="onTransferPayloadInput($event)"
-          placeholder="Paste roster JSON here"
-        ></textarea>
+        <section class="gv-save-manager__panel gv-save-manager__transfer">
+          <h3>Transfer</h3>
+          <p class="gv-save-manager__transfer-copy">Paste a roster JSON payload to import, or export a slot to this box.</p>
 
-        <div class="gv-save-manager__transfer-actions">
-          <button type="button" class="gv-save-manager__small-action" (click)="importRequested.emit()">Import</button>
-          <button type="button" class="gv-save-manager__small-action gv-save-manager__small-action--danger" (click)="requestReset()">
-            Reset All
-          </button>
-        </div>
-      </section>
+          <textarea
+            [value]="transferPayload()"
+            (input)="onTransferPayloadInput($event)"
+            placeholder="Paste roster JSON here"
+          ></textarea>
+
+          <div class="gv-save-manager__transfer-actions">
+            <button type="button" class="gv-save-manager__small-action" (click)="importRequested.emit()">Import</button>
+            <button type="button" class="gv-save-manager__small-action gv-save-manager__small-action--danger" (click)="requestReset()">
+              Reset All
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   </gv-dialog-shell>
 

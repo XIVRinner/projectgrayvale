@@ -12,6 +12,7 @@ export const raceSchema = z
   .object({
     id: z.string(),
     name: z.string(),
+    adjective: z.string(),
     slug: z.string(),
     imageBasePath: z.string(),
     variants: z

@@ -1,0 +1,67 @@
+<section class="gv-stat-accordion" aria-label="Character stats">
+  <article class="gv-stat-accordion__section" data-variant="attribute">
+    <button type="button" class="gv-stat-accordion__toggle" [attr.aria-expanded]="attributesOpen()" (click)="toggleAttributes()">
+      <span>Attributes</span>
+      <i class="pi" [class.pi-chevron-down]="attributesOpen()" [class.pi-chevron-right]="!attributesOpen()" aria-hidden="true"></i>
+    </button>
+    @if (attributesOpen()) {
+      <div class="gv-stat-accordion__grid">
+        @for (item of attributes(); track item.label) {
+          <gv-stat-card [item]="item" variant="attribute" />
+        } @empty {
+          <p class="gv-stat-accordion__empty">No attributes available.</p>
+        }
+      </div>
+    }
+  </article>
+
+  <article class="gv-stat-accordion__section" data-variant="skill">
+    <button type="button" class="gv-stat-accordion__toggle" [attr.aria-expanded]="skillsOpen()" (click)="toggleSkills()">
+      <span>Skills</span>
+      <i class="pi" [class.pi-chevron-down]="skillsOpen()" [class.pi-chevron-right]="!skillsOpen()" aria-hidden="true"></i>
+    </button>
+    @if (skillsOpen()) {
+      <div class="gv-stat-accordion__skill-groups">
+        @for (group of skillGroups(); track group.id) {
+          <article class="gv-stat-accordion__skill-group">
+            <button
+              type="button"
+              class="gv-stat-accordion__group-toggle"
+              [attr.aria-expanded]="isSkillGroupOpen(group.id)"
+              (click)="toggleSkillGroup(group.id)"
+            >
+              <span class="gv-stat-accordion__group-title">{{ group.label }}</span>
+              <span class="gv-stat-accordion__group-meta">{{ group.count }}</span>
+              <i
+                class="pi"
+                [class.pi-chevron-down]="isSkillGroupOpen(group.id)"
+                [class.pi-chevron-right]="!isSkillGroupOpen(group.id)"
+                aria-hidden="true"
+              ></i>
+            </button>
+
+            @if (isSkillGroupOpen(group.id)) {
+              <div class="gv-stat-accordion__skill-subgroups">
+                @for (subgroup of group.subgroups; track subgroup.id) {
+                  <section class="gv-stat-accordion__skill-subgroup">
+                    @if (subgroup.label; as subgroupLabel) {
+                      <p class="gv-stat-accordion__subgroup-label">{{ subgroupLabel }}</p>
+                    }
+
+                    <div class="gv-stat-accordion__grid">
+                      @for (item of subgroup.items; track item.label) {
+                        <gv-stat-card [item]="item" variant="skill" />
+                      }
+                    </div>
+                  </section>
+                }
+              </div>
+            }
+          </article>
+        } @empty {
+          <p class="gv-stat-accordion__empty">No known skills yet.</p>
+        }
+      </div>
+    }
+  </article>
+</section>
