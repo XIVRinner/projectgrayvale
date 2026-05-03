@@ -67,12 +67,22 @@ export class WorldStateService {
 
   readonly currentLocationMetadata = computed<WorldLocationMetadata | null>(() => {
     const world = this.currentWorld();
+
+    if (!world) {
+      return null;
+    }
+
     return this.locationMetadataById().get(world.currentLocation) ?? null;
   });
 
   readonly currentSublocationMetadata = computed<WorldSublocationMetadata | null>(() => {
     const currentSublocationId = this.currentWorld()?.sublocations.at(-1);
     const location = this.currentLocationMetadata();
+
+    if (!currentSublocationId || !location) {
+      return null;
+    }
+
     return location.sublocations.find((entry) => entry.id === currentSublocationId) ?? null;
   });
 
