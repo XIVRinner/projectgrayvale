@@ -2,11 +2,6 @@ import { Component, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { type Player, type Race } from "@rinner/grayvale-core";
 
-import {
-  type GameActivityDefinition,
-  isActivityAvailableAtWorld
-} from "../../data/loaders/game-activity.types";
-
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
@@ -19,21 +14,15 @@ import {
   reconcileHealthState
 } from "../../core/services/health-balance";
 import { WorldStateService } from "../../core/services/world-state.service";
-import { ActivitiesLoader } from "../../data/loaders/activities.loader";
+import { GameplayGraphRuntime } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import {
   CharacterCreatorOptions,
   CharacterCreatorOptionsLoader
 } from "../../data/loaders/character-creator-options.loader";
-import {
-  buildActionPanelGroup,
-  mergeActionPanelGroups,
-  type ActionPanelGroupDraft
-} from "../../shared/models/action-panel-group.model";
 
 import { buildShellCharacterPanel, ShellCharacterMetadata } from "./shell-character-panel.mapper";
 import { ShellViewComponent } from "./shell-view.component";
 import {
-  ShellActionChoice,
   ShellActionGroup,
   ShellCharacterPanel,
   ShellLayoutPreset,
@@ -95,7 +84,6 @@ import {
 })
 export class ShellContainerComponent {
   private readonly roster = inject(CharacterRosterService);
-  private readonly activitiesLoader = inject(ActivitiesLoader);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   protected readonly gameDialog = inject(GameDialogService);
   private readonly debugLog = inject(DebugLogService);
@@ -103,13 +91,13 @@ export class ShellContainerComponent {
   private readonly gameQuests = inject(GameQuestService);
   private readonly gameSettings = inject(GameSettingsService);
   private readonly worldState = inject(WorldStateService);
+  private readonly gameplayRuntime = inject(GameplayGraphRuntime);
 
   protected readonly isCharacterCreationOpenState = signal(false);
   protected readonly isSaveManagerOpen = signal(false);
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
-  private readonly activities = signal<readonly GameActivityDefinition[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
   protected readonly gameplayLogEntries = toSignal(this.gameplayLog.log$, {
     initialValue: []
@@ -215,18 +203,6 @@ export class ShellContainerComponent {
         },
         error: () => {
           this.creatorOptions.set(null);
-        }
-      });
-
-    this.activitiesLoader
-      .load()
-      .pipe(takeUntilDestroyed())
-      .subscribe({
-        next: (activities) => {
-          this.activities.set(activities);
-        },
-        error: () => {
-          this.activities.set([]);
         }
       });
 
@@ -353,21 +329,8 @@ export class ShellContainerComponent {
     ];
   });
 
-  readonly actionGroups = computed<readonly ShellActionGroup[]>(() =>
-    buildShellActionGroups(
-      this.roster.activeCharacter(),
-      this.roster.activeWorld(),
-      this.activities(),
-      this.worldState.actionGroups().map((group) => ({
-        kind: group.kind,
-        choices: group.choices.map((choice) => ({
-          id: choice.id,
-          label: choice.label,
-          disabled: choice.disabled,
-          disabledReason: choice.disabledReason
-        }))
-      }))
-    )
+  readonly actionGroups = computed<readonly ShellActionGroup[]>(
+    () => this.gameplayRuntime.actionGroups()
   );
 
   readonly characterPanel = computed<ShellCharacterPanel>(() => {
@@ -537,25 +500,14 @@ export class ShellContainerComponent {
 
   protected handleActionSelected(actionId: string): void {
     this.logUi("Gameplay action selected.", { actionId });
-    if (actionId === WAKE_UP_ACTION_ID) {
-      this.logUi("Forwarding Wake Up action to dialogue service.");
-      this.gameDialog.startPrologue();
-      return;
-    }
+    const result = this.gameplayRuntime.executeAction(actionId);
 
-    if (actionId.startsWith(ACTIVITY_ACTION_PREFIX)) {
-      this.logUi("Forwarding activity action to quest service.", {
+    if (!result.ok) {
+      this.logUi("Action execution returned a failure.", {
         actionId,
-        activityId: actionId.slice(ACTIVITY_ACTION_PREFIX.length)
+        reason: result.reason
       });
-      this.gameQuests.executeActivityById(
-        actionId.slice(ACTIVITY_ACTION_PREFIX.length)
-      );
-      return;
     }
-
-    this.logUi("Forwarding world action to world state service.", { actionId });
-    this.worldState.executeAction(actionId);
   }
 
   protected handleTopbarActionSelected(actionId: string): void {
@@ -580,14 +532,10 @@ export class ShellContainerComponent {
   }
 }
 
-const WAKE_UP_ACTION_ID = "story:wake-up";
-const ACTIVITY_ACTION_PREFIX = "activity:";
 const TOPBAR_GAMEPLAY_LOG_ACTION_ID = "topbar:gameplay-log";
 const TOPBAR_ACHIEVEMENTS_ACTION_ID = "topbar:achievements";
 const TOPBAR_GALLERY_ACTION_ID = "topbar:gallery";
 const TOPBAR_SETTINGS_ACTION_ID = "topbar:settings";
-const PROLOGUE_ARC_ID = "prologue";
-const PROLOGUE_COMPLETE_CHAPTER = 2;
 
 function formatSaveTimestamp(value: string): string {
   const parsedDate = new Date(value);
@@ -629,84 +577,6 @@ function resolveSaveSlotPortraitPath(
   }
 
   return `${race.imageBasePath}/${appearance.variant}/${portraitFile}`;
-}
-
-function buildShellActionGroups(
-  player: Player | null,
-  world: ReturnType<CharacterRosterService["activeWorld"]>,
-  activities: readonly GameActivityDefinition[],
-  worldActionGroups: readonly ActionPanelGroupDraft<ShellActionChoice>[]
-): readonly ShellActionGroup[] {
-  if (!player || !world) {
-    return [];
-  }
-
-  if (isWakeUpPrologueState(player, world)) {
-    return [
-      buildActionPanelGroup("talk", [
-        {
-          id: WAKE_UP_ACTION_ID,
-          label: "Wake up"
-        }
-      ])
-    ];
-  }
-
-  const activityGroup = buildLocationActivityGroup(player, world, activities);
-
-  if (!activityGroup) {
-    return mergeActionPanelGroups(worldActionGroups);
-  }
-
-  return mergeActionPanelGroups([...worldActionGroups, activityGroup]);
-}
-
-function isWakeUpPrologueState(
-  player: Player,
-  world: NonNullable<ReturnType<CharacterRosterService["activeWorld"]>>
-): boolean {
-  return (
-    world.currentLocation === "village-arkama" &&
-    world.sublocations.at(-1) === "chief-house" &&
-    player.story?.currentArcId === PROLOGUE_ARC_ID &&
-    player.story.currentChapter < PROLOGUE_COMPLETE_CHAPTER
-  );
-}
-
-/**
- * Builds an activity group from all activities whose declared location matches the
- * player's current world position. Activities with availability status "locked" are
- * excluded — they are treated as not present in the world.
- */
-function buildLocationActivityGroup(
-  player: Player,
-  world: NonNullable<ReturnType<CharacterRosterService["activeWorld"]>>,
-  activities: readonly GameActivityDefinition[]
-): ActionPanelGroupDraft<ShellActionChoice> | null {
-  const visible = activities.filter((activity) => {
-    if (!isActivityAvailableAtWorld(activity.location, world)) {
-      return false;
-    }
-    const availability = player.activityState?.availability?.[activity.id];
-    return availability !== undefined && availability.status !== "locked";
-  });
-
-  if (visible.length === 0) {
-    return null;
-  }
-
-  return {
-    kind: "activity",
-    choices: visible.map((activity) => {
-      const availability = player.activityState!.availability[activity.id]!;
-      return {
-        id: `${ACTIVITY_ACTION_PREFIX}${activity.id}`,
-        label: activity.name,
-        disabled: availability.status !== "enabled",
-        disabledReason: availability.disabledReason
-      };
-    })
-  };
 }
 
 function buildQuestTrackerPanel(

@@ -28,38 +28,32 @@ describe("WorldStateService", () => {
     localStorage.clear();
   });
 
-  it("shows only the local exit action while the player is in chief-house", () => {
+  it("exposes loaded world graph, guard catalog, and location catalog via signals", () => {
     expect(service.isReady()).toBe(true);
-    expect(service.currentLocationLabel()).toBe("Arkama Village");
-    expect(service.currentSublocationLabel()).toBe("Chief House");
-    expect(service.actionGroups()).toEqual([
-      {
-        kind: "movement",
-        label: "MOVEMENT",
-        themeKey: "movement",
-        choices: [
-          {
-            id: "leave-chief-house",
-            label: "Leave chief house",
-            kind: "sublocation-exit",
-            payload: {
-              sublocationId: "chief-house"
-            }
-          }
-        ]
-      }
-    ]);
+    expect(service.worldGraph()).not.toBeNull();
+    expect(service.worldGuardCatalog()).not.toBeNull();
+    expect(service.worldLocationsCatalog()).not.toBeNull();
   });
 
-  it("applies button deltas before leaving chief-house", () => {
-    const executed = service.executeAction("leave-chief-house");
-    const activePlayer = roster.activeCharacter();
+  it("reports current location and sublocation labels", () => {
+    expect(service.currentLocationLabel()).toBe("Arkama Village");
+    expect(service.currentSublocationLabel()).toBe("Chief House");
+  });
+
+  it("executes sublocation exit and moves the player out", () => {
+    const executed = service.executeExitSublocation();
 
     expect(executed).toBe(true);
     expect(roster.activeWorld()).toEqual({
       currentLocation: "village-arkama",
       sublocations: []
     });
+  });
+
+  it("records a button-press interaction when exiting chief-house", () => {
+    service.executeExitSublocation();
+    const activePlayer = roster.activeCharacter();
+
     expect(activePlayer?.interactionState?.totalButtonPresses).toBe(1);
     expect(activePlayer?.interactionState?.lastButtonPress).toEqual({
       actionId: "leave-chief-house",
@@ -73,86 +67,46 @@ describe("WorldStateService", () => {
     });
   });
 
-  it("blocks leaving chief-house when the player has not completed the recovery quest", () => {
-    const blockedPlayer = clonePlayer(samplePlayer);
-    delete blockedPlayer.interactionState;
-    delete blockedPlayer.questLog?.quests["quest_recovery"];
-    blockedPlayer.attributes["vitality"] = 8;
+  it("supports entering a sublocation", () => {
+    service.executeExitSublocation();
 
-    ({ roster, service } = createFixture({ player: blockedPlayer }));
+    const entered = service.executeEnterSublocation("tavern");
 
-    expect(service.actionGroups()).toEqual([
-      {
-        kind: "movement",
-        label: "MOVEMENT",
-        themeKey: "movement",
-        choices: [
-          {
-            id: "leave-chief-house",
-            label: "Leave chief house",
-            kind: "sublocation-exit",
-            disabled: true,
-            disabledReason: expect.any(String),
-            payload: {
-              sublocationId: "chief-house"
-            }
-          }
-        ]
-      }
-    ]);
-    expect(service.executeAction("leave-chief-house")).toBe(false);
-    expect(roster.activeWorld()?.sublocations).toContain("chief-house");
-  });
-
-  it("supports entering and leaving the tavern through the shared action pipeline", () => {
-    service.executeAction("leave-chief-house");
-
-    expect(extractActionIds(service)).toEqual([
-      "enter-chief-house",
-      "enter-tavern",
-      "travel-village-arkama-to-camp"
-    ]);
-
-    service.executeAction("enter-tavern");
-
+    expect(entered).toBe(true);
     expect(roster.activeWorld()).toEqual({
       currentLocation: "village-arkama",
       sublocations: ["tavern"]
     });
     expect(service.currentSublocationLabel()).toBe("Tavern");
-    expect(extractActionIds(service)).toEqual(["leave-tavern"]);
-
-    service.executeAction("leave-tavern");
-
-    expect(roster.activeWorld()).toEqual({
-      currentLocation: "village-arkama",
-      sublocations: []
-    });
-    expect(extractActionIds(service)).toEqual([
-      "enter-chief-house",
-      "enter-tavern",
-      "travel-village-arkama-to-camp"
-    ]);
   });
 
-  it("travels to camp and back while recording the interaction history", () => {
-    service.executeAction("leave-chief-house");
-    service.executeAction("travel-village-arkama-to-camp");
+  it("rejects entering a sublocation that does not exist in the graph", () => {
+    service.executeExitSublocation();
 
+    const entered = service.executeEnterSublocation("nonexistent-sublocation");
+
+    expect(entered).toBe(false);
+  });
+
+  it("supports travel between locations", () => {
+    service.executeExitSublocation();
+
+    const traveled = service.executeTravel("village-arkama", "camp");
+
+    expect(traveled).toBe(true);
     expect(roster.activeWorld()).toEqual({
       currentLocation: "camp",
       sublocations: []
     });
     expect(service.currentLocationLabel()).toBe("Camp");
     expect(service.currentSublocationLabel()).toBeNull();
-    expect(extractActionIds(service)).toEqual(["travel-camp-to-village-arkama"]);
+  });
 
-    service.executeAction("travel-camp-to-village-arkama");
+  it("records button-press interaction history across multiple movements", () => {
+    service.executeExitSublocation();
+    service.executeTravel("village-arkama", "camp");
+    service.executeTravel("camp", "village-arkama");
 
-    expect(roster.activeWorld()).toEqual({
-      currentLocation: "village-arkama",
-      sublocations: []
-    });
     expect(roster.activeCharacter()?.interactionState?.totalButtonPresses).toBe(3);
     expect(roster.activeCharacter()?.interactionState?.recentButtonPresses).toHaveLength(3);
     expect(roster.activeCharacter()?.interactionState?.lastButtonPress).toEqual({
@@ -167,7 +121,7 @@ describe("WorldStateService", () => {
     });
   });
 
-  it("shows disabled travel actions with authored guard reasons when a route is gated", () => {
+  it("rejects travel when guards block the route", () => {
     const guardedPlayer = clonePlayer(samplePlayer);
     delete guardedPlayer.interactionState;
     guardedPlayer.progression.level = 1;
@@ -194,52 +148,11 @@ describe("WorldStateService", () => {
       graph: guardedGraph
     }));
 
-    service.executeAction("leave-chief-house");
+    service.executeExitSublocation();
 
-    expect(service.actionGroups()).toEqual([
-      {
-        kind: "movement",
-        label: "MOVEMENT",
-        themeKey: "movement",
-        choices: [
-          {
-            id: "enter-chief-house",
-            label: "Return to chief house",
-            kind: "sublocation-enter",
-            payload: {
-              sublocationId: "chief-house"
-            }
-          },
-          {
-            id: "enter-tavern",
-            label: "Enter tavern",
-            kind: "sublocation-enter",
-            payload: {
-              sublocationId: "tavern"
-            }
-          }
-        ]
-      },
-      {
-        kind: "travel",
-        label: "TRAVEL",
-        themeKey: "travel",
-        choices: [
-          {
-            id: "travel-village-arkama-to-camp",
-            label: "Travel to Camp",
-            kind: "world-travel",
-            disabled: true,
-            disabledReason: "Reach level 2 before traveling there.",
-            payload: {
-              fromLocationId: "village-arkama",
-              targetLocationId: "camp"
-            }
-          }
-        ]
-      }
-    ]);
-    expect(service.executeAction("travel-village-arkama-to-camp")).toBe(false);
+    const traveled = service.executeTravel("village-arkama", "camp");
+
+    expect(traveled).toBe(false);
     expect(roster.activeWorld()).toEqual({
       currentLocation: "village-arkama",
       sublocations: []
@@ -247,12 +160,6 @@ describe("WorldStateService", () => {
     expect(roster.activeCharacter()?.interactionState?.totalButtonPresses).toBe(1);
   });
 });
-
-function extractActionIds(service: WorldStateService): string[] {
-  return service
-    .actionGroups()
-    .flatMap((group) => group.choices.map((choice) => choice.id));
-}
 
 function loadWorldGraph(): WorldGraph {
   return JSON.parse(
