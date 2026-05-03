@@ -21,6 +21,7 @@ import {
   CharacterNameLibraryLoader
 } from "../../data/loaders/character-name-library.loader";
 import { CharacterRosterService } from "../../core/services/character-roster.service";
+import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
 import {
   PLAYER_HEALTH_BALANCE_PROFILE_ID,
@@ -70,6 +71,7 @@ export class CharacterCreatorContainerComponent {
   private readonly optionsLoader = inject(CharacterCreatorOptionsLoader);
   private readonly nameLibraryLoader = inject(CharacterNameLibraryLoader);
   private readonly roster = inject(CharacterRosterService);
+  private readonly debugLog = inject(DebugLogService);
   private readonly gameSettings = inject(GameSettingsService);
 
   private readonly options = signal<CharacterCreatorOptions | null>(null);
@@ -343,12 +345,17 @@ export class CharacterCreatorContainerComponent {
       .pipe(takeUntilDestroyed())
       .subscribe({
         next: ({ options, nameLibrary }) => {
+          this.debugLog.logMessage("creator", "Character creator data loaded.", {
+            raceCount: options.races.length,
+            classCount: options.classes.length
+          });
           this.options.set(options);
           this.nameLibrary.set(nameLibrary);
           this.seedFromDefaults(options);
           this.isLoading.set(false);
         },
         error: (error: unknown) => {
+          this.debugLog.logMessage("creator", "Character creator failed to load.", errorToString(error));
           this.errorMessage.set(errorToString(error));
           this.isLoading.set(false);
         }
@@ -384,6 +391,10 @@ export class CharacterCreatorContainerComponent {
     const race = this.selectedRace();
     const fallbackSlug = this.options()?.races.find((entry) => entry.id === this.raceId())?.slug ?? "human";
     this.name.set(this.generateName(race?.slug ?? fallbackSlug));
+    this.debugLog.logMessage("creator", "Randomized character name.", {
+      raceId: race?.id ?? this.raceId(),
+      name: this.name()
+    });
     this.saveStatusMessage.set(null);
   }
 
@@ -439,6 +450,12 @@ export class CharacterCreatorContainerComponent {
     this.ironmanMode.set(Math.random() >= 0.5);
     this.genderId.set(randomGenderId());
     this.name.set(this.generateName(race.slug));
+    this.debugLog.logMessage("creator", "Randomized character draft.", {
+      raceId: race.id,
+      classId: classOption.id,
+      difficultyMode: this.selectedDifficultyMode(),
+      name: this.name()
+    });
     this.saveStatusMessage.set(null);
   }
 
@@ -446,6 +463,11 @@ export class CharacterCreatorContainerComponent {
     const previewPlayer = this.previewResult().player;
 
     if (!previewPlayer) {
+      this.debugLog.logMessage(
+        "creator",
+        "Create character ignored because the preview player was invalid.",
+        this.previewResult().error
+      );
       return;
     }
 
@@ -457,6 +479,11 @@ export class CharacterCreatorContainerComponent {
         this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined
       )
     );
+    this.debugLog.logMessage("creator", "Created character save slot.", {
+      slotId: savedSlot.id,
+      playerId: previewPlayer.id,
+      playerName: previewPlayer.name
+    });
     this.saveStatusMessage.set(`Saved to ${savedSlot.id.replace("_", " ").toUpperCase()}.`);
     this.characterCreated.emit();
   }

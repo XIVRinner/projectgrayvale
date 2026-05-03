@@ -1,203 +1,145 @@
-import { applyDelta, type GameState } from "../delta";
-import type { Player } from "../models";
 import {
-  isQuestCompleted,
-  isQuestStepCompleted,
-  type QuestLog
+  assertValidQuest,
+  assertValidQuestObjective,
+  parseQuest,
+  type CompositeObjective,
+  type Quest
 } from "./index";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-const createPlayer = (): Player => ({
-  id: "player_quest_test",
-  name: "Quest Test Player",
-  description: "A player used for quest tests.",
-  raceId: "race_human",
-  jobClass: "wanderer",
-  progression: {
-    level: 1,
-    experience: 0
-  },
-  adventurerRank: 1,
-  attributes: {
-    strength: 5
-  },
-  skills: {
-    mining: 2
-  },
-  inventory: {
-    items: {}
-  },
-  equippedItems: {}
-});
+const loadFixture = (fileName: string): unknown =>
+  JSON.parse(readFileSync(join(__dirname, fileName), "utf8")) as unknown;
 
-const createQuestLog = (): QuestLog => ({
-  quests: {}
-});
-
-describe("quest log delta compatibility", () => {
-  it("initializes a quest entry", () => {
-    const state: GameState = {
-      player: createPlayer(),
-      npcs: {}
-    };
-
-    expect(
-      applyDelta(state, {
-        type: "set",
-        target: "player",
-        path: ["questLog", "quests", "quest_intro"],
-        value: {
-          currentStep: "step_1",
-          status: "active"
-        }
+describe("quest objective validation", () => {
+  it("validates each supported objective type", () => {
+    expect(() =>
+      assertValidQuestObjective({
+        type: "attribute_reached",
+        attribute: "vitality",
+        target: 10
       })
-    ).toEqual({
-      ...state,
-      player: {
-        ...state.player,
-        questLog: {
-          quests: {
-            quest_intro: {
-              currentStep: "step_1",
-              status: "active"
-            }
-          }
+    ).not.toThrow();
+
+    expect(() =>
+      assertValidQuestObjective({
+        type: "item_collected",
+        itemId: "monster_hide",
+        quantity: 10
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      assertValidQuestObjective({
+        type: "activity_duration",
+        activityId: "woodcutting",
+        duration: 120
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      assertValidQuestObjective({
+        type: "kill",
+        target: "monster",
+        count: 10
+      })
+    ).not.toThrow();
+  });
+
+  it("loads the attribute quest fixture", () => {
+    const quest = loadFixture("quest.fixture.attribute.json");
+
+    expect(() => assertValidQuest(quest)).not.toThrow();
+    expect(parseQuest(quest)).toEqual({
+      id: "quest_vitality",
+      objectives: [
+        {
+          type: "attribute_reached",
+          attribute: "vitality",
+          target: 10
         }
-      }
+      ]
     });
   });
 
-  it("updates the current step", () => {
-    const state: GameState = {
-      player: {
-        ...createPlayer(),
-        questLog: {
-          quests: {
-            quest_intro: {
-              currentStep: "step_1",
-              status: "active"
-            }
-          }
-        }
+  it("supports nested composite objectives", () => {
+    const quest = parseQuest(loadFixture("quest.fixture.compound.json"));
+    const composite = quest.objectives[0] as CompositeObjective;
+
+    expect(() => assertValidQuest(quest)).not.toThrow();
+    expect(composite.type).toBe("composite");
+    expect(composite.operator).toBe("AND");
+    expect(composite.objectives).toEqual([
+      {
+        type: "kill",
+        target: "monster",
+        count: 10
       },
-      npcs: {}
-    };
-
-    expect(
-      applyDelta(state, {
-        type: "set",
-        target: "player",
-        path: ["questLog", "quests", "quest_intro", "currentStep"],
-        value: "step_2"
-      })
-    ).toEqual({
-      ...state,
-      player: {
-        ...state.player,
-        questLog: {
-          quests: {
-            quest_intro: {
-              currentStep: "step_2",
-              status: "active"
-            }
-          }
-        }
+      {
+        type: "item_collected",
+        itemId: "monster_hide",
+        quantity: 10
       }
-    });
+    ]);
   });
 
-  it("marks a quest step list and completion status", () => {
-    const state: GameState = {
-      player: {
-        ...createPlayer(),
-        questLog: {
-          quests: {
-            quest_intro: {
-              currentStep: "step_2",
-              status: "active"
-            }
-          }
+  it("rejects invalid quest structures", () => {
+    const missingAttribute = {
+      id: "quest_invalid_attribute",
+      objectives: [
+        {
+          type: "attribute_reached",
+          target: 10
         }
-      },
-      npcs: {}
+      ]
     };
 
-    const withCompletedSteps = applyDelta(state, {
-      type: "set",
-      target: "player",
-      path: ["questLog", "quests", "quest_intro", "completedSteps"],
-      value: ["step_1", "step_2"]
-    });
-
-    expect(
-      applyDelta(withCompletedSteps, {
-        type: "set",
-        target: "player",
-        path: ["questLog", "quests", "quest_intro", "status"],
-        value: "completed"
-      })
-    ).toEqual({
-      ...state,
-      player: {
-        ...state.player,
-        questLog: {
-          quests: {
-            quest_intro: {
-              currentStep: "step_2",
-              status: "completed",
-              completedSteps: ["step_1", "step_2"]
-            }
-          }
+    const invalidOperator = {
+      id: "quest_invalid_operator",
+      objectives: [
+        {
+          type: "composite",
+          operator: "XOR",
+          objectives: []
         }
-      }
-    });
-  });
-});
-
-describe("quest helpers", () => {
-  it("detects completed quests", () => {
-    const log: QuestLog = {
-      quests: {
-        quest_intro: {
-          currentStep: "step_2",
-          status: "completed",
-          completedSteps: ["step_1", "step_2"]
-        }
-      }
+      ]
     };
 
-    expect(isQuestCompleted(log, "quest_intro")).toBe(true);
-    expect(isQuestCompleted(log, "missing_quest")).toBe(false);
+    const invalidKillCount = {
+      id: "quest_invalid_kill_count",
+      objectives: [
+        {
+          type: "kill",
+          target: "monster",
+          count: 0
+        }
+      ]
+    };
+
+    expect(() => assertValidQuest(missingAttribute)).toThrow(
+      "quest.objectives[0].attribute must be a non-empty string."
+    );
+    expect(() => assertValidQuest(invalidOperator)).toThrow(
+      'quest.objectives[0].operator must be "AND" or "OR".'
+    );
+    expect(() => assertValidQuest(invalidKillCount)).toThrow(
+      "quest.objectives[0].count must be a positive finite number."
+    );
   });
 
-  it("detects completed quest steps", () => {
-    const log: QuestLog = {
-      quests: {
-        quest_intro: {
-          currentStep: "step_2",
-          status: "active",
-          completedSteps: ["step_1"]
+  it("accepts rewards when they are represented as an array payload", () => {
+    const quest: Quest = {
+      id: "quest_rewarded",
+      objectives: [
+        {
+          type: "item_collected",
+          itemId: "ore_chunk",
+          quantity: 3
         }
-      }
+      ],
+      rewards: [{ type: "currency", amount: 50 }]
     };
 
-    expect(isQuestStepCompleted(log, "quest_intro", "step_1")).toBe(true);
-    expect(isQuestStepCompleted(log, "quest_intro", "step_2")).toBe(false);
-    expect(isQuestStepCompleted(log, "missing_quest", "step_1")).toBe(false);
-  });
-
-  it("returns false for missing steps and an empty log", () => {
-    const emptyLog = createQuestLog();
-    const log: QuestLog = {
-      quests: {
-        quest_intro: {
-          currentStep: "step_2",
-          status: "completed"
-        }
-      }
-    };
-
-    expect(isQuestCompleted(emptyLog, "quest_intro")).toBe(false);
-    expect(isQuestStepCompleted(emptyLog, "quest_intro", "step_1")).toBe(false);
-    expect(isQuestStepCompleted(log, "quest_intro", "step_1")).toBe(false);
+    expect(() => assertValidQuest(quest)).not.toThrow();
   });
 });

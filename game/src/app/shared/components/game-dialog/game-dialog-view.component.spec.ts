@@ -45,7 +45,8 @@ describe("GameDialogViewComponent", () => {
     fixture.componentRef.setInput("choices", [
       {
         index: 0,
-        label: "Open your eyes"
+        label: "Open your eyes",
+        seen: false
       }
     ]);
     fixture.componentRef.setInput("canAdvance", false);
@@ -55,7 +56,7 @@ describe("GameDialogViewComponent", () => {
   it("renders the current speaker, transcript, scene art, and choice list", () => {
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.querySelector(".gv-game-dialog-view__speaker-name")?.textContent).toContain(
+    expect(element.querySelector(".gv-game-dialog-view__entry--current .gv-game-dialog-view__entry-actor")?.textContent).toContain(
       "Village Chief"
     );
     expect(element.querySelector(".gv-game-dialog-view__scene img")?.getAttribute("src")).toBe(

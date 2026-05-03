@@ -20,7 +20,7 @@ export const samplePlayer: Player = {
   attributes: {
     strength: 7,
     agility: 10,
-    vitality: 8,
+    vitality: 10,
     mentality: 6
   },
   skills: {
@@ -34,6 +34,11 @@ export const samplePlayer: Player = {
         currentStep: "report_to_captain",
         status: "active",
         completedSteps: ["accept_contract"]
+      },
+      quest_recovery: {
+        currentStep: "complete",
+        status: "completed",
+        completedSteps: ["vitality_reached"]
       }
     }
   },
@@ -45,8 +50,7 @@ export const samplePlayer: Player = {
   activityState: {
     availability: {
       recover: {
-        status: "disabled",
-        disabledReason: "You are still too injured to recover properly."
+        status: "locked"
       }
     },
     activeActivityId: null

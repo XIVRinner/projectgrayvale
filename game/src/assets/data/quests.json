@@ -1,0 +1,12 @@
+[
+  {
+    "id": "quest_recovery",
+    "objectives": [
+      {
+        "type": "attribute_reached",
+        "attribute": "vitality",
+        "target": 10
+      }
+    ]
+  }
+]

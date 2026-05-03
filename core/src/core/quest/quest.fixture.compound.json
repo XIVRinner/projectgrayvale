@@ -1,0 +1,21 @@
+{
+  "id": "quest_monster",
+  "objectives": [
+    {
+      "type": "composite",
+      "operator": "AND",
+      "objectives": [
+        {
+          "type": "kill",
+          "target": "monster",
+          "count": 10
+        },
+        {
+          "type": "item_collected",
+          "itemId": "monster_hide",
+          "quantity": 10
+        }
+      ]
+    }
+  ]
+}

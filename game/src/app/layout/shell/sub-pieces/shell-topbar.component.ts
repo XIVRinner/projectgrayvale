@@ -19,4 +19,5 @@ export class ShellTopbarComponent {
   readonly saveSummary = input.required<ShellTopbarSaveSummary>();
   readonly actions = input.required<readonly ShellTopbarAction[]>();
   readonly saveManagerRequested = output<void>();
+  readonly actionRequested = output<string>();
 }

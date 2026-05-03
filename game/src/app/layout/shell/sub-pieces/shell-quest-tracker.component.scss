@@ -1,0 +1,112 @@
+.gv-quest-tracker {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-quest-tracker__header {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-quest-tracker__eyebrow {
+  margin: 0;
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gv-quest-tracker__title {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-quest-tracker__empty {
+  margin: 0;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-color-bg-raised);
+  color: var(--gv-color-text-muted);
+  padding: var(--gv-space-md);
+  line-height: 1.5;
+}
+
+.gv-quest-tracker__entries {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-quest-tracker__entry {
+  display: grid;
+  gap: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(135deg, var(--gv-color-overlay-soft), transparent 40%),
+    var(--gv-color-bg-raised);
+  padding: var(--gv-space-md);
+}
+
+.gv-quest-tracker__entry[data-status="completed"] {
+  border-color: var(--gv-color-success);
+}
+
+.gv-quest-tracker__entry-header {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: start;
+  justify-content: space-between;
+}
+
+.gv-quest-tracker__entry-title {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-md);
+}
+
+.gv-quest-tracker__entry-summary {
+  margin: var(--gv-space-xs) 0 0;
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.4;
+}
+
+.gv-quest-tracker__entry-badge {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-sm);
+  padding: 0.15rem 0.55rem;
+  text-transform: capitalize;
+}
+
+.gv-quest-tracker__objective-list {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-quest-tracker__objective {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: center;
+  justify-content: space-between;
+  border-top: var(--gv-border-subtle);
+  padding-top: var(--gv-space-sm);
+}
+
+.gv-quest-tracker__objective[data-completed="true"] .gv-quest-tracker__objective-label,
+.gv-quest-tracker__objective[data-completed="true"] .gv-quest-tracker__objective-progress {
+  color: var(--gv-color-success);
+}
+
+.gv-quest-tracker__objective-label,
+.gv-quest-tracker__objective-progress {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-quest-tracker__objective-progress {
+  color: var(--gv-color-text-muted);
+  white-space: nowrap;
+}

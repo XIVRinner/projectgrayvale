@@ -1,6 +1,6 @@
 import { Injector, runInInjectionContext } from "@angular/core";
 import { samplePlayer } from "@rinner/grayvale-core";
-import type { WorldGraph } from "@rinner/grayvale-worldgraph";
+import type { Guard, WorldGraph } from "@rinner/grayvale-worldgraph";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { of } from "rxjs";
@@ -11,6 +11,7 @@ import type { WorldLocationsCatalog } from "../../data/loaders/world-locations.l
 import { WorldGraphLoader } from "../../data/loaders/world-graph.loader";
 import { WorldLocationsLoader } from "../../data/loaders/world-locations.loader";
 import { CharacterRosterService } from "./character-roster.service";
+import { DebugLogService } from "./game-log/debug-log.service";
 import { GameActionService } from "./game-action.service";
 import { WorldStateService } from "./world-state.service";
 
@@ -70,6 +71,37 @@ describe("WorldStateService", () => {
         sublocationId: "chief-house"
       }
     });
+  });
+
+  it("blocks leaving chief-house when the player has not completed the recovery quest", () => {
+    const blockedPlayer = clonePlayer(samplePlayer);
+    delete blockedPlayer.interactionState;
+    delete blockedPlayer.questLog?.quests["quest_recovery"];
+    blockedPlayer.attributes["vitality"] = 8;
+
+    ({ roster, service } = createFixture({ player: blockedPlayer }));
+
+    expect(service.actionGroups()).toEqual([
+      {
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
+        choices: [
+          {
+            id: "leave-chief-house",
+            label: "Leave chief house",
+            kind: "sublocation-exit",
+            disabled: true,
+            disabledReason: expect.any(String),
+            payload: {
+              sublocationId: "chief-house"
+            }
+          }
+        ]
+      }
+    ]);
+    expect(service.executeAction("leave-chief-house")).toBe(false);
+    expect(roster.activeWorld()?.sublocations).toContain("chief-house");
   });
 
   it("supports entering and leaving the tavern through the shared action pipeline", () => {
@@ -254,6 +286,7 @@ function loadWorldLocationsCatalog(): WorldLocationsCatalog {
         isReturnable: boolean;
         entryActionLabel?: string;
         exitActionLabel?: string;
+        exitGuards?: Array<{ type: string; params?: Record<string, unknown> }>;
       }>;
     }>;
   };
@@ -277,7 +310,8 @@ function loadWorldLocationsCatalog(): WorldLocationsCatalog {
         availableNpcIds: [...sublocation.availableNpcIds],
         isReturnable: sublocation.isReturnable,
         entryActionLabel: sublocation.entryActionLabel,
-        exitActionLabel: sublocation.exitActionLabel
+        exitActionLabel: sublocation.exitActionLabel,
+        exitGuards: sublocation.exitGuards as Guard[] | undefined
       }))
     }))
   };
@@ -312,13 +346,20 @@ function createFixture(options: {
   const guardsLoader = {
     load: jest.fn(() => of(options.guardCatalog ?? loadWorldGuardCatalog()))
   };
+  const debugLog = {
+    logMessage: jest.fn(),
+    logRaw: jest.fn(),
+    log$: of([]),
+    entries$: of([])
+  };
 
   delete player.interactionState;
   roster.createCharacter(player);
 
   const actionInjector = Injector.create({
     providers: [
-      { provide: CharacterRosterService, useValue: roster }
+      { provide: CharacterRosterService, useValue: roster },
+      { provide: DebugLogService, useValue: debugLog }
     ]
   });
   const gameAction = runInInjectionContext(
@@ -328,6 +369,7 @@ function createFixture(options: {
   const worldInjector = Injector.create({
     providers: [
       { provide: CharacterRosterService, useValue: roster },
+      { provide: DebugLogService, useValue: debugLog },
       { provide: GameActionService, useValue: gameAction },
       { provide: WorldGraphLoader, useValue: graphLoader },
       { provide: WorldGuardsLoader, useValue: guardsLoader },

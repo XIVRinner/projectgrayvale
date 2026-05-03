@@ -11,6 +11,14 @@
     {
       "type": "story_chapter_at_least",
       "failureMessageTemplate": "Advance the story to chapter {minimumChapter} before traveling there."
+    },
+    {
+      "type": "quest_completed",
+      "failureMessageTemplate": "Complete the assigned quest before continuing."
+    },
+    {
+      "type": "player_attribute_at_least",
+      "failureMessageTemplate": "Reach {minimumValue} {attributeId} before continuing."
     }
   ]
 }

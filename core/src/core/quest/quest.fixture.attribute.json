@@ -1,0 +1,10 @@
+{
+  "id": "quest_vitality",
+  "objectives": [
+    {
+      "type": "attribute_reached",
+      "attribute": "vitality",
+      "target": 10
+    }
+  ]
+}

@@ -26,6 +26,7 @@ describe("CharacterRosterService", () => {
     const roster = new CharacterRosterService();
     const player = clonePlayer(samplePlayer);
 
+    delete player.questLog;
     delete player.story;
     delete player.activityState;
 
@@ -34,6 +35,9 @@ describe("CharacterRosterService", () => {
     expect(slot.player.story).toEqual({
       currentArcId: "prologue",
       currentChapter: 1
+    });
+    expect(slot.player.questLog).toEqual({
+      quests: {}
     });
     expect(slot.player.activityState).toEqual({
       availability: {},
@@ -102,6 +106,41 @@ describe("CharacterRosterService", () => {
     expect(roster.activeSlot()?.statUnlocks.skills.short_blade).toBe(false);
   });
 
+  it("defaults missing imported quest log, story state, and activity availability", () => {
+    const roster = new CharacterRosterService();
+    const player = clonePlayer(samplePlayer);
+
+    delete player.questLog;
+    delete player.story;
+    delete player.activityState;
+
+    roster.importRoster(
+      JSON.stringify({
+        activeSlotId: "slot_1",
+        slots: [
+          {
+            id: "slot_1",
+            createdAt: "2026-05-01T08:00:00.000Z",
+            updatedAt: "2026-05-01T08:00:00.000Z",
+            player
+          }
+        ]
+      })
+    );
+
+    expect(roster.activeCharacter()?.questLog).toEqual({
+      quests: {}
+    });
+    expect(roster.activeCharacter()?.story).toEqual({
+      currentArcId: "prologue",
+      currentChapter: 1
+    });
+    expect(roster.activeCharacter()?.activityState).toEqual({
+      availability: {},
+      activeActivityId: null
+    });
+  });
+
   it("round-trips world state through export and import", () => {
     const roster = new CharacterRosterService();
 
@@ -122,6 +161,37 @@ describe("CharacterRosterService", () => {
       currentLocation: "camp",
       sublocations: []
     });
+  });
+
+  it("emits centralized world update events when the active world changes", () => {
+    const roster = new CharacterRosterService();
+    const receivedEvents: Array<{
+      previousWorld: { currentLocation: string; sublocations: string[] };
+      nextWorld: { currentLocation: string; sublocations: string[] };
+    }> = [];
+
+    roster.worldUpdated$.subscribe((event) => {
+      receivedEvents.push(event);
+    });
+
+    roster.createCharacter(clonePlayer(samplePlayer));
+    roster.updateActiveWorld({
+      currentLocation: "camp",
+      sublocations: []
+    });
+
+    expect(receivedEvents).toEqual([
+      {
+        previousWorld: {
+          currentLocation: "village-arkama",
+          sublocations: ["chief-house"]
+        },
+        nextWorld: {
+          currentLocation: "camp",
+          sublocations: []
+        }
+      }
+    ]);
   });
 
   it("persists health state through export and import", () => {
@@ -155,6 +225,35 @@ describe("CharacterRosterService", () => {
 
     expect(restoredRoster.activeSlot()?.statUnlocks.attributes.strength).toBe(true);
     expect(restoredRoster.activeSlot()?.statUnlocks.skills.short_blade).toBe(true);
+  });
+
+  it("persists quest log changes through export and import", () => {
+    const roster = new CharacterRosterService();
+
+    roster.createCharacter(clonePlayer(samplePlayer));
+    roster.applyActiveCharacterDeltas([
+      {
+        type: "set",
+        target: "player",
+        path: ["questLog", "quests", "quest_recovery"],
+        value: {
+          currentStep: "runtime_objectives",
+          status: "active",
+          completedSteps: []
+        }
+      }
+    ]);
+
+    const payload = roster.exportAll();
+    const restoredRoster = new CharacterRosterService();
+
+    restoredRoster.importRoster(payload);
+
+    expect(restoredRoster.activeCharacter()?.questLog?.quests["quest_recovery"]).toEqual({
+      currentStep: "runtime_objectives",
+      status: "active",
+      completedSteps: []
+    });
   });
 });
 

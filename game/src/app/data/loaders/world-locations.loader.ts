@@ -1,6 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, type Observable } from "rxjs";
+import type { Guard } from "@rinner/grayvale-worldgraph";
 
 import {
   cloneSaveSlotWorldState,
@@ -16,6 +17,7 @@ export interface WorldSublocationMetadata {
   readonly isReturnable: boolean;
   readonly entryActionLabel?: string;
   readonly exitActionLabel?: string;
+  readonly exitGuards?: readonly Guard[];
 }
 
 export interface WorldLocationMetadata {
@@ -80,7 +82,8 @@ function parseSublocationMetadata(raw: unknown, label: string): WorldSublocation
     availableNpcIds: parseStringArray(record["availableNpcIds"], `${label}.availableNpcIds`),
     isReturnable: ensureBoolean(record["isReturnable"], `${label}.isReturnable`),
     entryActionLabel: parseOptionalString(record["entryActionLabel"], `${label}.entryActionLabel`),
-    exitActionLabel: parseOptionalString(record["exitActionLabel"], `${label}.exitActionLabel`)
+    exitActionLabel: parseOptionalString(record["exitActionLabel"], `${label}.exitActionLabel`),
+    exitGuards: parseOptionalGuards(record["exitGuards"], `${label}.exitGuards`)
   };
 }
 
@@ -151,4 +154,22 @@ function ensureBoolean(raw: unknown, label: string): boolean {
   }
 
   return raw;
+}
+
+function parseOptionalGuards(raw: unknown, label: string): readonly Guard[] | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(raw)) {
+    throw new Error(`${label} must be an array.`);
+  }
+
+  return raw.map((entry, index) => {
+    const record = ensureRecord(entry, `${label}[${index}]`);
+    const type = ensureString(record["type"], `${label}[${index}].type`);
+    const params = record["params"] === undefined ? undefined : (record["params"] as Record<string, unknown>);
+
+    return { type, params } as Guard;
+  });
 }

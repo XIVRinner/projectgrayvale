@@ -25,7 +25,9 @@ import {
   WorldLocationsLoader
 } from "../../data/loaders/world-locations.loader";
 import { CharacterRosterService } from "./character-roster.service";
+import { DebugLogService } from "./game-log/debug-log.service";
 import { GameActionService } from "./game-action.service";
+import type { SaveSlotWorldState } from "./world-state.models";
 import {
   createWorldGuardResolver,
   evaluateWorldGuardsDetailed,
@@ -56,6 +58,7 @@ export class WorldStateService {
   private readonly worldGuardsLoader = inject(WorldGuardsLoader);
   private readonly worldLocationsLoader = inject(WorldLocationsLoader);
   private readonly roster = inject(CharacterRosterService);
+  private readonly debugLog = inject(DebugLogService);
   private readonly gameAction = inject(GameActionService);
 
   private readonly graphState = signal<WorldGraph | null>(null);
@@ -121,17 +124,27 @@ export class WorldStateService {
     const currentSublocation = this.currentSublocationMetadata();
 
     if (currentSublocation) {
+      const guardContext = buildGuardContext(activeSlot.player, world);
+      const exitAccess = evaluateWorldGuardsDetailed(
+        currentSublocation.exitGuards,
+        guardContext,
+        guardCatalog
+      );
+      const exitAction: WorldActionView = {
+        id: buildExitSublocationActionId(currentSublocation.id),
+        label:
+          currentSublocation.exitActionLabel ?? `Leave ${currentSublocation.label}`,
+        kind: "sublocation-exit",
+        payload: {
+          sublocationId: currentSublocation.id
+        }
+      };
+
       return [
         buildActionPanelGroup("movement", [
-          {
-            id: buildExitSublocationActionId(currentSublocation.id),
-            label:
-              currentSublocation.exitActionLabel ?? `Leave ${currentSublocation.label}`,
-            kind: "sublocation-exit",
-            payload: {
-              sublocationId: currentSublocation.id
-            }
-          }
+          exitAccess.passes
+            ? exitAction
+            : { ...exitAction, disabled: true, disabledReason: exitAccess.failureReason }
         ])
       ];
     }
@@ -205,13 +218,18 @@ export class WorldStateService {
     }).subscribe({
       next: ({ graph, guards, catalog }) => {
         validateWorldCatalog(graph, catalog);
-        validateWorldGuardUsage(graph, guards);
+        validateWorldGuardUsage(graph, guards, catalog);
+        this.debugLog.logMessage("world", "Loaded world navigation data.", {
+          locationCount: catalog.locations.length,
+          edgeCount: graph.edges.length
+        });
         this.graphState.set(graph);
         this.guardCatalogState.set(guards);
         this.catalogState.set(catalog);
         this.loadErrorState.set(null);
       },
       error: (error: unknown) => {
+        this.debugLog.logMessage("world", "Failed to load world navigation data.", errorToMessage(error));
         this.graphState.set(null);
         this.guardCatalogState.set(null);
         this.catalogState.set(null);
@@ -224,27 +242,54 @@ export class WorldStateService {
     const action = this.actionsById().get(actionId);
 
     if (!action || action.disabled) {
+      this.debugLog.logMessage("world", "World action rejected.", {
+        actionId,
+        reason: !action ? "missing-action" : "disabled-action",
+        disabledReason: action?.disabledReason
+      });
       return false;
     }
 
-    return this.gameAction.execute(
+    this.debugLog.logMessage("world", "World action selected.", action);
+
+    const nextWorld = this.resolveNextWorld(action);
+
+    if (!nextWorld) {
+      this.debugLog.logMessage("world", "World action could not resolve a next world state.", {
+        actionId
+      });
+      return false;
+    }
+
+    const executed = this.gameAction.executeWorldAction(
       {
         actionId: action.id,
         actionKind: action.kind,
         payload: action.payload
       },
-      () => this.applyAction(action)
+      nextWorld
     );
+
+    this.debugLog.logMessage(
+      "world",
+      executed ? "World action committed." : "World action failed during commit.",
+      {
+        actionId,
+        nextWorld
+      }
+    );
+
+    return executed;
   }
 
-  private applyAction(action: WorldActionView): void {
+  private resolveNextWorld(action: WorldActionView): SaveSlotWorldState | null {
     const activeSlot = this.roster.activeSlot();
     const graph = this.graphState();
     const guardCatalog = this.guardCatalogState();
     const world = this.currentWorld();
 
     if (!activeSlot || !graph || !guardCatalog || !world) {
-      return;
+      return null;
     }
 
     switch (action.kind) {
@@ -252,35 +297,32 @@ export class WorldStateService {
         const targetSublocationId = action.payload?.["sublocationId"];
 
         if (typeof targetSublocationId !== "string") {
-          return;
+          return null;
         }
 
         if (!hasSublocation(graph, world.currentLocation, targetSublocationId)) {
-          return;
+          return null;
         }
 
-        this.roster.updateActiveWorld(enterSublocation(world, targetSublocationId));
-        return;
+        return enterSublocation(world, targetSublocationId);
       }
       case "sublocation-exit":
-        this.roster.updateActiveWorld(leaveSublocation(world));
-        return;
+        return leaveSublocation(world);
       case "world-travel": {
         const targetLocationId = action.payload?.["targetLocationId"];
 
         if (typeof targetLocationId !== "string") {
-          return;
+          return null;
         }
 
         const guardContext = buildGuardContext(activeSlot.player, world);
         const guardResolver = createWorldGuardResolver(guardCatalog);
 
         if (!canMove(graph, world.currentLocation, targetLocationId, guardContext, guardResolver)) {
-          return;
+          return null;
         }
 
-        this.roster.updateActiveWorld(move(world, targetLocationId));
-        return;
+        return move(world, targetLocationId);
       }
     }
   }
@@ -328,13 +370,23 @@ function validateWorldCatalog(graph: WorldGraph, catalog: WorldLocationsCatalog)
   }
 }
 
-function validateWorldGuardUsage(graph: WorldGraph, catalog: WorldGuardCatalog): void {
+function validateWorldGuardUsage(graph: WorldGraph, catalog: WorldGuardCatalog, locationsCatalog: WorldLocationsCatalog): void {
   for (const [locationId, location] of Object.entries(graph.locations)) {
     validateWorldGuardCatalogUsage(location.guards, catalog, `world graph.locations.${locationId}`);
   }
 
   for (const [index, edge] of graph.edges.entries()) {
     validateWorldGuardCatalogUsage(edge.guards, catalog, `world graph.edges[${index}]`);
+  }
+
+  for (const location of locationsCatalog.locations) {
+    for (const sublocation of location.sublocations) {
+      validateWorldGuardCatalogUsage(
+        sublocation.exitGuards,
+        catalog,
+        `world locations.${location.id}.sublocations.${sublocation.id}.exitGuards`
+      );
+    }
   }
 }
 

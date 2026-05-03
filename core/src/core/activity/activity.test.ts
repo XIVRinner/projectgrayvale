@@ -2,6 +2,7 @@ import {
   createActivity,
   type Activity,
   type ActivityDefinition,
+  type ActivityReward,
   type ActivityTickDelta
 } from "./index";
 
@@ -72,6 +73,20 @@ describe("activity", () => {
   });
 
   it("supports authored activity definitions alongside bus events", () => {
+    const rewards: ActivityReward[] = [
+      {
+        type: "currency",
+        value: {
+          type: "range",
+          min: 3,
+          max: 10
+        },
+        distribution: {
+          type: "random"
+        }
+      }
+    ];
+
     const activity: ActivityDefinition = {
       id: "mining",
       name: "Mining",
@@ -79,7 +94,8 @@ describe("activity", () => {
       tags: ["gathering", "resource"],
       governingAttributes: ["mining"],
       difficulty: 20,
-      itemId: "copper_ore"
+      itemId: "copper_ore",
+      rewards
     };
 
     expect(activity).toEqual({
@@ -89,7 +105,8 @@ describe("activity", () => {
       tags: ["gathering", "resource"],
       governingAttributes: ["mining"],
       difficulty: 20,
-      itemId: "copper_ore"
+      itemId: "copper_ore",
+      rewards
     });
   });
 });

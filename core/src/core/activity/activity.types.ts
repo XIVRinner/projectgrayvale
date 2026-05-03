@@ -1,4 +1,5 @@
 import type { Entity, Named } from "../models/base";
+import type { ActivityReward } from "./reward.types";
 
 export type Activity = {
   type: string;
@@ -24,6 +25,7 @@ export interface ActivityDefinition extends Entity, Named {
   governingAttributes: GoverningAttributeId[];
   difficulty: ActivityDifficulty;
   itemId?: string;
+  rewards?: ActivityReward[];
 }
 
 export type ActivityTickDelta = ActivityOf<

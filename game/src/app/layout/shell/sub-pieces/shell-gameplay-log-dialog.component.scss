@@ -1,0 +1,210 @@
+:host {
+  display: contents;
+}
+
+.gv-gameplay-log {
+  display: grid;
+  gap: var(--gv-space-lg);
+  min-block-size: 18rem;
+}
+
+.gv-gameplay-log__empty {
+  display: grid;
+  place-items: center;
+  gap: var(--gv-space-sm);
+  min-block-size: 18rem;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 44%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  padding: var(--gv-space-xl);
+  text-align: center;
+}
+
+.gv-gameplay-log__section {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-gameplay-log__section-header {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-gameplay-log__section-title,
+.gv-gameplay-log__section-copy,
+.gv-gameplay-log__empty-title,
+.gv-gameplay-log__empty-copy,
+.gv-gameplay-log__text,
+.gv-gameplay-log__choice-title {
+  margin: 0;
+}
+
+.gv-gameplay-log__section-title,
+.gv-gameplay-log__empty-title,
+.gv-gameplay-log__choice-title {
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-gameplay-log__section-copy,
+.gv-gameplay-log__empty-copy {
+  color: var(--gv-color-text-muted);
+  max-inline-size: 36rem;
+}
+
+.gv-gameplay-log__list {
+  list-style: none;
+  display: grid;
+  gap: var(--gv-space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.gv-gameplay-log__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-md);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 50%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 90%, transparent);
+}
+
+.gv-gameplay-log__item[data-type="quest"] {
+  border-color: color-mix(in srgb, var(--gv-color-success) 32%, var(--gv-color-border-subtle));
+}
+
+.gv-gameplay-log__item[data-type="loot"] {
+  border-color: color-mix(in srgb, var(--gv-color-accent) 32%, var(--gv-color-border-subtle));
+}
+
+.gv-gameplay-log__item[data-type="combat"] {
+  border-color: color-mix(in srgb, var(--gv-color-danger) 32%, var(--gv-color-border-subtle));
+}
+
+.gv-gameplay-log__item[data-type="dialogue"],
+.gv-gameplay-log__item[data-type="choice"] {
+  border-color: color-mix(in srgb, var(--gv-color-accent-purple) 32%, var(--gv-color-border-subtle));
+}
+
+.gv-gameplay-log__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 5.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-overlay-strong) 90%, transparent);
+  color: var(--gv-color-accent-warm);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  text-transform: uppercase;
+}
+
+.gv-gameplay-log__text {
+  color: var(--gv-color-text-primary);
+  line-height: 1.55;
+}
+
+.gv-gameplay-log__debug-list {
+  list-style: none;
+  display: grid;
+  gap: var(--gv-space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.gv-gameplay-log__debug-item {
+  display: grid;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-md);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 50%),
+    color-mix(in srgb, var(--gv-color-bg-primary) 90%, transparent);
+}
+
+.gv-gameplay-log__debug-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+  flex-wrap: wrap;
+}
+
+.gv-gameplay-log__chip--debug {
+  color: var(--gv-color-accent-cool);
+}
+
+.gv-gameplay-log__debug-time {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-gameplay-log__debug-details {
+  margin: 0;
+  overflow-x: auto;
+  border-radius: var(--gv-radius-sm);
+  background: color-mix(in srgb, var(--gv-color-overlay-strong) 92%, transparent);
+  color: var(--gv-color-text-primary);
+  font-family: monospace;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  padding: var(--gv-space-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gv-gameplay-log__choice-block {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-gameplay-log__choice-list {
+  list-style: none;
+  display: grid;
+  gap: var(--gv-space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.gv-gameplay-log__choice-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+  color: var(--gv-color-text-primary);
+  padding: var(--gv-space-xs) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--gv-color-border-subtle) 70%, transparent);
+}
+
+.gv-gameplay-log__choice-item:last-child {
+  border-bottom: 0;
+}
+
+.gv-gameplay-log__choice-seen {
+  color: var(--gv-color-accent-cool);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 48rem) {
+  .gv-gameplay-log__item {
+    grid-template-columns: 1fr;
+  }
+
+  .gv-gameplay-log__chip {
+    min-inline-size: 0;
+    justify-self: start;
+  }
+}

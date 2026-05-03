@@ -19,7 +19,7 @@ describe("buildShellCharacterPanel", () => {
     );
 
     expect(panel.attributes).toEqual([
-      expect.objectContaining({ abbreviation: "VIT", isLocked: false, value: 8 }),
+      expect.objectContaining({ abbreviation: "VIT", isLocked: false, value: 10 }),
       expect.objectContaining({ abbreviation: "STR", isLocked: true, value: 7 }),
       expect.objectContaining({ abbreviation: "AGI", isLocked: true, value: 10 }),
       expect.objectContaining({ abbreviation: "MEN", isLocked: true, value: 6 })

@@ -17,7 +17,9 @@ export class DialogShellComponent {
   readonly variant = input<DialogShellVariant>("character-system");
   readonly closeDisabled = input(false);
   readonly showCloseButton = input(true);
-  readonly width = input<"standard" | "wide" | "creator" | "media" | "dialogue">("standard");
+  readonly width = input<"standard" | "wide" | "creator" | "media" | "dialogue" | "log">(
+    "standard"
+  );
 
   readonly closed = output<void>();
 

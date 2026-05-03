@@ -19,7 +19,17 @@
           "availableNpcIds": ["village-chief"],
           "isReturnable": true,
           "entryActionLabel": "Return to chief house",
-          "exitActionLabel": "Leave chief house"
+          "exitActionLabel": "Leave chief house",
+          "exitGuards": [
+            {
+              "type": "quest_completed",
+              "params": { "questId": "quest_recovery" }
+            },
+            {
+              "type": "player_attribute_at_least",
+              "params": { "attributeId": "vitality", "minimumValue": 10 }
+            }
+          ]
         },
         {
           "id": "tavern",

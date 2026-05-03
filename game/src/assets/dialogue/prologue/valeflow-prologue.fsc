@@ -39,5 +39,4 @@ chapter GET_UP:
     player "I am ${player.name}, from the Duchy of Beta."
     chief "Then keep breathing, ${player.name}. The rest can wait until your strength returns."
     call ApplyPlayerSet("story.currentChapter", 2)
-    call ApplyPlayerSet("activityState.availability.recover.status", "disabled")
-    call ApplyPlayerSet("activityState.availability.recover.disabledReason", "You are still too injured to recover properly.")
+    call startQuestById("quest_recovery")

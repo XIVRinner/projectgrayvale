@@ -23,8 +23,8 @@ describe("reconcileHealthState", () => {
         }
       })
     ).toEqual({
-      currentHp: 52,
-      maxHp: 52
+      currentHp: 60,
+      maxHp: 60
     });
   });
 
@@ -48,8 +48,8 @@ describe("reconcileHealthState", () => {
         }
       })
     ).toEqual({
-      currentHp: 34,
-      maxHp: 34
+      currentHp: 40,
+      maxHp: 40
     });
   });
 });

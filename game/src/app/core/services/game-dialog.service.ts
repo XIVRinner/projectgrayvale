@@ -21,11 +21,15 @@ import {
 import {
   GameDialogActorView,
   GameDialogChoiceView,
+  GameDialogEvent,
   GameDialogSessionView,
   GameDialogTranscriptEntry
 } from "../../shared/components/game-dialog/game-dialog.types";
 import { CharacterRosterService } from "./character-roster.service";
+import { DebugLogService } from "./game-log/debug-log.service";
+import { GameQuestService } from "./game-quest.service";
 import { WorldStateService } from "./world-state.service";
+import { Subject } from "rxjs";
 
 @Injectable({ providedIn: "root" })
 export class GameDialogService {
@@ -34,10 +38,13 @@ export class GameDialogService {
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   private readonly dialogueActorsLoader = inject(DialogueActorsLoader);
   private readonly worldState = inject(WorldStateService);
+  private readonly debugLog = inject(DebugLogService);
+  private readonly gameQuests = inject(GameQuestService);
 
   private readonly sessionState = signal<GameDialogSessionView | null>(null);
   private readonly queuedDeltasState = signal<readonly Delta[]>([]);
   private readonly errorState = signal<string | null>(null);
+  private readonly eventSubject = new Subject<GameDialogEvent>();
 
   private engine: Engine | null = null;
   private transcript: GameDialogTranscriptEntry[] = [];
@@ -52,17 +59,25 @@ export class GameDialogService {
   readonly session = this.sessionState.asReadonly();
   readonly queuedDeltas = this.queuedDeltasState.asReadonly();
   readonly error = this.errorState.asReadonly();
+  readonly events$ = this.eventSubject.asObservable();
 
   startPrologue(): void {
     if (this.engine !== null || this.sessionState() !== null) {
+      this.debugLog.logMessage("dialogue", "Ignored prologue start because a dialogue session is already open.");
       return;
     }
 
     const activePlayer = this.roster.activeCharacter();
 
     if (!activePlayer) {
+      this.debugLog.logMessage("dialogue", "Ignored prologue start because there is no active player.");
       return;
     }
+
+    this.debugLog.logMessage("dialogue", "Starting prologue dialogue.", {
+      playerId: activePlayer.id,
+      playerName: activePlayer.name
+    });
 
     const sublocation = this.worldState.currentSublocationMetadata();
     this.sceneImagePath = sublocation?.sceneImagePath ?? null;
@@ -89,10 +104,22 @@ export class GameDialogService {
 
         this.registerHooks(engine, activePlayer, raceById);
         this.engine = engine;
+        this.debugLog.logMessage("dialogue", "Prologue dialogue compiled and initialized.", {
+          actorCount: actors.length,
+          raceOptionCount: options.races.length
+        });
+        this.eventSubject.next({
+          type: "session-started",
+          mode: "valeflow",
+          title: this.title,
+          eyebrow: this.eyebrow,
+          subtitle: this.subtitle
+        });
         this.consumeNextStep();
       },
       error: (error: unknown) => {
         this.resetRuntime();
+        this.debugLog.logMessage("dialogue", "Failed to start prologue dialogue.", toErrorMessage(error, "Unknown dialogue load error."));
         this.errorState.set(toErrorMessage(error, "Failed to load prologue dialogue."));
       }
     });
@@ -102,9 +129,16 @@ export class GameDialogService {
     const session = this.sessionState();
 
     if (!this.engine || !session || session.isAwaitingChoice || !session.canAdvance) {
+      this.debugLog.logMessage("dialogue", "Ignored advance request.", {
+        hasEngine: this.engine !== null,
+        hasSession: session !== null,
+        isAwaitingChoice: session?.isAwaitingChoice ?? false,
+        canAdvance: session?.canAdvance ?? false
+      });
       return;
     }
 
+    this.debugLog.logMessage("dialogue", "Advancing dialogue.");
     this.consumeNextStep();
   }
 
@@ -112,12 +146,23 @@ export class GameDialogService {
     const session = this.sessionState();
 
     if (!this.engine || !session || !session.isAwaitingChoice) {
+      this.debugLog.logMessage("dialogue", "Ignored choice selection.", {
+        index,
+        hasEngine: this.engine !== null,
+        hasSession: session !== null,
+        isAwaitingChoice: session?.isAwaitingChoice ?? false
+      });
       return;
     }
 
     const chosen = session.choices.find((c) => c.index === index);
     if (chosen) {
       this.seenChoiceLabels.add(chosen.label);
+      this.debugLog.logMessage("dialogue", "Dialogue choice selected.", chosen);
+      this.eventSubject.next({
+        type: "choice-selected",
+        choice: chosen
+      });
     }
 
     this.engine.choose(index);
@@ -163,7 +208,31 @@ export class GameDialogService {
       const dotPath = ensureNonEmptyString(path, "ApplyPlayerSet path");
       const delta = buildPlayerSetDelta(dotPath, value);
 
+      this.debugLog.logMessage("dialogue", "Dispatching scripted player delta.", {
+        path: dotPath,
+        value
+      });
       this.queuedDeltasState.update((deltas) => [...deltas, delta]);
+      const applied = this.roster.applyActiveCharacterDeltas([delta]) !== null;
+
+      this.debugLog.logMessage(
+        "dialogue",
+        applied
+          ? "Applied scripted player delta immediately."
+          : "Failed to apply scripted player delta immediately.",
+        {
+          path: dotPath,
+          value
+        }
+      );
+      return null;
+    });
+
+    engine.registerFunction("startQuestById", (_ctx, id) => {
+      const questId = ensureNonEmptyString(id, "startQuestById questId");
+
+      this.debugLog.logMessage("dialogue", "Dialogue requested quest start.", { questId });
+      this.gameQuests.startQuestById(questId);
       return null;
     });
   }
@@ -176,11 +245,23 @@ export class GameDialogService {
     const step = this.engine.next();
 
     if (step.type === "end") {
+      this.debugLog.logMessage("dialogue", "Dialogue reached end step.");
       this.completeSession();
       return;
     }
 
     if (step.type === "choice") {
+      const choices = step.options.map((option) => ({
+        index: option.index,
+        label: option.label,
+        seen: this.seenChoiceLabels.has(option.label)
+      }));
+
+      this.debugLog.logMessage("dialogue", "Presenting dialogue choices.", choices);
+      this.eventSubject.next({
+        type: "choices-presented",
+        choices
+      });
       this.sessionState.set(
         buildSessionView({
           title: this.title,
@@ -188,11 +269,7 @@ export class GameDialogService {
           subtitle: this.subtitle,
           sceneImagePath: this.sceneImagePath,
           transcript: this.transcript,
-          choices: step.options.map((option) => ({
-            index: option.index,
-            label: option.label,
-            seen: this.seenChoiceLabels.has(option.label)
-          }))
+          choices
         })
       );
       return;
@@ -200,6 +277,11 @@ export class GameDialogService {
 
     const entry = this.toTranscriptEntry(step);
     this.transcript = [...this.transcript, entry];
+    this.debugLog.logMessage("dialogue", "Rendered dialogue line.", entry);
+    this.eventSubject.next({
+      type: "line-shown",
+      entry
+    });
     this.sessionState.set(
       buildSessionView({
         title: this.title,
@@ -235,14 +317,19 @@ export class GameDialogService {
   private completeSession(): void {
     const deltas = [...this.queuedDeltasState()];
 
-    if (deltas.length > 0) {
-      this.roster.applyActiveCharacterDeltas(deltas);
-    }
+    this.debugLog.logMessage("dialogue", "Closing dialogue session.", {
+      appliedDeltaCount: deltas.length
+    });
+    this.eventSubject.next({
+      type: "session-ended",
+      appliedDeltaCount: deltas.length
+    });
 
     this.resetRuntime();
   }
 
   private resetRuntime(): void {
+    this.debugLog.logMessage("dialogue", "Resetting dialogue runtime state.");
     this.engine = null;
     this.transcript = [];
     this.transcriptCounter = 0;

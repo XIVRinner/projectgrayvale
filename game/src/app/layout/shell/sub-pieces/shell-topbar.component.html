@@ -32,13 +32,14 @@
   <div class="gv-topbar__spacer" aria-hidden="true"></div>
 
   <div class="gv-topbar__actions" aria-label="Top bar actions">
-    @for (action of actions(); track action.label) {
+    @for (action of actions(); track action.id) {
       <button
         type="button"
         class="gv-topbar__action"
         [attr.data-tone]="action.tone"
         [disabled]="action.disabled ?? false"
         [attr.title]="action.label"
+        (click)="actionRequested.emit(action.id)"
       >
         @if (action.icon) {
           <i [class]="action.icon" aria-hidden="true"></i>

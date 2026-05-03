@@ -32,3 +32,28 @@ export interface GameDialogSessionView {
   readonly canAdvance: boolean;
   readonly isAwaitingChoice: boolean;
 }
+
+export type GameDialogEvent =
+  | {
+      readonly type: "session-started";
+      readonly mode: GameDialogMode;
+      readonly title: string;
+      readonly eyebrow?: string | null;
+      readonly subtitle?: string | null;
+    }
+  | {
+      readonly type: "line-shown";
+      readonly entry: GameDialogTranscriptEntry;
+    }
+  | {
+      readonly type: "choices-presented";
+      readonly choices: readonly GameDialogChoiceView[];
+    }
+  | {
+      readonly type: "choice-selected";
+      readonly choice: GameDialogChoiceView;
+    }
+  | {
+      readonly type: "session-ended";
+      readonly appliedDeltaCount: number;
+    };

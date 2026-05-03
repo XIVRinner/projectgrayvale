@@ -94,6 +94,25 @@ function evaluateKnownGuard(guard: Guard, context: GuardContext): boolean {
 
       return story.currentChapter >= minimumChapter;
     }
+    case "quest_completed": {
+      const questId = readOptionalStringParam(guard.params, "questId");
+
+      if (!questId) {
+        return false;
+      }
+
+      return context.player.questLog?.quests[questId]?.status === "completed";
+    }
+    case "player_attribute_at_least": {
+      const attributeId = readOptionalStringParam(guard.params, "attributeId");
+      const minimumValue = readNumericParam(guard.params, "minimumValue");
+
+      if (!attributeId) {
+        return false;
+      }
+
+      return (context.player.attributes[attributeId] ?? 0) >= minimumValue;
+    }
     default:
       return false;
   }

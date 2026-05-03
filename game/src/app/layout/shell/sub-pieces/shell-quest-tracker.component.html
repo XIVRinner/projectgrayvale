@@ -1,0 +1,33 @@
+<section class="gv-quest-tracker" aria-label="Quest tracker">
+  <header class="gv-quest-tracker__header">
+    <p class="gv-quest-tracker__eyebrow">Field Journal</p>
+    <h2 class="gv-quest-tracker__title">{{ panel().title }}</h2>
+  </header>
+
+  @if (panel().entries.length === 0) {
+    <p class="gv-quest-tracker__empty">{{ panel().emptyLabel }}</p>
+  } @else {
+    <div class="gv-quest-tracker__entries">
+      @for (entry of panel().entries; track entry.id) {
+        <article class="gv-quest-tracker__entry" [attr.data-status]="entry.status">
+          <div class="gv-quest-tracker__entry-header">
+            <div>
+              <h3 class="gv-quest-tracker__entry-title">{{ entry.title }}</h3>
+              <p class="gv-quest-tracker__entry-summary">{{ entry.summary }}</p>
+            </div>
+            <span class="gv-quest-tracker__entry-badge">{{ entry.status }}</span>
+          </div>
+
+          <div class="gv-quest-tracker__objective-list">
+            @for (objective of entry.objectives; track objective.id) {
+              <div class="gv-quest-tracker__objective" [attr.data-completed]="objective.completed">
+                <span class="gv-quest-tracker__objective-label">{{ objective.label }}</span>
+                <span class="gv-quest-tracker__objective-progress">{{ objective.progressLabel }}</span>
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

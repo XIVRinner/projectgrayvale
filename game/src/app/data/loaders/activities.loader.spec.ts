@@ -19,9 +19,26 @@ describe("ActivitiesLoader", () => {
         id: "recover",
         name: "Recover",
         description: "Steady your breathing and let the worst of the pain pass.",
+        location: {
+          locationId: "village-arkama",
+          sublocationId: "chief-house"
+        },
         tags: ["recovery", "rest"],
         governingAttributes: ["vitality"],
-        difficulty: 5
+        difficulty: 5,
+        rewards: [
+          {
+            type: "attribute",
+            targetId: "vitality",
+            value: {
+              type: "flat",
+              amount: 1
+            },
+            distribution: {
+              type: "deterministic"
+            }
+          }
+        ]
       }
     ]);
   });

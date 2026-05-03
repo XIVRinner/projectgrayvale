@@ -6,6 +6,7 @@
     [saveSummary]="saveSummary()"
     [actions]="topbarActions()"
     (saveManagerRequested)="saveManagerOpenRequested.emit()"
+    (actionRequested)="topbarActionSelected.emit($event)"
   />
 
   <main
@@ -27,7 +28,9 @@
       </article>
     </section>
 
-    <aside class="gv-shell__panel gv-shell__intel-panel" aria-hidden="true"></aside>
+    <aside class="gv-shell__panel gv-shell__intel-panel">
+      <gv-shell-quest-tracker [panel]="questTrackerPanel()" />
+    </aside>
   </main>
 
   <gv-shell-footer [version]="version()" />
@@ -46,6 +49,13 @@
     (importRequested)="saveImportRequested.emit()"
     (resetRequested)="saveResetRequested.emit()"
     (transferPayloadChanged)="saveTransferPayloadChanged.emit($event)"
+  />
+
+  <gv-shell-gameplay-log-dialog
+    [open]="isGameplayLogOpen()"
+    [entries]="gameplayLogEntries()"
+    [debugEntries]="debugLogEntries()"
+    (closed)="gameplayLogCloseRequested.emit()"
   />
 
   <gv-shell-character-creation-dialog

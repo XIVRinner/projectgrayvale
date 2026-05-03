@@ -50,6 +50,20 @@
   overflow: hidden;
 }
 
+.gv-dialog-shell[data-width="log"] {
+  inline-size: 90vw;
+  block-size: 90vh;
+  max-block-size: 90vh;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.gv-dialog-shell[data-width="log"] .gv-dialog-shell__body {
+  min-block-size: 0;
+  block-size: 100%;
+  overflow: auto;
+}
+
 .gv-dialog-shell[data-width="creator"] {
   inline-size: min(95vw, 100%);
   block-size: 95dvh;
@@ -91,6 +105,15 @@
     color-mix(in srgb, var(--gv-color-bg-primary) 90%, black 10%);
   border-color: color-mix(in srgb, var(--gv-color-accent-warm) 18%, var(--gv-color-border-subtle));
   box-shadow: 0 2rem 5rem color-mix(in srgb, var(--gv-color-bg-primary) 92%, transparent);
+}
+
+.gv-dialog-shell[data-variant="special"] {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent), transparent 34%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--gv-color-accent) 14%, transparent), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-overlay-soft) 88%, transparent), transparent 36%),
+    var(--gv-color-bg-surface);
+  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 28%, var(--gv-color-border-subtle));
 }
 
 .gv-dialog-shell__header {

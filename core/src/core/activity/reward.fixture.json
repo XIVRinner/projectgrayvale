@@ -1,0 +1,39 @@
+[
+  {
+    "type": "currency",
+    "value": {
+      "type": "range",
+      "min": 3,
+      "max": 10
+    },
+    "distribution": {
+      "type": "random"
+    }
+  },
+  {
+    "type": "currency",
+    "value": {
+      "type": "scaled",
+      "base": 2,
+      "scaling": {
+        "source": "skill",
+        "id": "labour",
+        "factor": 0.5
+      }
+    },
+    "distribution": {
+      "type": "random"
+    }
+  },
+  {
+    "type": "attribute",
+    "targetId": "vitality",
+    "value": {
+      "type": "flat",
+      "amount": 0.2
+    },
+    "distribution": {
+      "type": "deterministic"
+    }
+  }
+]

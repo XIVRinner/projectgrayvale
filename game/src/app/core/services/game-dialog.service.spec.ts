@@ -9,7 +9,10 @@ import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-crea
 import { DialogueActorsLoader } from "../../data/loaders/dialogue-actors.loader";
 import { CharacterRosterService } from "./character-roster.service";
 import { GameDialogService } from "./game-dialog.service";
+import { DebugLogService } from "./game-log/debug-log.service";
+import { GameQuestService } from "./game-quest.service";
 import { WorldStateService } from "./world-state.service";
+import type { GameDialogEvent } from "../../shared/components/game-dialog/game-dialog.types";
 
 describe("GameDialogService", () => {
   beforeEach(() => {
@@ -32,7 +35,7 @@ describe("GameDialogService", () => {
   });
 
   it("interpolates player name and race, loops flavor questions, and queues no deltas before the ending branch", () => {
-    const { service, roster } = createFixture();
+    const { service, roster, gameQuests } = createFixture();
 
     service.startPrologue();
     service.advance();
@@ -40,12 +43,12 @@ describe("GameDialogService", () => {
     expect(service.session()?.choices).toEqual([
       {
         index: 0,
-        label: "Open your eyes"
+        label: "Open your eyes",
+        seen: false
       }
     ]);
 
     service.choose(0);
-
     expect(service.session()?.currentEntry?.kind).toBe("say");
     expect(service.session()?.currentEntry?.actor?.name).toBe("Village Chief");
     expect(service.session()?.currentEntry?.text).toContain("Human");
@@ -61,6 +64,7 @@ describe("GameDialogService", () => {
     ]);
 
     service.choose(0);
+    service.advance();
     expect(service.session()?.currentEntry?.text).toContain("Bandits, beasts, river-stone");
 
     service.advance();
@@ -69,10 +73,11 @@ describe("GameDialogService", () => {
     expect(roster.activeCharacter()?.story?.currentChapter).toBe(1);
     expect(service.queuedDeltas()).toEqual([]);
     expect(service.session()?.choices.at(-1)?.label).toBe("Get up");
+    expect(gameQuests.startQuestById).not.toHaveBeenCalled();
   });
 
-  it("applies the scripted prologue deltas when the terminal branch finishes", () => {
-    const { service, roster } = createFixture();
+  it("dispatches scripted prologue deltas immediately when the terminal branch starts", () => {
+    const { service, roster, gameQuests } = createFixture();
 
     service.startPrologue();
     service.advance();
@@ -81,10 +86,24 @@ describe("GameDialogService", () => {
     service.advance();
     service.choose(3);
 
-    expect(service.session()?.currentEntry?.text).toContain(roster.activeCharacter()?.name ?? "");
+    expect(service.session()?.currentEntry?.text).toContain("Easy now");
 
-    service.advance();
-    service.advance();
+    for (
+      let step = 0;
+      step < 20 && service.session() !== null && roster.activeCharacter()?.story?.currentChapter !== 2;
+      step += 1
+    ) {
+      if (service.session()?.isAwaitingChoice) {
+        throw new Error("Unexpected choice while waiting for scripted deltas.");
+      }
+
+      service.advance();
+    }
+
+    expect(roster.activeCharacter()?.story?.currentChapter).toBe(2);
+    expect(gameQuests.startQuestById).toHaveBeenCalledWith("quest_recovery");
+
+    advanceUntilSessionEnds(service);
 
     expect(service.session()).toBeNull();
     expect(service.queuedDeltas()).toEqual([
@@ -93,30 +112,75 @@ describe("GameDialogService", () => {
         target: "player",
         path: ["story", "currentChapter"],
         value: 2
-      },
-      {
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", "recover", "status"],
-        value: "disabled"
-      },
-      {
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", "recover", "disabledReason"],
-        value: "You are still too injured to recover properly."
       }
     ]);
+    expect(gameQuests.startQuestById).toHaveBeenCalledWith("quest_recovery");
     expect(roster.activeCharacter()?.story?.currentChapter).toBe(2);
-    expect(roster.activeCharacter()?.activityState?.availability["recover"]).toEqual({
-      status: "disabled",
-      disabledReason: "You are still too injured to recover properly."
+  });
+
+  it("emits observable dialogue events for lines, choices, and selected options", () => {
+    const { service } = createFixture();
+    const receivedEvents: GameDialogEvent[] = [];
+
+    service.events$.subscribe((event) => {
+      receivedEvents.push(event);
+    });
+
+    service.startPrologue();
+    service.advance();
+
+    expect(receivedEvents[0]).toEqual({
+      type: "session-started",
+      mode: "valeflow",
+      title: "Wake Up",
+      eyebrow: "Chief House",
+      subtitle: "A quiet recovery room under the village chief's roof."
+    });
+    expect(receivedEvents[1]).toMatchObject({
+      type: "line-shown",
+      entry: {
+        kind: "say",
+        text: expect.stringContaining("Pain drags you back")
+      }
+    });
+    expect(receivedEvents[2]).toEqual({
+      type: "choices-presented",
+      choices: [
+        {
+          index: 0,
+          label: "Open your eyes",
+          seen: false
+        }
+      ]
+    });
+
+    service.choose(0);
+
+    expect(receivedEvents[3]).toEqual({
+      type: "choice-selected",
+      choice: {
+        index: 0,
+        label: "Open your eyes",
+        seen: false
+      }
+    });
+    expect(receivedEvents[4]).toMatchObject({
+      type: "line-shown",
+      entry: {
+        kind: "say",
+        actor: {
+          name: "Village Chief"
+        }
+      }
     });
   });
 });
 
 function createFixture(): {
   roster: CharacterRosterService;
+  gameQuests: {
+    startQuestById: jest.Mock;
+  };
   service: GameDialogService;
 } {
   const roster = new CharacterRosterService();
@@ -177,22 +241,44 @@ function createFixture(): {
       exitActionLabel: "Leave chief house"
     })
   };
+  const gameQuests = {
+    startQuestById: jest.fn(() => true)
+  };
+  const debugLog = {
+    logMessage: jest.fn(),
+    logRaw: jest.fn(),
+    log$: of([]),
+    entries$: of([])
+  };
   const injector = Injector.create({
     providers: [
       { provide: HttpClient, useValue: http },
       { provide: CharacterRosterService, useValue: roster },
       { provide: CharacterCreatorOptionsLoader, useValue: creatorOptionsLoader },
       { provide: DialogueActorsLoader, useValue: dialogueActorsLoader },
+      { provide: DebugLogService, useValue: debugLog },
+      { provide: GameQuestService, useValue: gameQuests },
       { provide: WorldStateService, useValue: worldState }
     ]
   });
 
   return {
     roster,
+    gameQuests,
     service: runInInjectionContext(injector, () => new GameDialogService())
   };
 }
 
 function clonePlayer<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function advanceUntilSessionEnds(service: GameDialogService, maxSteps = 20): void {
+  for (let step = 0; step < maxSteps && service.session() !== null; step += 1) {
+    if (service.session()?.isAwaitingChoice) {
+      throw new Error("advanceUntilSessionEnds encountered an unexpected choice.");
+    }
+
+    service.advance();
+  }
 }

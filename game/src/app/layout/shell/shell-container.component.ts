@@ -1,9 +1,17 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { type ActivityDefinition, type Player, type Race } from "@rinner/grayvale-core";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
+import { type Player, type Race } from "@rinner/grayvale-core";
+
+import {
+  type GameActivityDefinition,
+  isActivityAvailableAtWorld
+} from "../../data/loaders/game-activity.types";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
+import { DebugLogService } from "../../core/services/game-log/debug-log.service";
+import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
+import { GameQuestService } from "../../core/services/game-quest.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
 import {
   healthStatesEqual,
@@ -30,6 +38,9 @@ import {
   ShellCharacterPanel,
   ShellLayoutPreset,
   ShellNavItem,
+  ShellQuestTrackerEntry,
+  ShellQuestTrackerObjective,
+  ShellQuestTrackerPanel,
   ShellSaveSlotSummary,
   ShellStatusItem,
   ShellTopbarAction,
@@ -50,15 +61,20 @@ import {
       [topbarActions]="topbarActions()"
       [actionGroups]="actionGroups()"
       [characterPanel]="characterPanel()"
+      [questTrackerPanel]="questTrackerPanel()"
       [saveSlots]="saveSlots()"
       [isCharacterCreationOpen]="isCharacterCreationOpen()"
       [isCharacterCreationRequired]="isCharacterCreationRequired()"
       [isSaveManagerOpen]="isSaveManagerOpen()"
+      [isGameplayLogOpen]="isGameplayLogOpen()"
+      [gameplayLogEntries]="gameplayLogEntries()"
+      [debugLogEntries]="debugLogEntries()"
       [transferPayload]="transferPayload()"
       [transferStatusMessage]="transferStatusMessage()"
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
+      (topbarActionSelected)="handleTopbarActionSelected($event)"
       (gameDialogAdvanceRequested)="advanceGameDialog()"
       (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
       (characterCreationOpenRequested)="openCharacterCreation()"
@@ -66,6 +82,7 @@ import {
       (characterCreated)="handleCharacterCreated()"
       (saveManagerOpenRequested)="openSaveManager()"
       (saveManagerCloseRequested)="closeSaveManager()"
+      (gameplayLogCloseRequested)="closeGameplayLog()"
       (saveSlotLoadRequested)="loadSlot($event)"
       (saveSlotDeleteRequested)="deleteSlot($event)"
       (saveSlotExportRequested)="exportSlot($event)"
@@ -81,15 +98,25 @@ export class ShellContainerComponent {
   private readonly activitiesLoader = inject(ActivitiesLoader);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   protected readonly gameDialog = inject(GameDialogService);
+  private readonly debugLog = inject(DebugLogService);
+  private readonly gameplayLog = inject(GameplayLogService);
+  private readonly gameQuests = inject(GameQuestService);
   private readonly gameSettings = inject(GameSettingsService);
   private readonly worldState = inject(WorldStateService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
   protected readonly isSaveManagerOpen = signal(false);
+  protected readonly isGameplayLogOpen = signal(false);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
-  private readonly activities = signal<readonly ActivityDefinition[]>([]);
+  private readonly activities = signal<readonly GameActivityDefinition[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
+  protected readonly gameplayLogEntries = toSignal(this.gameplayLog.log$, {
+    initialValue: []
+  });
+  protected readonly debugLogEntries = toSignal(this.debugLog.entries$, {
+    initialValue: []
+  });
 
   readonly version = "0.0.1";
 
@@ -143,6 +170,24 @@ export class ShellContainerComponent {
       items.push({
         label: "World",
         value: "Unavailable"
+      });
+    }
+
+    const questMessage = this.gameQuests.latestQuestMessage();
+
+    if (questMessage) {
+      items.push({
+        label: "Quest",
+        value: questMessage
+      });
+    }
+
+    const attributeMessage = this.gameQuests.latestAttributeMessage();
+
+    if (attributeMessage) {
+      items.push({
+        label: "Attribute",
+        value: attributeMessage
       });
     }
 
@@ -269,16 +314,44 @@ export class ShellContainerComponent {
     };
   });
 
-  readonly topbarActions = signal<readonly ShellTopbarAction[]>([
+  readonly topbarActions = computed<readonly ShellTopbarAction[]>(() => {
+    const logEntryCount = this.gameplayLogEntries().length;
+
+    return [
     // GAP: MessageLogModalService not yet available — button is a placeholder
-    { label: "Gameplay Log", icon: "pi pi-list", badge: 0, tone: "default", disabled: true },
+    {
+      id: TOPBAR_GAMEPLAY_LOG_ACTION_ID,
+      label: "Gameplay Log",
+      icon: "pi pi-list",
+      badge: logEntryCount > 0 ? logEntryCount : undefined,
+      tone: "default"
+    },
     // GAP: AchievementModalService not yet available
-    { label: "Achievements", icon: "pi pi-trophy", tone: "accent", disabled: true },
+    {
+      id: TOPBAR_ACHIEVEMENTS_ACTION_ID,
+      label: "Achievements",
+      icon: "pi pi-trophy",
+      tone: "accent",
+      disabled: true
+    },
     // GAP: WikiModalService not yet available
-    { label: "Gallery", icon: "pi pi-images", tone: "cool", disabled: true },
+    {
+      id: TOPBAR_GALLERY_ACTION_ID,
+      label: "Gallery",
+      icon: "pi pi-images",
+      tone: "cool",
+      disabled: true
+    },
     // GAP: SettingsService not yet available
-    { label: "Settings", icon: "pi pi-cog", tone: "default", disabled: true }
-  ]);
+    {
+      id: TOPBAR_SETTINGS_ACTION_ID,
+      label: "Settings",
+      icon: "pi pi-cog",
+      tone: "default",
+      disabled: true
+    }
+    ];
+  });
 
   readonly actionGroups = computed<readonly ShellActionGroup[]>(() =>
     buildShellActionGroups(
@@ -312,67 +385,115 @@ export class ShellContainerComponent {
     );
   });
 
+  readonly questTrackerPanel = computed<ShellQuestTrackerPanel>(() =>
+    buildQuestTrackerPanel(
+      this.gameQuests.runtimeStates(),
+      this.gameQuests.authoredQuests(),
+      this.gameSettings.attributesById()
+    )
+  );
+
   protected openCharacterCreation(): void {
+    this.logUi("Opening character creation dialog.");
     this.transferStatusMessage.set(null);
     this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(false);
     this.isCharacterCreationOpenState.set(true);
   }
 
   protected closeCharacterCreation(): void {
     if (this.isCharacterCreationRequired()) {
+      this.logUi("Ignored character creation close because a character is still required.");
       return;
     }
 
+    this.logUi("Closing character creation dialog.");
     this.isCharacterCreationOpenState.set(false);
   }
 
   protected handleCharacterCreated(): void {
+    this.logUi("Character creation completed.");
     this.isCharacterCreationOpenState.set(false);
     this.transferStatusMessage.set("Character registered and active.");
   }
 
   protected openSaveManager(): void {
+    this.logUi("Opening save manager.");
     this.isCharacterCreationOpenState.set(false);
+    this.isGameplayLogOpen.set(false);
     this.isSaveManagerOpen.set(true);
     this.transferStatusMessage.set(null);
   }
 
   protected closeSaveManager(): void {
+    this.logUi("Closing save manager.");
     this.isSaveManagerOpen.set(false);
   }
 
+  protected openGameplayLog(): void {
+    this.logUi("Opening gameplay log dialog.", {
+      gameplayEntries: this.gameplayLogEntries().length,
+      debugEntries: this.debugLogEntries().length
+    });
+    this.isCharacterCreationOpenState.set(false);
+    this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(true);
+  }
+
+  protected closeGameplayLog(): void {
+    this.logUi("Closing gameplay log dialog.");
+    this.isGameplayLogOpen.set(false);
+  }
+
   protected loadSlot(slotId: string): void {
+    this.logUi("Loading save slot.", { slotId });
     this.roster.setActiveSlot(slotId);
     this.transferStatusMessage.set(`Loaded ${formatSlotLabel(slotId)}.`);
     this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
   }
 
   protected deleteSlot(slotId: string): void {
+    this.logUi("Deleting save slot.", { slotId });
     const deleted = this.roster.deleteSlot(slotId);
 
     if (!deleted) {
+      this.logUi("Save slot delete failed.", { slotId });
       this.transferStatusMessage.set(`Could not delete ${formatSlotLabel(slotId)}.`);
       return;
     }
 
+    this.logUi("Save slot deleted.", { slotId });
     this.transferStatusMessage.set(`Deleted ${formatSlotLabel(slotId)}.`);
   }
 
   protected exportSlot(slotId: string): void {
+    this.logUi("Exporting save slot.", { slotId });
     const payload = this.roster.exportSlot(slotId);
 
     if (!payload) {
+      this.logUi("Save slot export failed.", { slotId });
       this.transferStatusMessage.set(`Could not export ${formatSlotLabel(slotId)}.`);
       return;
     }
 
+    this.logUi("Save slot exported.", {
+      slotId,
+      payloadLength: payload.length
+    });
     this.transferPayload.set(payload);
     this.transferStatusMessage.set(`Prepared export for ${formatSlotLabel(slotId)}.`);
   }
 
   protected exportAllSlots(): void {
-    this.transferPayload.set(this.roster.exportAll());
+    const payload = this.roster.exportAll();
+
+    this.logUi("Exporting all save slots.", {
+      payloadLength: payload.length,
+      slotCount: this.saveSlots().length
+    });
+    this.transferPayload.set(payload);
     this.transferStatusMessage.set("Prepared export for all save slots.");
   }
 
@@ -380,59 +501,93 @@ export class ShellContainerComponent {
     const payload = this.transferPayload().trim();
 
     if (payload.length === 0) {
+      this.logUi("Ignored save import because the payload was empty.");
       this.transferStatusMessage.set("Paste a save payload before importing.");
       return;
     }
 
     try {
       const importedCount = this.roster.importRoster(payload);
+      this.logUi("Imported save payload.", {
+        importedCount,
+        payloadLength: payload.length
+      });
       this.transferStatusMessage.set(`Imported ${importedCount} save slot(s).`);
     } catch (error) {
+      this.logUi("Save import failed.", errorToMessage(error));
       this.transferStatusMessage.set(errorToMessage(error));
     }
   }
 
   protected resetAllSlots(): void {
+    this.logUi("Resetting all save slots.", {
+      previousSlotCount: this.saveSlots().length
+    });
     this.roster.resetAll();
     this.transferPayload.set("");
     this.transferStatusMessage.set("All save slots were reset.");
   }
 
   protected setTransferPayload(value: string): void {
+    this.logUi("Updated save transfer payload.", {
+      payloadLength: value.length
+    });
     this.transferPayload.set(value);
   }
 
   protected handleActionSelected(actionId: string): void {
+    this.logUi("Gameplay action selected.", { actionId });
     if (actionId === WAKE_UP_ACTION_ID) {
+      this.logUi("Forwarding Wake Up action to dialogue service.");
       this.gameDialog.startPrologue();
       return;
     }
 
     if (actionId.startsWith(ACTIVITY_ACTION_PREFIX)) {
-      // GAP: Activity runtime
-      // Blocked on: design / future activity executor
-      // Needs: actual tick runner, activity-start flow, and reward/stat progression rules
-      // Do not implement until: an authored activity runtime contract exists beyond availability state
+      this.logUi("Forwarding activity action to quest service.", {
+        actionId,
+        activityId: actionId.slice(ACTIVITY_ACTION_PREFIX.length)
+      });
+      this.gameQuests.executeActivityById(
+        actionId.slice(ACTIVITY_ACTION_PREFIX.length)
+      );
       return;
     }
 
+    this.logUi("Forwarding world action to world state service.", { actionId });
     this.worldState.executeAction(actionId);
   }
 
+  protected handleTopbarActionSelected(actionId: string): void {
+    this.logUi("Topbar action selected.", { actionId });
+    if (actionId === TOPBAR_GAMEPLAY_LOG_ACTION_ID) {
+      this.openGameplayLog();
+    }
+  }
+
   protected advanceGameDialog(): void {
+    this.logUi("Dialogue advance requested from shell.");
     this.gameDialog.advance();
   }
 
   protected chooseGameDialogOption(index: number): void {
+    this.logUi("Dialogue choice selected from shell.", { index });
     this.gameDialog.choose(index);
+  }
+
+  private logUi(message: string, details?: unknown): void {
+    this.debugLog.logMessage("shell", message, details);
   }
 }
 
 const WAKE_UP_ACTION_ID = "story:wake-up";
 const ACTIVITY_ACTION_PREFIX = "activity:";
+const TOPBAR_GAMEPLAY_LOG_ACTION_ID = "topbar:gameplay-log";
+const TOPBAR_ACHIEVEMENTS_ACTION_ID = "topbar:achievements";
+const TOPBAR_GALLERY_ACTION_ID = "topbar:gallery";
+const TOPBAR_SETTINGS_ACTION_ID = "topbar:settings";
 const PROLOGUE_ARC_ID = "prologue";
 const PROLOGUE_COMPLETE_CHAPTER = 2;
-const RECOVER_ACTIVITY_ID = "recover";
 
 function formatSaveTimestamp(value: string): string {
   const parsedDate = new Date(value);
@@ -479,7 +634,7 @@ function resolveSaveSlotPortraitPath(
 function buildShellActionGroups(
   player: Player | null,
   world: ReturnType<CharacterRosterService["activeWorld"]>,
-  activities: readonly ActivityDefinition[],
+  activities: readonly GameActivityDefinition[],
   worldActionGroups: readonly ActionPanelGroupDraft<ShellActionChoice>[]
 ): readonly ShellActionGroup[] {
   if (!player || !world) {
@@ -497,7 +652,7 @@ function buildShellActionGroups(
     ];
   }
 
-  const activityGroup = buildRecoveryGroup(player, activities);
+  const activityGroup = buildLocationActivityGroup(player, world, activities);
 
   if (!activityGroup) {
     return mergeActionPanelGroups(worldActionGroups);
@@ -518,26 +673,154 @@ function isWakeUpPrologueState(
   );
 }
 
-function buildRecoveryGroup(
+/**
+ * Builds an activity group from all activities whose declared location matches the
+ * player's current world position. Activities with availability status "locked" are
+ * excluded — they are treated as not present in the world.
+ */
+function buildLocationActivityGroup(
   player: Player,
-  activities: readonly ActivityDefinition[]
+  world: NonNullable<ReturnType<CharacterRosterService["activeWorld"]>>,
+  activities: readonly GameActivityDefinition[]
 ): ActionPanelGroupDraft<ShellActionChoice> | null {
-  const recoverActivity = activities.find((activity) => activity.id === RECOVER_ACTIVITY_ID);
-  const availability = player.activityState?.availability?.[RECOVER_ACTIVITY_ID];
+  const visible = activities.filter((activity) => {
+    if (!isActivityAvailableAtWorld(activity.location, world)) {
+      return false;
+    }
+    const availability = player.activityState?.availability?.[activity.id];
+    return availability !== undefined && availability.status !== "locked";
+  });
 
-  if (!recoverActivity || !availability || availability.status !== "disabled") {
+  if (visible.length === 0) {
     return null;
   }
 
   return {
     kind: "activity",
-    choices: [
-      {
-        id: `${ACTIVITY_ACTION_PREFIX}${recoverActivity.id}`,
-        label: recoverActivity.name,
-        disabled: true,
+    choices: visible.map((activity) => {
+      const availability = player.activityState!.availability[activity.id]!;
+      return {
+        id: `${ACTIVITY_ACTION_PREFIX}${activity.id}`,
+        label: activity.name,
+        disabled: availability.status !== "enabled",
         disabledReason: availability.disabledReason
-      }
-    ]
+      };
+    })
   };
+}
+
+function buildQuestTrackerPanel(
+  runtimeStates: readonly ReturnType<GameQuestService["runtimeStates"]>[number][],
+  quests: readonly ReturnType<GameQuestService["authoredQuests"]>[number][],
+  attributesById: ReadonlyMap<string, { name: string }>
+): ShellQuestTrackerPanel {
+  return {
+    title: "Quest Tracker",
+    emptyLabel: "No active quests. Story and field work will appear here when they are underway.",
+    entries: runtimeStates.map((state) =>
+      buildQuestTrackerEntry(state, quests.find((quest) => quest.id === state.questId), attributesById)
+    )
+  };
+}
+
+function buildQuestTrackerEntry(
+  state: ReturnType<GameQuestService["runtimeStates"]>[number],
+  quest: ReturnType<GameQuestService["authoredQuests"]>[number] | undefined,
+  attributesById: ReadonlyMap<string, { name: string }>
+): ShellQuestTrackerEntry {
+  const questTitle = prettyQuestTitle(quest?.id ?? state.questId);
+  const rootObjectives = Object.entries(state.objectives)
+    .filter(([objectiveId]) => isLeafObjectiveId(objectiveId, state))
+    .map(([objectiveId, progress]) =>
+      buildQuestTrackerObjective(
+        objectiveId,
+        progress,
+        quest,
+        attributesById
+      )
+    );
+
+  return {
+    id: state.questId,
+    title: questTitle,
+    status: state.completed ? "completed" : "active",
+    summary:
+      rootObjectives[0]?.progressLabel ??
+      (state.completed ? "Completed." : "In progress."),
+    objectives: rootObjectives
+  };
+}
+
+function buildQuestTrackerObjective(
+  objectiveId: string,
+  progress: { current: number; target: number; completed: boolean },
+  quest: ReturnType<GameQuestService["authoredQuests"]>[number] | undefined,
+  attributesById: ReadonlyMap<string, { name: string }>
+): ShellQuestTrackerObjective {
+  const objective = resolveObjectiveById(quest, objectiveId);
+
+  if (objective?.type === "attribute_reached") {
+    const attributeName = attributesById.get(objective.attribute)?.name ?? prettyQuestTitle(objective.attribute);
+
+    return {
+      id: objectiveId,
+      label: attributeName,
+      progressLabel: `${formatTrackerScore(progress.current)} / ${formatTrackerScore(progress.target)}`,
+      completed: progress.completed
+    };
+  }
+
+  return {
+    id: objectiveId,
+    label: "Objective",
+    progressLabel: `${formatTrackerScore(progress.current)} / ${formatTrackerScore(progress.target)}`,
+    completed: progress.completed
+  };
+}
+
+function resolveObjectiveById(
+  quest: ReturnType<GameQuestService["authoredQuests"]>[number] | undefined,
+  objectiveId: string
+): ReturnType<GameQuestService["authoredQuests"]>[number]["objectives"][number] | null {
+  if (!quest) {
+    return null;
+  }
+
+  const segments = objectiveId.split(":")[1]?.split(".") ?? [];
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  let currentObjective = quest.objectives[Number(segments[0])];
+
+  for (const segment of segments.slice(1)) {
+    if (!currentObjective || currentObjective.type !== "composite") {
+      return null;
+    }
+
+    currentObjective = currentObjective.objectives[Number(segment)];
+  }
+
+  return currentObjective ?? null;
+}
+
+function isLeafObjectiveId(
+  objectiveId: string,
+  state: ReturnType<GameQuestService["runtimeStates"]>[number]
+): boolean {
+  return !Object.keys(state.objectives).some(
+    (candidateId) => candidateId !== objectiveId && candidateId.startsWith(`${objectiveId}.`)
+  );
+}
+
+function prettyQuestTitle(value: string): string {
+  return value
+    .replace(/^quest_/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatTrackerScore(value: number): string {
+  return value.toFixed(1);
 }

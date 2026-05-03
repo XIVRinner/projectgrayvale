@@ -8,25 +8,45 @@ export interface QuestLog {
   quests: Record<string, PlayerQuestEntry>;
 }
 
-export interface QuestReward {
-  npcId: string;
-  trust?: number;
-  affection?: number;
-}
+export type AttributeObjective = {
+  type: "attribute_reached";
+  attribute: string;
+  target: number;
+};
 
-export interface QuestStep {
-  id: string;
-  description?: string;
-  nextSteps?: string[];
-  rewards?: QuestReward[];
-}
+export type ItemObjective = {
+  type: "item_collected";
+  itemId: string;
+  quantity: number;
+};
+
+export type ActivityObjective = {
+  type: "activity_duration";
+  activityId: string;
+  duration: number;
+};
+
+export type KillObjective = {
+  type: "kill";
+  target: string;
+  count: number;
+};
+
+export type CompositeObjective = {
+  type: "composite";
+  operator: "AND" | "OR";
+  objectives: QuestObjective[];
+};
+
+export type QuestObjective =
+  | AttributeObjective
+  | ItemObjective
+  | ActivityObjective
+  | KillObjective
+  | CompositeObjective;
 
 export interface Quest {
   id: string;
-  name: string;
-  description?: string;
-  giverNpcId?: string;
-  receiverNpcId?: string;
-  steps: Record<string, QuestStep>;
-  initialStep: string;
+  objectives: QuestObjective[];
+  rewards?: unknown[];
 }

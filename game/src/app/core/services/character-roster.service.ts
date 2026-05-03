@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from "@angular/core";
 import { applyDeltas, type Delta, type Player } from "@rinner/grayvale-core";
+import { Subject } from "rxjs";
 
 import { safeParsePlayer } from "../validation/core-runtime-validation";
 import {
@@ -27,6 +28,11 @@ export interface CharacterSaveSlot {
   readonly health?: SaveSlotHealthState;
 }
 
+export interface WorldUpdateEvent {
+  readonly previousWorld: SaveSlotWorldState;
+  readonly nextWorld: SaveSlotWorldState;
+}
+
 interface PersistedRoster {
   readonly activeSlotId: string | null;
   readonly slots: readonly CharacterSaveSlot[];
@@ -36,9 +42,13 @@ interface PersistedRoster {
 export class CharacterRosterService {
   private readonly slotsState = signal<readonly CharacterSaveSlot[]>([]);
   private readonly activeSlotIdState = signal<string | null>(null);
+  private readonly deltaAppliedSubject = new Subject<Delta>();
+  private readonly worldUpdatedSubject = new Subject<WorldUpdateEvent>();
 
   readonly slots = this.slotsState.asReadonly();
   readonly activeSlotId = this.activeSlotIdState.asReadonly();
+  readonly deltaApplied$ = this.deltaAppliedSubject.asObservable();
+  readonly worldUpdated$ = this.worldUpdatedSubject.asObservable();
 
   readonly activeSlot = computed(() => {
     const activeId = this.activeSlotIdState();
@@ -63,7 +73,7 @@ export class CharacterRosterService {
     health: SaveSlotHealthState | undefined = undefined
   ): CharacterSaveSlot {
     const nowIso = new Date().toISOString();
-    const seededPlayer = seedNewCharacter(player);
+    const seededPlayer = normalizeSaveSlotPlayer(player);
     const statUnlocks = buildDefaultStatUnlocks(seededPlayer);
     const nextSlot = {
       id: buildNextSlotId(this.slotsState()),
@@ -150,7 +160,7 @@ export class CharacterRosterService {
       return this.activeSlot();
     }
 
-    return this.updateActiveSlot((slot) => ({
+    const updatedSlot = this.updateActiveSlot((slot) => ({
       ...slot,
       player: applyDeltas(
         {
@@ -160,13 +170,26 @@ export class CharacterRosterService {
         [...deltas]
       ).player
     }));
+
+    if (updatedSlot) {
+      this.emitAppliedDeltas(deltas);
+    }
+
+    return updatedSlot;
   }
 
   updateActiveWorld(world: SaveSlotWorldState): CharacterSaveSlot | null {
-    return this.updateActiveSlot((slot) => ({
+    const previousWorld = this.activeWorld();
+    const updatedSlot = this.updateActiveSlot((slot) => ({
       ...slot,
       world: cloneSaveSlotWorldState(world)
     }));
+
+    if (updatedSlot && previousWorld) {
+      this.emitWorldUpdated(previousWorld, updatedSlot.world);
+    }
+
+    return updatedSlot;
   }
 
   updateActiveHealth(health: SaveSlotHealthState): CharacterSaveSlot | null {
@@ -209,7 +232,8 @@ export class CharacterRosterService {
     deltas: readonly Delta[],
     world: SaveSlotWorldState
   ): CharacterSaveSlot | null {
-    return this.updateActiveSlot((slot) => ({
+    const previousWorld = this.activeWorld();
+    const updatedSlot = this.updateActiveSlot((slot) => ({
       ...slot,
       player: deltas.length
         ? applyDeltas(
@@ -222,6 +246,16 @@ export class CharacterRosterService {
         : slot.player,
       world: cloneSaveSlotWorldState(world)
     }));
+
+    if (updatedSlot && deltas.length > 0) {
+      this.emitAppliedDeltas(deltas);
+    }
+
+    if (updatedSlot && previousWorld) {
+      this.emitWorldUpdated(previousWorld, updatedSlot.world);
+    }
+
+    return updatedSlot;
   }
 
   private hydrate(): void {
@@ -283,6 +317,34 @@ export class CharacterRosterService {
     this.persist();
     return nextActiveSlot;
   }
+
+  private emitAppliedDeltas(deltas: readonly Delta[]): void {
+    for (const delta of deltas) {
+      this.deltaAppliedSubject.next(delta);
+    }
+  }
+
+  private emitWorldUpdated(
+    previousWorld: SaveSlotWorldState,
+    nextWorld: SaveSlotWorldState
+  ): void {
+    if (areWorldStatesEqual(previousWorld, nextWorld)) {
+      return;
+    }
+
+    this.worldUpdatedSubject.next({
+      previousWorld: cloneSaveSlotWorldState(previousWorld),
+      nextWorld: cloneSaveSlotWorldState(nextWorld)
+    });
+  }
+}
+
+function areWorldStatesEqual(left: SaveSlotWorldState, right: SaveSlotWorldState): boolean {
+  return (
+    left.currentLocation === right.currentLocation &&
+    left.sublocations.length === right.sublocations.length &&
+    left.sublocations.every((segment, index) => segment === right.sublocations[index])
+  );
 }
 
 function parsePersistedRoster(raw: unknown): PersistedRoster {
@@ -326,12 +388,14 @@ function parseSlot(raw: unknown, index: number): CharacterSaveSlot {
     );
   }
 
+  const normalizedPlayer = normalizeSaveSlotPlayer(playerResult.data);
+
   return {
     id,
     createdAt,
     updatedAt,
-    player: playerResult.data,
-    statUnlocks: parseStatUnlocks(record["statUnlocks"], `slots[${index}].statUnlocks`, playerResult.data),
+    player: normalizedPlayer,
+    statUnlocks: parseStatUnlocks(record["statUnlocks"], `slots[${index}].statUnlocks`, normalizedPlayer),
     world: parseWorldState(record["world"], `slots[${index}].world`),
     health: parseHealthState(record["health"], `slots[${index}].health`)
   };
@@ -457,9 +521,14 @@ function buildNextSlotId(slots: readonly CharacterSaveSlot[]): string {
   return `slot_${maxSlotNumber + 1}`;
 }
 
-function seedNewCharacter(player: Player): Player {
+function normalizeSaveSlotPlayer(player: Player): Player {
   return {
     ...player,
+    questLog: {
+      quests: {
+        ...(player.questLog?.quests ?? {})
+      }
+    },
     story: player.story ?? {
       currentArcId: "prologue",
       currentChapter: 1

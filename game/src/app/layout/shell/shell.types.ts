@@ -23,6 +23,7 @@ export interface ShellActivityItem {
 }
 
 export interface ShellTopbarAction {
+  readonly id: string;
   readonly label: string;
   readonly icon?: string;
   readonly badge?: number;
@@ -133,6 +134,27 @@ export interface ShellCharacterFocusItem {
   readonly title: string;
   readonly detail?: string;
   readonly tone: "accent" | "cool" | "warm";
+}
+
+export interface ShellQuestTrackerObjective {
+  readonly id: string;
+  readonly label: string;
+  readonly progressLabel: string;
+  readonly completed: boolean;
+}
+
+export interface ShellQuestTrackerEntry {
+  readonly id: string;
+  readonly title: string;
+  readonly status: "active" | "completed";
+  readonly summary: string;
+  readonly objectives: readonly ShellQuestTrackerObjective[];
+}
+
+export interface ShellQuestTrackerPanel {
+  readonly title: string;
+  readonly emptyLabel: string;
+  readonly entries: readonly ShellQuestTrackerEntry[];
 }
 
 export interface ShellCharacterPanel {

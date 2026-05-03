@@ -1,15 +1,18 @@
 import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
-import { samplePlayer, type ActivityDefinition } from "@rinner/grayvale-core";
-import { of } from "rxjs";
+import { samplePlayer, type Quest } from "@rinner/grayvale-core";
+import { of, Subject } from "rxjs";
 
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
+import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import type { CharacterCreatorOptions } from "../../data/loaders/character-creator-options.loader";
 import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-creator-options.loader";
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
+import { GameQuestService } from "../../core/services/game-quest.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
 import { WorldStateService } from "../../core/services/world-state.service";
+import { QuestsLoader } from "../../data/loaders/quests.loader";
 
 import { ShellContainerComponent } from "./shell-container.component";
 
@@ -40,8 +43,65 @@ describe("ShellContainerComponent", () => {
     ]);
   });
 
-  it("switches to disabled Recover after prologue completion and forwards Wake up clicks to the dialog service", async () => {
-    const { component, roster, gameDialog } = await createFixture();
+  it("enables the Gameplay Log topbar action and updates its badge from gameplay entries", async () => {
+    const { component, fixture, roster } = await createFixture();
+
+    expect(component.topbarActions()[0]).toEqual({
+      id: "topbar:gameplay-log",
+      label: "Gameplay Log",
+      icon: "pi pi-list",
+      badge: undefined,
+      tone: "default"
+    });
+
+    roster.applyActiveCharacterDeltas([
+      {
+        type: "set",
+        target: "player",
+        path: ["questLog", "quests", "quest_recovery"],
+        value: {
+          currentStep: "runtime_objectives",
+          status: "active"
+        }
+      }
+    ]);
+    fixture.detectChanges();
+
+    expect(component.topbarActions()[0]).toEqual({
+      id: "topbar:gameplay-log",
+      label: "Gameplay Log",
+      icon: "pi pi-list",
+      badge: 1,
+      tone: "default"
+    });
+  });
+
+  it("opens the gameplay log in the special dialog from the topbar action", async () => {
+    const { component, fixture, roster } = await createFixture();
+
+    roster.applyActiveCharacterDeltas([
+      {
+        type: "add",
+        target: "player",
+        path: ["inventory", "items", "ore_chunk"],
+        value: 2
+      }
+    ]);
+    fixture.detectChanges();
+
+    (component as any).handleTopbarActionSelected("topbar:gameplay-log");
+    fixture.detectChanges();
+
+    expect((component as any).isGameplayLogOpen()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain("Gameplay Log");
+    expect(fixture.nativeElement.textContent).toContain("Received Ore Chunk x2");
+    expect(fixture.nativeElement.textContent).toContain("Runtime Trace");
+    expect(fixture.nativeElement.textContent).toContain("Topbar action selected.");
+    expect(fixture.nativeElement.querySelector('[data-width="log"]')).not.toBeNull();
+  });
+
+  it("starts the recovery quest after prologue and forwards Wake up clicks to the dialog service", async () => {
+    const { component, roster, gameDialog, gameQuests } = await createFixture();
 
     (component as any).handleActionSelected("story:wake-up");
     expect(gameDialog.startPrologue).toHaveBeenCalledTimes(1);
@@ -52,20 +112,9 @@ describe("ShellContainerComponent", () => {
         target: "player",
         path: ["story", "currentChapter"],
         value: 2
-      },
-      {
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", "recover", "status"],
-        value: "disabled"
-      },
-      {
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", "recover", "disabledReason"],
-        value: "You are still too injured to recover properly."
       }
     ]);
+    expect(gameQuests.startQuestById("quest_recovery")).toBe(true);
 
     expect(component.actionGroups()).toEqual([
       {
@@ -75,7 +124,9 @@ describe("ShellContainerComponent", () => {
         choices: [
           {
             id: "leave-chief-house",
-            label: "Leave chief house"
+            label: "Leave chief house",
+            disabled: undefined,
+            disabledReason: undefined
           }
         ]
       },
@@ -87,12 +138,97 @@ describe("ShellContainerComponent", () => {
           {
             id: "activity:recover",
             label: "Recover",
-            disabled: true,
-            disabledReason: "You are still too injured to recover properly."
+            disabled: false,
+            disabledReason: undefined
           }
         ]
       }
     ]);
+    expect(component.statusItems()).toEqual(
+      expect.arrayContaining([
+        {
+          label: "Quest",
+          value: "Quest received: reach 10.0 Vitality."
+        }
+      ])
+    );
+    expect(component.questTrackerPanel()).toEqual({
+      title: "Quest Tracker",
+      emptyLabel: "No active quests. Story and field work will appear here when they are underway.",
+      entries: [
+        {
+          id: "quest_recovery",
+          title: "Recovery",
+          status: "active",
+          summary: "8.0 / 10.0",
+          objectives: [
+            {
+              id: "quest_recovery:0",
+              label: "Vitality",
+              progressLabel: "8.0 / 10.0",
+              completed: false
+            }
+          ]
+        }
+      ]
+    });
+  });
+
+  it("applies recover activity vitality gains and hides recover once the quest completes", async () => {
+    const { component, roster, gameQuests } = await createFixture();
+
+    roster.applyActiveCharacterDeltas([
+      {
+        type: "set",
+        target: "player",
+        path: ["story", "currentChapter"],
+        value: 2
+      },
+      {
+        type: "set",
+        target: "player",
+        path: ["attributes", "vitality"],
+        value: 8
+      }
+    ]);
+    gameQuests.startQuestById("quest_recovery");
+
+    (component as any).handleActionSelected("activity:recover");
+    expect(roster.activeCharacter()?.attributes["vitality"]).toBe(9);
+    expect(component.statusItems()).toEqual(
+      expect.arrayContaining([
+        {
+          label: "Attribute",
+          value: "Vitality +1.0 -> 9.0"
+        }
+      ])
+    );
+
+    (component as any).handleActionSelected("activity:recover");
+    expect(roster.activeCharacter()?.attributes["vitality"]).toBe(10);
+    expect(roster.activeCharacter()?.activityState?.availability["recover"]).toEqual({
+      status: "locked"
+    });
+    expect(component.actionGroups()).toEqual([
+      {
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
+        choices: [
+          {
+            id: "leave-chief-house",
+            label: "Leave chief house",
+            disabled: undefined,
+            disabledReason: undefined
+          }
+        ]
+      }
+    ]);
+    expect(component.questTrackerPanel()).toEqual({
+      title: "Quest Tracker",
+      emptyLabel: "No active quests. Story and field work will appear here when they are underway.",
+      entries: []
+    });
   });
 
   it("renders persisted HP data through the shell health bar", async () => {
@@ -148,14 +284,17 @@ describe("ShellContainerComponent", () => {
 });
 
 async function createFixture(): Promise<{
+  fixture: ReturnType<typeof TestBed.createComponent<ShellContainerComponent>>;
   component: ShellContainerComponent;
   roster: CharacterRosterService;
   gameDialog: {
     session: ReturnType<typeof signal<null>>;
+    events$: Subject<unknown>;
     startPrologue: jest.Mock;
     advance: jest.Mock;
     choose: jest.Mock;
   };
+  gameQuests: GameQuestService;
   gameSettings: {
     balanceProfileFor: jest.Mock;
     difficultyCurveFor: jest.Mock;
@@ -174,16 +313,46 @@ async function createFixture(): Promise<{
     availability: {},
     activeActivityId: null
   };
+  player.attributes["vitality"] = 8;
+  if (player.questLog) {
+    delete player.questLog.quests["quest_recovery"];
+  }
   roster.createCharacter(player);
 
-  const activities: readonly ActivityDefinition[] = [
+  const activities: readonly GameActivityDefinition[] = [
     {
       id: "recover",
       name: "Recover",
       description: "Steady your breathing and let the worst of the pain pass.",
+      location: { locationId: "village-arkama", sublocationId: "chief-house" },
       tags: ["recovery", "rest"],
       governingAttributes: ["vitality"],
-      difficulty: 5
+      difficulty: 5,
+      rewards: [
+        {
+          type: "attribute",
+          targetId: "vitality",
+          value: {
+            type: "flat",
+            amount: 1
+          },
+          distribution: {
+            type: "deterministic"
+          }
+        }
+      ]
+    }
+  ];
+  const quests: readonly Quest[] = [
+    {
+      id: "quest_recovery",
+      objectives: [
+        {
+          type: "attribute_reached",
+          attribute: "vitality",
+          target: 10
+        }
+      ]
     }
   ];
   const creatorOptions: CharacterCreatorOptions = {
@@ -203,6 +372,7 @@ async function createFixture(): Promise<{
   };
   const gameDialog = {
     session: signal(null),
+    events$: new Subject(),
     startPrologue: jest.fn(),
     advance: jest.fn(),
     choose: jest.fn()
@@ -251,6 +421,7 @@ async function createFixture(): Promise<{
     providers: [
       { provide: CharacterRosterService, useValue: roster },
       { provide: ActivitiesLoader, useValue: { load: () => of(activities) } },
+      { provide: QuestsLoader, useValue: { load: () => of(quests) } },
       {
         provide: CharacterCreatorOptionsLoader,
         useValue: { load: () => of(creatorOptions) }
@@ -286,10 +457,13 @@ async function createFixture(): Promise<{
 
   const fixture = TestBed.createComponent(ShellContainerComponent);
   fixture.detectChanges();
+  const gameQuests = TestBed.inject(GameQuestService);
 
   return {
+    fixture,
     roster,
     gameDialog,
+    gameQuests,
     gameSettings,
     component: fixture.componentInstance
   };
