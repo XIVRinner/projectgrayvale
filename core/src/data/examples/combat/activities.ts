@@ -5,6 +5,6 @@ export const mvpCombatActivity: CombatActivityDefinition = {
   displayName: "Coyote Encounter",
   playerActorId: "actor_player_mvp",
   enemyActorIds: ["actor_coyote"],
-  prepTicks: 0,
+  prepTicks: 2,
   difficulty: "story"
 };

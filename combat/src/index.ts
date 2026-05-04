@@ -32,6 +32,9 @@ export type {
   EffectDefinition,
   ActorCombatState,
   ActiveEffectInstance,
+  CombatPhase,
+  CombatDeltaAccumulator,
+  CombatRunState,
   CombatActivityDefinition,
   CombatLogEntry,
   CombatOutcome,
@@ -46,4 +49,4 @@ export type {
 
 export type { CombatRng } from "./rng";
 export { DefaultCombatRng, TestCombatRng } from "./rng";
-export { CombatEngine } from "./engine";
+export { CombatEngine, createInitialCombatState } from "./engine";

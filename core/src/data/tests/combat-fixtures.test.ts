@@ -139,4 +139,8 @@ describe("MVP combat fixtures — activity", () => {
   it("MVP activity uses story difficulty", () => {
     expect(mvpCombatActivity.difficulty).toBe("story");
   });
+
+  it("MVP activity has 2 prep ticks", () => {
+    expect(mvpCombatActivity.prepTicks).toBe(2);
+  });
 });

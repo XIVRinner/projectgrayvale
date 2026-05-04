@@ -1,4 +1,6 @@
-import type { ActorId, AbilityId, EffectId, ResourceId, TagId } from "./combat.ids";
+import type { ActorId, AbilityId, EffectId, ResourceId, TagId, ActivityId } from "./combat.ids";
+import type { CombatOutcome, ActorDelta, ResourceDelta, EffectDelta, XpDelta, LootDelta, PenaltyDelta } from "./combat.delta";
+import type { CombatLogEntry } from "./combat.log";
 
 export interface ActorCombatState {
   actorId: ActorId;
@@ -26,4 +28,28 @@ export interface ActiveEffectInstance {
   remainingTicks?: number;
 
   metadata?: Record<string, unknown>;
+}
+
+export type CombatPhase = "prep" | "combat" | "ended";
+
+export interface CombatDeltaAccumulator {
+  actorChanges: ActorDelta[];
+  resourceChanges: ResourceDelta[];
+  effectsApplied: EffectDelta[];
+  effectsExpired: EffectDelta[];
+  xp: XpDelta[];
+  loot: LootDelta[];
+  penalties: PenaltyDelta[];
+}
+
+export interface CombatRunState {
+  activityId: ActivityId;
+  currentTick: number;
+  phase: CombatPhase;
+  outcome?: CombatOutcome;
+
+  actors: Record<ActorId, ActorCombatState>;
+
+  logs: CombatLogEntry[];
+  accumulatedDelta: CombatDeltaAccumulator;
 }
