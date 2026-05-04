@@ -1,6 +1,45 @@
-// GAP: Combat system primitives
-// Blocked on: design
-// Needs: combat action types, damage model, and turn structure defined in game design docs
-// Do not implement until: CombatSchema and action types are added to @rinner/grayvale-core
-
-export {};
+export type {
+  ActorId,
+  ItemId,
+  AbilityId,
+  SkillId,
+  EffectId,
+  ResourceId,
+  ActivityId,
+  TagId,
+  DamageType,
+  DamageInterval,
+  DamagePacket,
+  ResistanceProfile,
+  ImmunityProfile,
+  EquipmentSlot,
+  EquipmentLoadout,
+  ItemDefinition,
+  EquipmentDefinition,
+  EquipmentModifier,
+  ResourceDefinition,
+  ResourceChange,
+  ActorDefinition,
+  DifficultyId,
+  DifficultyProfile,
+  EnemyXpDefinition,
+  EnemyDefinition,
+  SkillDefinition,
+  TargetRule,
+  EffectApplicationDefinition,
+  AbilityDefinition,
+  EffectModifier,
+  EffectDefinition,
+  ActorCombatState,
+  ActiveEffectInstance,
+  CombatActivityDefinition,
+  CombatLogEntry,
+  CombatOutcome,
+  ActorDelta,
+  ResourceDelta,
+  EffectDelta,
+  XpDelta,
+  LootDelta,
+  PenaltyDelta,
+  CombatDelta
+} from "@rinner/grayvale-core";
