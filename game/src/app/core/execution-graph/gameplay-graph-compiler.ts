@@ -130,12 +130,26 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       // Sublocation enter — visible at the parent location context
       const enterId = buildEnterSublocationActionId(sublocation.id);
 
+      // Validate entry guard references
+      for (const guard of sublocation.entryGuards ?? []) {
+        if (!knownGuardTypes.has(guard.type)) {
+          diagnostics.push(
+            errorDiagnostic(
+              "GEG_E007",
+              `Sublocation "${sublocation.id}" entry guard references unknown guard type "${guard.type}".`,
+              { id: sublocation.id, path: `${location.id}.sublocations.${sublocation.id}.entryGuards` }
+            )
+          );
+        }
+      }
+
       allActions.push({
         id: enterId,
         contextId: topLevelContextId,
         label: sublocation.entryActionLabel ?? `Enter ${sublocation.label}`,
         groupKind: "movement",
         hiddenByDefault: false,
+        visibleWhen: sublocation.entryGuards?.length ? [...sublocation.entryGuards] : undefined,
         execution: {
           kind: "movement",
           movementKind: "sublocation-enter",
@@ -263,20 +277,34 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   // --- 5. Generate activity actions ------------------------------------------
 
   for (const activity of input.activities) {
-    const activityContextId = buildContextId(
+    const authoredContextId = buildContextId(
       activity.location.locationId,
       activity.location.sublocationId
     );
+    const locationContextId = buildContextId(activity.location.locationId);
+    const activityContextId = contextMap.has(authoredContextId)
+      ? authoredContextId
+      : locationContextId;
 
     if (!contextMap.has(activityContextId)) {
       diagnostics.push(
         warningDiagnostic(
           "GEG_W003",
-          `Activity "${activity.id}" references unknown context "${activityContextId}".`,
+          `Activity "${activity.id}" references unknown context "${authoredContextId}".`,
           { id: activity.id }
         )
       );
       continue;
+    }
+
+    if (activityContextId !== authoredContextId) {
+      diagnostics.push(
+        warningDiagnostic(
+          "GEG_W006",
+          `Activity "${activity.id}" sublocation context "${authoredContextId}" was not found. Falling back to "${activityContextId}".`,
+          { id: activity.id }
+        )
+      );
     }
 
     allActions.push({
@@ -366,6 +394,9 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
 const STORY_WAKE_UP_ACTION_ID = "story:wake-up";
 const STORY_WAKE_UP_CONTEXT_ID = "village-arkama:chief-house";
 
+const STORY_CHIEF_LABOUR_ACTION_ID = "story:chief-labour";
+const STORY_CHIEF_LABOUR_CONTEXT_ID = "village-arkama:chief-house";
+
 function buildStoryActions(
   contextMap: Map<ContextId, ContextNode>,
   diagnostics: CompileDiagnostic[]
@@ -396,6 +427,32 @@ function buildStoryActions(
       dialogueTarget: "prologue"
     }
   });
+
+  if (!contextMap.has(STORY_CHIEF_LABOUR_CONTEXT_ID)) {
+    diagnostics.push(
+      warningDiagnostic(
+        "GEG_W005",
+        `Story chief-labour action context "${STORY_CHIEF_LABOUR_CONTEXT_ID}" does not exist. The chief labour action will not be compiled.`,
+        { id: STORY_CHIEF_LABOUR_ACTION_ID }
+      )
+    );
+  } else {
+    actions.push({
+      id: STORY_CHIEF_LABOUR_ACTION_ID,
+      contextId: STORY_CHIEF_LABOUR_CONTEXT_ID,
+      label: "Speak to the Chief",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [
+        { type: "quest_completed", params: { questId: "quest_recovery" } },
+        { type: "quest_not_started", params: { questId: "quest_chief_labour" } }
+      ],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "chief-labour"
+      }
+    });
+  }
 
   return actions;
 }

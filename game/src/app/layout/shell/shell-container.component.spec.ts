@@ -158,14 +158,6 @@ describe("ShellContainerComponent", () => {
         ]
       }
     ]);
-    expect(component.statusItems()).toEqual(
-      expect.arrayContaining([
-        {
-          label: "Quest",
-          value: "Quest received: reach 10.0 Vitality."
-        }
-      ])
-    );
     expect(component.questTrackerPanel()).toEqual({
       title: "Quest Tracker",
       emptyLabel: "No active quests. Story and field work will appear here when they are underway.",
@@ -209,14 +201,6 @@ describe("ShellContainerComponent", () => {
 
     (component as any).handleActionSelected("activity:recover");
     expect(roster.activeCharacter()?.attributes["vitality"]).toBe(9);
-    expect(component.statusItems()).toEqual(
-      expect.arrayContaining([
-        {
-          label: "Attribute",
-          value: "Vitality +1.0 -> 9.0"
-        }
-      ])
-    );
 
     (component as any).handleActionSelected("activity:recover");
     expect(roster.activeCharacter()?.attributes["vitality"]).toBe(10);
@@ -467,6 +451,7 @@ async function createFixture(): Promise<{
         useFactory: (gameQuests: GameQuestService) => ({
           isReady: signal(true),
           actionGroups: gameplayRuntimeActionGroups,
+          debugSnapshot: signal(null),
           executeAction: (actionId: string) => {
             if (actionId.startsWith("activity:")) {
               const activityId = actionId.slice("activity:".length);

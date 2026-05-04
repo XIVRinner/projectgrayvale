@@ -137,9 +137,30 @@ describe("quest objective validation", () => {
           quantity: 3
         }
       ],
-      rewards: [{ type: "currency", amount: 50 }]
+      rewards: [
+        { type: "attribute_unlock", attributeId: "strength" },
+        { type: "activity_availability", activityId: "recover", status: "locked" }
+      ]
     };
 
     expect(() => assertValidQuest(quest)).not.toThrow();
+  });
+
+  it("rejects invalid reward payloads", () => {
+    const quest: Quest = {
+      id: "quest_invalid_reward",
+      objectives: [
+        {
+          type: "item_collected",
+          itemId: "ore_chunk",
+          quantity: 3
+        }
+      ],
+      rewards: [{ type: "attribute_unlock" } as never]
+    };
+
+    expect(() => assertValidQuest(quest)).toThrow(
+      "quest.rewards[0].attributeId must be a non-empty string."
+    );
   });
 });

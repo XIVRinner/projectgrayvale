@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { type Player, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
+import { ActivityService } from "../../core/services/activity.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
@@ -56,8 +57,10 @@ import {
       [isCharacterCreationRequired]="isCharacterCreationRequired()"
       [isSaveManagerOpen]="isSaveManagerOpen()"
       [isGameplayLogOpen]="isGameplayLogOpen()"
+      [isGegVisualizerOpen]="isGegVisualizerOpen()"
       [gameplayLogEntries]="gameplayLogEntries()"
       [debugLogEntries]="debugLogEntries()"
+      [gegDebugSnapshot]="gegDebugSnapshot()"
       [transferPayload]="transferPayload()"
       [transferStatusMessage]="transferStatusMessage()"
       [gameDialogSession]="gameDialog.session()"
@@ -66,12 +69,15 @@ import {
       (topbarActionSelected)="handleTopbarActionSelected($event)"
       (gameDialogAdvanceRequested)="advanceGameDialog()"
       (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
+      (gameDialogCloseRequested)="stopActivityDialog()"
       (characterCreationOpenRequested)="openCharacterCreation()"
       (characterCreationCloseRequested)="closeCharacterCreation()"
       (characterCreated)="handleCharacterCreated()"
       (saveManagerOpenRequested)="openSaveManager()"
       (saveManagerCloseRequested)="closeSaveManager()"
       (gameplayLogCloseRequested)="closeGameplayLog()"
+      (gegVisualizerOpenRequested)="openGegVisualizer()"
+      (gegVisualizerCloseRequested)="closeGegVisualizer()"
       (saveSlotLoadRequested)="loadSlot($event)"
       (saveSlotDeleteRequested)="deleteSlot($event)"
       (saveSlotExportRequested)="exportSlot($event)"
@@ -86,6 +92,7 @@ export class ShellContainerComponent {
   private readonly roster = inject(CharacterRosterService);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   protected readonly gameDialog = inject(GameDialogService);
+  private readonly activityService = inject(ActivityService);
   private readonly debugLog = inject(DebugLogService);
   private readonly gameplayLog = inject(GameplayLogService);
   private readonly gameQuests = inject(GameQuestService);
@@ -96,6 +103,7 @@ export class ShellContainerComponent {
   protected readonly isCharacterCreationOpenState = signal(false);
   protected readonly isSaveManagerOpen = signal(false);
   protected readonly isGameplayLogOpen = signal(false);
+  protected readonly isGegVisualizerOpen = signal(false);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
@@ -138,7 +146,6 @@ export class ShellContainerComponent {
     const items: ShellStatusItem[] = [];
     const locationLabel = this.worldState.currentLocationLabel();
     const sublocationLabel = this.worldState.currentSublocationLabel();
-    const loadError = this.worldState.loadError();
 
     if (locationLabel) {
       items.push({
@@ -151,31 +158,6 @@ export class ShellContainerComponent {
       items.push({
         label: "Sublocation",
         value: sublocationLabel
-      });
-    }
-
-    if (loadError) {
-      items.push({
-        label: "World",
-        value: "Unavailable"
-      });
-    }
-
-    const questMessage = this.gameQuests.latestQuestMessage();
-
-    if (questMessage) {
-      items.push({
-        label: "Quest",
-        value: questMessage
-      });
-    }
-
-    const attributeMessage = this.gameQuests.latestAttributeMessage();
-
-    if (attributeMessage) {
-      items.push({
-        label: "Attribute",
-        value: attributeMessage
       });
     }
 
@@ -333,6 +315,10 @@ export class ShellContainerComponent {
     () => this.gameplayRuntime.actionGroups()
   );
 
+  readonly gegDebugSnapshot = computed(
+    () => this.gameplayRuntime.debugSnapshot()
+  );
+
   readonly characterPanel = computed<ShellCharacterPanel>(() => {
     const activeSlot = this.roster.activeSlot();
     const activeCharacter = activeSlot?.player ?? null;
@@ -361,6 +347,7 @@ export class ShellContainerComponent {
     this.transferStatusMessage.set(null);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(true);
   }
 
@@ -384,6 +371,7 @@ export class ShellContainerComponent {
     this.logUi("Opening save manager.");
     this.isCharacterCreationOpenState.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
     this.isSaveManagerOpen.set(true);
     this.transferStatusMessage.set(null);
   }
@@ -400,6 +388,7 @@ export class ShellContainerComponent {
     });
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
     this.isGameplayLogOpen.set(true);
   }
 
@@ -408,12 +397,26 @@ export class ShellContainerComponent {
     this.isGameplayLogOpen.set(false);
   }
 
+  protected openGegVisualizer(): void {
+    this.logUi("Opening GEG visualizer dialog.");
+    this.isCharacterCreationOpenState.set(false);
+    this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(false);
+    this.isGegVisualizerOpen.set(true);
+  }
+
+  protected closeGegVisualizer(): void {
+    this.logUi("Closing GEG visualizer dialog.");
+    this.isGegVisualizerOpen.set(false);
+  }
+
   protected loadSlot(slotId: string): void {
     this.logUi("Loading save slot.", { slotId });
     this.roster.setActiveSlot(slotId);
     this.transferStatusMessage.set(`Loaded ${formatSlotLabel(slotId)}.`);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
   }
 
@@ -525,6 +528,11 @@ export class ShellContainerComponent {
   protected chooseGameDialogOption(index: number): void {
     this.logUi("Dialogue choice selected from shell.", { index });
     this.gameDialog.choose(index);
+  }
+
+  protected stopActivityDialog(): void {
+    this.logUi("Activity dialog close requested from shell.");
+    this.activityService.stopActivity();
   }
 
   private logUi(message: string, details?: unknown): void {

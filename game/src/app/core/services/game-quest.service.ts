@@ -6,7 +6,8 @@ import {
   type Player,
   type Quest,
   type QuestLog,
-  type QuestObjective
+  type QuestObjective,
+  type QuestReward
 } from "@rinner/grayvale-core";
 import { Subject, type Subscription } from "rxjs";
 
@@ -19,6 +20,8 @@ import { QuestTracker, type QuestRuntimeState } from "./quest-tracker/quest-trac
 
 const RECOVERY_ACTIVITY_ID = "recover";
 const RECOVERY_QUEST_ID = "quest_recovery";
+const CHIEF_LABOUR_ACTIVITY_ID = "village-labour";
+const CHIEF_LABOUR_QUEST_ID = "quest_chief_labour";
 const QUEST_RUNTIME_STEP_ID = "runtime_objectives";
 const PROLOGUE_ARC_ID = "prologue";
 const PROLOGUE_QUEST_HANDOFF_CHAPTER = 2;
@@ -308,6 +311,17 @@ export class GameQuestService {
       });
     }
 
+    if (quest.id === CHIEF_LABOUR_QUEST_ID) {
+      deltas.push({
+        type: "set",
+        target: "player",
+        path: ["activityState", "availability", CHIEF_LABOUR_ACTIVITY_ID],
+        value: {
+          status: "enabled"
+        }
+      });
+    }
+
     const updatedSlot = this.roster.applyActiveCharacterDeltas(deltas);
 
     if (!updatedSlot) {
@@ -380,6 +394,45 @@ export class GameQuestService {
     return applied;
   }
 
+  /**
+   * Applies one tick of reward deltas for an ongoing activity.
+   * Unlike `executeActivityById`, this does not fail when there are no reward
+   * deltas — activities without rewards still produce a valid tick.
+   *
+   * Returns the deltas that were applied (empty when the activity has no
+   * reward definitions or when it is unavailable for any reason).
+   */
+  executeActivityTick(activityId: string): readonly Delta[] {
+    const player = this.roster.activeCharacter();
+    const activity = this.activitiesState().find((entry) => entry.id === activityId);
+
+    if (!player || !activity) {
+      return [];
+    }
+
+    const availability = player.activityState?.availability?.[activityId];
+
+    if (!availability || availability.status !== "enabled") {
+      this.debugLog.logMessage("quest", "Activity tick skipped — not enabled.", {
+        activityId,
+        status: availability?.status ?? "missing"
+      });
+      return [];
+    }
+
+    const deltas = buildActivityRewardDeltas(activity);
+
+    if (deltas.length > 0) {
+      this.roster.applyActiveCharacterDeltas(deltas);
+      this.debugLog.logMessage("quest", "Activity tick applied reward deltas.", {
+        activityId,
+        deltaCount: deltas.length
+      });
+    }
+
+    return deltas;
+  }
+
   private refreshActiveQuests(): void {
     const player = this.roster.activeCharacter();
     const authoredQuests = this.authoredQuestsState();
@@ -449,22 +502,12 @@ export class GameQuestService {
       }
     ];
 
-    if (questId === RECOVERY_QUEST_ID) {
-      deltas.push({
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", RECOVERY_ACTIVITY_ID],
-        value: {
-          status: "locked"
-        }
-      });
-    }
+    deltas.push(...buildQuestRewardDeltas(quest.rewards));
 
     this.roster.applyActiveCharacterDeltas(deltas);
+    applyQuestRewards(this.roster, quest.rewards);
     const message =
-      questId === RECOVERY_QUEST_ID
-        ? "Quest complete: reach 10.0 Vitality. Recover is now hidden."
-        : `Quest complete: ${describeQuestInstruction(quest)}.`;
+      `Quest complete: ${describeQuestInstruction(quest)}${describeQuestRewards(quest.rewards)}.`;
 
     this.latestQuestMessageState.set(message);
     this.debugLog.logMessage("quest", "Quest completed.", {
@@ -634,6 +677,48 @@ function buildActivityRewardDeltas(activity: ActivityDefinition): Delta[] {
   );
 }
 
+function buildQuestRewardDeltas(rewards: readonly QuestReward[] | undefined): Delta[] {
+  return (rewards ?? []).flatMap((reward) => {
+    switch (reward.type) {
+      case "activity_availability": {
+        const value =
+          reward.status === "disabled"
+            ? {
+                status: reward.status,
+                ...(reward.disabledReason ? { disabledReason: reward.disabledReason } : {})
+              }
+            : { status: reward.status };
+
+        return [
+          {
+            type: "set",
+            target: "player",
+            path: ["activityState", "availability", reward.activityId],
+            value
+          } satisfies Delta
+        ];
+      }
+      case "attribute_unlock":
+        return [];
+    }
+  });
+}
+
+function applyQuestRewards(
+  roster: CharacterRosterService,
+  rewards: readonly QuestReward[] | undefined
+): void {
+  for (const reward of rewards ?? []) {
+    switch (reward.type) {
+      case "attribute_unlock":
+        roster.setActiveAttributeUnlocked(reward.attributeId, reward.unlocked ?? true);
+        break;
+      case "activity_availability":
+        break;
+    }
+  }
+}
+
 function buildActivityRewardDelta(
   activity: ActivityDefinition,
   reward: ActivityReward,
@@ -681,6 +766,25 @@ function describeQuestInstruction(quest: Quest): string {
   }
 
   return prettyLabel(quest.id);
+}
+
+function describeQuestRewards(rewards: readonly QuestReward[] | undefined): string {
+  if (!rewards || rewards.length === 0) {
+    return "";
+  }
+
+  const labels = rewards.map((reward) => {
+    switch (reward.type) {
+      case "attribute_unlock":
+        return `${prettyLabel(reward.attributeId)} unlocked`;
+      case "activity_availability":
+        return reward.status === "locked"
+          ? `${prettyLabel(reward.activityId)} hidden`
+          : `${prettyLabel(reward.activityId)} ${reward.status}`;
+    }
+  });
+
+  return ` Reward: ${labels.join(", ")}`;
 }
 
 function buildQuestSyncKey(

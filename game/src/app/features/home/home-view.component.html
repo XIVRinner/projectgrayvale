@@ -18,6 +18,10 @@
     </header>
   }
 
+  @if (activeActivityId()) {
+    <gv-activity-tick-feed [entries]="activityTicks()" />
+  }
+
   <div class="gv-home__grid">
     @for (link of quickLinks(); track link.label) {
       <gv-home-quick-link-card [link]="link" />

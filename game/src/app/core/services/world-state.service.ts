@@ -289,6 +289,11 @@ function validateWorldGuardUsage(
   for (const location of locationsCatalog.locations) {
     for (const sublocation of location.sublocations) {
       validateWorldGuardCatalogUsage(
+        sublocation.entryGuards,
+        catalog,
+        "world locations." + location.id + ".sublocations." + sublocation.id + ".entryGuards"
+      );
+      validateWorldGuardCatalogUsage(
         sublocation.exitGuards,
         catalog,
         "world locations." + location.id + ".sublocations." + sublocation.id + ".exitGuards"

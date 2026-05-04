@@ -7,6 +7,34 @@
         "attribute": "vitality",
         "target": 10
       }
+    ],
+    "rewards": [
+      {
+        "type": "activity_availability",
+        "activityId": "recover",
+        "status": "locked"
+      },
+      {
+        "type": "attribute_unlock",
+        "attributeId": "strength"
+      }
+    ]
+  },
+  {
+    "id": "quest_chief_labour",
+    "objectives": [
+      {
+        "type": "attribute_reached",
+        "attribute": "strength",
+        "target": 10
+      }
+    ],
+    "rewards": [
+      {
+        "type": "activity_availability",
+        "activityId": "village-labour",
+        "status": "locked"
+      }
     ]
   }
 ]

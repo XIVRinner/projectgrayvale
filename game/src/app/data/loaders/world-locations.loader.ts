@@ -17,6 +17,7 @@ export interface WorldSublocationMetadata {
   readonly isReturnable: boolean;
   readonly entryActionLabel?: string;
   readonly exitActionLabel?: string;
+  readonly entryGuards?: readonly Guard[];
   readonly exitGuards?: readonly Guard[];
 }
 
@@ -83,6 +84,7 @@ function parseSublocationMetadata(raw: unknown, label: string): WorldSublocation
     isReturnable: ensureBoolean(record["isReturnable"], `${label}.isReturnable`),
     entryActionLabel: parseOptionalString(record["entryActionLabel"], `${label}.entryActionLabel`),
     exitActionLabel: parseOptionalString(record["exitActionLabel"], `${label}.exitActionLabel`),
+    entryGuards: parseOptionalGuards(record["entryGuards"], `${label}.entryGuards`),
     exitGuards: parseOptionalGuards(record["exitGuards"], `${label}.exitGuards`)
   };
 }

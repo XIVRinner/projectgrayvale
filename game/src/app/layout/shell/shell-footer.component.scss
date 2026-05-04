@@ -86,6 +86,12 @@
   border-color: color-mix(in srgb, var(--gv-color-accent) 50%, transparent);
 }
 
+.gv-footer__btn--debug {
+  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 42%, transparent);
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 20%, transparent);
+  color: var(--gv-color-text-primary);
+}
+
 .gv-footer__repo-link {
   display: inline-flex;
   align-items: center;

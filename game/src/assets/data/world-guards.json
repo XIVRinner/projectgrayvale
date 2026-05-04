@@ -17,6 +17,10 @@
       "failureMessageTemplate": "Complete the assigned quest before continuing."
     },
     {
+      "type": "quest_not_started",
+      "failureMessageTemplate": "This place is no longer available."
+    },
+    {
       "type": "player_attribute_at_least",
       "failureMessageTemplate": "Reach {minimumValue} {attributeId} before continuing."
     }

@@ -7,8 +7,9 @@
     [ariaLabel]="session.title"
     [variant]="'game-dialogue'"
     [width]="'dialogue'"
-    [closeDisabled]="true"
-    [showCloseButton]="false"
+    [closeDisabled]="session.mode !== 'activity'"
+    [showCloseButton]="session.mode === 'activity'"
+    (closed)="closeRequested.emit()"
   >
     @switch (session.mode) {
       @case ("valeflow") {
@@ -22,11 +23,14 @@
           (choiceSelected)="choiceSelected.emit($event)"
         />
       }
+      @case ("activity") {
+        <gv-activity-tick-feed [entries]="session.activityTicks ?? []" />
+      }
       @default {
-        <!-- GAP: Combat and non-ValeFlow game-dialog modes -->
+        <!-- GAP: Combat dialog mode -->
         <!-- Blocked on: design -->
-        <!-- Needs: concrete payload shapes for combat/activity dialog content -->
-        <!-- Do not implement until: those popup contracts are specified -->
+        <!-- Needs: concrete payload shapes for combat dialog content -->
+        <!-- Do not implement until: combat popup contract is specified -->
       }
     }
   </gv-dialog-shell>

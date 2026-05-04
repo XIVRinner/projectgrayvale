@@ -25,6 +25,7 @@ import {
   GameDialogSessionView,
   GameDialogTranscriptEntry
 } from "../../shared/components/game-dialog/game-dialog.types";
+import type { ActivityTickSnapshotView } from "../../shared/components/activity-tick-feed/activity-tick-feed.types";
 import { CharacterRosterService } from "./character-roster.service";
 import { DebugLogService } from "./game-log/debug-log.service";
 import { GameQuestService } from "./game-quest.service";
@@ -62,37 +63,61 @@ export class GameDialogService {
   readonly events$ = this.eventSubject.asObservable();
 
   startPrologue(): void {
+    this.startValeflowDialogue({
+      scriptPath: "assets/dialogue/prologue/valeflow-prologue.fsc",
+      title: "Wake Up",
+      eyebrowFallback: "Prologue",
+      subtitleFallback: "A hard-won return to consciousness.",
+      debugLabel: "prologue"
+    });
+  }
+
+  startChiefLabour(): void {
+    this.startValeflowDialogue({
+      scriptPath: "assets/dialogue/prologue/chief-labour.fsc",
+      title: "The Chief's Request",
+      eyebrowFallback: "Chief House",
+      subtitleFallback: "He has work for you.",
+      debugLabel: "chief-labour"
+    });
+  }
+
+  private startValeflowDialogue(opts: {
+    scriptPath: string;
+    title: string;
+    eyebrowFallback: string;
+    subtitleFallback: string;
+    debugLabel: string;
+  }): void {
     if (this.engine !== null || this.sessionState() !== null) {
-      this.debugLog.logMessage("dialogue", "Ignored prologue start because a dialogue session is already open.");
+      this.debugLog.logMessage("dialogue", `Ignored ${opts.debugLabel} start because a dialogue session is already open.`);
       return;
     }
 
     const activePlayer = this.roster.activeCharacter();
 
     if (!activePlayer) {
-      this.debugLog.logMessage("dialogue", "Ignored prologue start because there is no active player.");
+      this.debugLog.logMessage("dialogue", `Ignored ${opts.debugLabel} start because there is no active player.`);
       return;
     }
 
-    this.debugLog.logMessage("dialogue", "Starting prologue dialogue.", {
+    this.debugLog.logMessage("dialogue", `Starting ${opts.debugLabel} dialogue.`, {
       playerId: activePlayer.id,
       playerName: activePlayer.name
     });
 
     const sublocation = this.worldState.currentSublocationMetadata();
     this.sceneImagePath = sublocation?.sceneImagePath ?? null;
-    this.title = "Wake Up";
-    this.eyebrow = sublocation?.label ?? "Prologue";
-    this.subtitle = sublocation?.subtitle ?? "A hard-won return to consciousness.";
+    this.title = opts.title;
+    this.eyebrow = sublocation?.label ?? opts.eyebrowFallback;
+    this.subtitle = sublocation?.subtitle ?? opts.subtitleFallback;
     this.errorState.set(null);
     this.transcript = [];
     this.transcriptCounter = 0;
     this.queuedDeltasState.set([]);
 
     forkJoin({
-      source: this.http.get("assets/dialogue/prologue/valeflow-prologue.fsc", {
-        responseType: "text"
-      }),
+      source: this.http.get(opts.scriptPath, { responseType: "text" }),
       actors: this.dialogueActorsLoader.load(),
       options: this.creatorOptionsLoader.load()
     }).subscribe({
@@ -104,9 +129,8 @@ export class GameDialogService {
 
         this.registerHooks(engine, activePlayer, raceById);
         this.engine = engine;
-        this.debugLog.logMessage("dialogue", "Prologue dialogue compiled and initialized.", {
-          actorCount: actors.length,
-          raceOptionCount: options.races.length
+        this.debugLog.logMessage("dialogue", `${opts.debugLabel} dialogue compiled and initialized.`, {
+          actorCount: actors.length
         });
         this.eventSubject.next({
           type: "session-started",
@@ -119,8 +143,8 @@ export class GameDialogService {
       },
       error: (error: unknown) => {
         this.resetRuntime();
-        this.debugLog.logMessage("dialogue", "Failed to start prologue dialogue.", toErrorMessage(error, "Unknown dialogue load error."));
-        this.errorState.set(toErrorMessage(error, "Failed to load prologue dialogue."));
+        this.debugLog.logMessage("dialogue", `Failed to start ${opts.debugLabel} dialogue.`, toErrorMessage(error, "Unknown dialogue load error."));
+        this.errorState.set(toErrorMessage(error, `Failed to load ${opts.debugLabel} dialogue.`));
       }
     });
   }
@@ -337,6 +361,57 @@ export class GameDialogService {
     this.sceneImagePath = null;
     this.seenChoiceLabels = new Set();
     this.sessionState.set(null);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Activity dialog
+  // ---------------------------------------------------------------------------
+
+  startActivity(activityId: string, activityLabel: string): void {
+    if (this.sessionState() !== null) {
+      this.debugLog.logMessage("activity", "Ignored activity dialog start — session already open.", { activityId });
+      return;
+    }
+
+    this.sessionState.set({
+      mode: "activity",
+      title: activityLabel,
+      eyebrow: "Activity",
+      subtitle: null,
+      sceneImagePath: null,
+      transcript: [],
+      currentEntry: null,
+      choices: [],
+      canAdvance: false,
+      isAwaitingChoice: false,
+      activityTicks: []
+    });
+
+    this.debugLog.logMessage("activity", "Activity dialog opened.", { activityId, activityLabel });
+  }
+
+  stopActivity(): void {
+    const session = this.sessionState();
+
+    if (!session || session.mode !== "activity") {
+      return;
+    }
+
+    this.sessionState.set(null);
+    this.debugLog.logMessage("activity", "Activity dialog closed.");
+  }
+
+  appendActivityTick(snapshot: ActivityTickSnapshotView): void {
+    const session = this.sessionState();
+
+    if (!session || session.mode !== "activity") {
+      return;
+    }
+
+    const existing = session.activityTicks ?? [];
+    const updated = [snapshot, ...existing].slice(0, 10);
+
+    this.sessionState.set({ ...session, activityTicks: updated });
   }
 }
 

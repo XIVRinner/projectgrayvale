@@ -59,7 +59,8 @@ const EXECUTION_GRAPH_GUARD_TYPES = new Set<string>([
   "story_arc_active",
   "story_prologue_pending",
   "activity_available",
-  "activity_enabled"
+  "activity_enabled",
+  "activity_is_active"
 ]);
 
 function isExecutionGraphGuardType(type: string): boolean {
@@ -191,6 +192,28 @@ function evaluateKnownExecutionGuard(
         passes: false,
         failureReason: availability.disabledReason ?? "Activity is currently unavailable."
       };
+    }
+
+    /**
+     * Passes when the given activity is the currently running (active) activity.
+     * Used to show toggle / stop state on activity action buttons.
+     *
+     * Example: { type: "activity_is_active", params: { activityId: "recover" } }
+     */
+    case "activity_is_active": {
+      const activityId = readOptionalStringParam(guard.params, "activityId");
+
+      if (!activityId) {
+        return { passes: false, failureReason: "Guard is missing activityId parameter." };
+      }
+
+      const activeActivityId = context.player.activityState?.activeActivityId;
+
+      if (activeActivityId === activityId) {
+        return { passes: true };
+      }
+
+      return { passes: false, failureReason: "Activity is not currently active." };
     }
 
     default:

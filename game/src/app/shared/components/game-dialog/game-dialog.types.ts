@@ -1,3 +1,5 @@
+import type { ActivityTickSnapshotView } from "../activity-tick-feed/activity-tick-feed.types";
+
 export type GameDialogMode = "valeflow" | "combat" | "activity";
 
 export interface GameDialogActorView {
@@ -31,6 +33,8 @@ export interface GameDialogSessionView {
   readonly choices: readonly GameDialogChoiceView[];
   readonly canAdvance: boolean;
   readonly isAwaitingChoice: boolean;
+  /** Populated only when mode === "activity". */
+  readonly activityTicks?: readonly ActivityTickSnapshotView[];
 }
 
 export type GameDialogEvent =

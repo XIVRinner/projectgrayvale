@@ -1,6 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import {
+  type ActivityReward,
   activityDefinitionSchema
 } from "@rinner/grayvale-core";
 import { map, type Observable } from "rxjs";
@@ -28,12 +29,66 @@ function parseActivities(raw: unknown): readonly GameActivityDefinition[] {
 
   return raw.map((entry, index) => {
     const location = parseLocation(entry, index);
+    const rewards = parseRewards(entry, index);
     // Strip the game-layer `location` field before passing to the core Zod schema,
-    // which does not know about game-layer extensions.
-    const { location: _stripped, ...coreEntry } = entry as Record<string, unknown>;
+    // which does not know about game-layer extensions. Rewards are also stripped
+    // to keep compatibility with core schema variants that do not yet include them.
+    const {
+      location: _strippedLocation,
+      rewards: _strippedRewards,
+      ...coreEntry
+    } = entry as Record<string, unknown>;
     const base = activityDefinitionSchema.parse(coreEntry);
-    return { ...base, location } satisfies GameActivityDefinition;
+
+    return {
+      ...base,
+      location,
+      ...(rewards ? { rewards } : {})
+    } satisfies GameActivityDefinition;
   });
+}
+
+function parseRewards(entry: unknown, index: number): ActivityReward[] | undefined {
+  if (typeof entry !== "object" || entry === null) {
+    throw new Error(`activities.json[${index}] must be an object.`);
+  }
+
+  const record = entry as Record<string, unknown>;
+  const rewards = record["rewards"];
+
+  if (rewards === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(rewards)) {
+    throw new Error(`activities.json[${index}].rewards must be an array when provided.`);
+  }
+
+  return rewards.map((reward, rewardIndex) => parseReward(reward, index, rewardIndex));
+}
+
+function parseReward(reward: unknown, activityIndex: number, rewardIndex: number): ActivityReward {
+  if (typeof reward !== "object" || reward === null || Array.isArray(reward)) {
+    throw new Error(
+      `activities.json[${activityIndex}].rewards[${rewardIndex}] must be an object.`
+    );
+  }
+
+  const record = reward as Record<string, unknown>;
+
+  if (typeof record["type"] !== "string") {
+    throw new Error(
+      `activities.json[${activityIndex}].rewards[${rewardIndex}].type must be a string.`
+    );
+  }
+
+  if (typeof record["value"] !== "object" || record["value"] === null) {
+    throw new Error(
+      `activities.json[${activityIndex}].rewards[${rewardIndex}].value must be an object.`
+    );
+  }
+
+  return reward as ActivityReward;
 }
 
 function parseLocation(entry: unknown, index: number): GameActivityLocation {

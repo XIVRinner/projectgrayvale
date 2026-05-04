@@ -1,0 +1,50 @@
+<section class="gv-activity-ticks" aria-label="Activity tick delta feed">
+  <header class="gv-activity-ticks__header">
+    <h3 class="gv-activity-ticks__title">Activity Growth</h3>
+    <p class="gv-activity-ticks__subtitle">Live growth summary for the running activity</p>
+  </header>
+
+  @if (latestEntry(); as entry) {
+    <div class="gv-activity-ticks__meta-row">
+      <p class="gv-activity-ticks__activity">{{ entry.activityLabel }}</p>
+      <p class="gv-activity-ticks__meta">Tick {{ entry.tickNumber }} &middot; {{ entry.occurredAtLabel }}</p>
+    </div>
+
+    <dl class="gv-activity-ticks__table">
+      <div class="gv-activity-ticks__row gv-activity-ticks__row--gain">
+        <dt class="gv-activity-ticks__row-label">Attribute / Skill</dt>
+        <dd class="gv-activity-ticks__row-value">{{ entry.attributeSkillDeltaLabel }}</dd>
+      </div>
+
+      <div class="gv-activity-ticks__row">
+        <dt class="gv-activity-ticks__row-label">Current Attribute / Skill Level</dt>
+        <dd class="gv-activity-ticks__row-value">{{ entry.currentAttributeSkillLevelLabel }}</dd>
+      </div>
+
+      <div class="gv-activity-ticks__row gv-activity-ticks__row--gain">
+        <dt class="gv-activity-ticks__row-label">Attribute / Skill Per Hour</dt>
+        <dd class="gv-activity-ticks__row-value">{{ entry.attributeSkillPerHourLabel }}</dd>
+      </div>
+
+      <div class="gv-activity-ticks__row gv-activity-ticks__row--item">
+        <dt class="gv-activity-ticks__row-label">Item Gain</dt>
+        <dd class="gv-activity-ticks__row-value">{{ entry.itemGainLabel }}</dd>
+      </div>
+
+      <div class="gv-activity-ticks__row gv-activity-ticks__row--item">
+        <dt class="gv-activity-ticks__row-label">Item Total Gain</dt>
+        <dd class="gv-activity-ticks__row-value">{{ entry.itemTotalGainLabel }}</dd>
+      </div>
+
+      <div
+        class="gv-activity-ticks__row"
+        [class.gv-activity-ticks__row--cutoff]="entry.isCutoffTriggered"
+      >
+        <dt class="gv-activity-ticks__row-label">Expected Falloff / Cutoff</dt>
+        <dd class="gv-activity-ticks__row-value">{{ entry.cutoffRuleLabel }}</dd>
+      </div>
+    </dl>
+  } @else {
+    <p class="gv-activity-ticks__empty">No activity ticks yet. Start an activity to see deltas.</p>
+  }
+</section>
