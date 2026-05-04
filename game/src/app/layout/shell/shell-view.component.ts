@@ -2,11 +2,13 @@ import { Component, computed, input, output } from "@angular/core";
 
 import type { DebugLogEntry } from "../../core/services/game-log/debug-log.service";
 import type { GameLogEntry } from "../../core/services/game-log/log-mapper";
+import type { GameplayGraphDebugSnapshot } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
 import { ShellFooterComponent } from "./shell-footer.component";
 import { ShellCharacterPanelComponent } from "./sub-pieces/shell-character-panel.component";
 import { ShellCharacterCreationDialogComponent } from "./sub-pieces/shell-character-creation-dialog.component";
+import { ShellGegVisualizerDialogComponent } from "./sub-pieces/shell-geg-visualizer-dialog.component";
 import { ShellGameplayLogDialogComponent } from "./sub-pieces/shell-gameplay-log-dialog.component";
 import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
 import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
@@ -31,6 +33,7 @@ import {
     ShellCharacterPanelComponent,
     ShellCharacterCreationDialogComponent,
     ShellFooterComponent,
+    ShellGegVisualizerDialogComponent,
     ShellGameplayLogDialogComponent,
     ShellTopbarComponent,
     ShellActionPanelComponent,
@@ -56,8 +59,10 @@ export class ShellViewComponent {
   readonly isCharacterCreationRequired = input.required<boolean>();
   readonly isSaveManagerOpen = input.required<boolean>();
   readonly isGameplayLogOpen = input.required<boolean>();
+  readonly isGegVisualizerOpen = input.required<boolean>();
   readonly gameplayLogEntries = input.required<readonly GameLogEntry[]>();
   readonly debugLogEntries = input.required<readonly DebugLogEntry[]>();
+  readonly gegDebugSnapshot = input<GameplayGraphDebugSnapshot | null>(null);
   readonly transferPayload = input.required<string>();
   readonly transferStatusMessage = input<string | null>(null);
   readonly gameDialogSession = input<GameDialogSessionView | null>(null);
@@ -69,6 +74,8 @@ export class ShellViewComponent {
   readonly saveManagerOpenRequested = output<void>();
   readonly saveManagerCloseRequested = output<void>();
   readonly gameplayLogCloseRequested = output<void>();
+  readonly gegVisualizerOpenRequested = output<void>();
+  readonly gegVisualizerCloseRequested = output<void>();
   readonly topbarActionSelected = output<string>();
   readonly saveSlotLoadRequested = output<string>();
   readonly saveSlotDeleteRequested = output<string>();
@@ -80,6 +87,7 @@ export class ShellViewComponent {
   readonly actionSelected = output<string>();
   readonly gameDialogAdvanceRequested = output<void>();
   readonly gameDialogChoiceSelected = output<number>();
+  readonly gameDialogCloseRequested = output<void>();
 
   protected readonly isCommandCenter = computed(
     () => this.layoutPreset() === "command-center"

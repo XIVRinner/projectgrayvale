@@ -103,6 +103,16 @@ function evaluateKnownGuard(guard: Guard, context: GuardContext): boolean {
 
       return context.player.questLog?.quests[questId]?.status === "completed";
     }
+    case "quest_not_started": {
+      const questId = readOptionalStringParam(guard.params, "questId");
+
+      if (!questId) {
+        return false;
+      }
+
+      const status = context.player.questLog?.quests[questId]?.status;
+      return status === undefined;
+    }
     case "player_attribute_at_least": {
       const attributeId = readOptionalStringParam(guard.params, "attributeId");
       const minimumValue = readNumericParam(guard.params, "minimumValue");

@@ -1,0 +1,116 @@
+.gv-activity-ticks {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-color-bg-surface);
+  padding: var(--gv-space-md);
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-activity-ticks__header {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-activity-ticks__title {
+  margin: 0;
+  font-size: var(--gv-font-size-lg);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-activity-ticks__subtitle {
+  margin: 0;
+  font-size: var(--gv-font-size-sm);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-activity-ticks__meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-activity-ticks__activity {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-md);
+  font-weight: 600;
+}
+
+.gv-activity-ticks__meta {
+  margin: 0;
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  white-space: nowrap;
+}
+
+.gv-activity-ticks__table {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-activity-ticks__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-overlay-soft);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+}
+
+.gv-activity-ticks__row-label {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-activity-ticks__row-value {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+  text-align: right;
+}
+
+.gv-activity-ticks__row--gain .gv-activity-ticks__row-value {
+  color: var(--gv-color-success);
+}
+
+.gv-activity-ticks__row--item .gv-activity-ticks__row-value {
+  color: var(--gv-color-accent-warm);
+}
+
+.gv-activity-ticks__row--cutoff .gv-activity-ticks__row-value {
+  color: var(--gv-color-danger);
+}
+
+.gv-activity-ticks__empty {
+  margin: 0;
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+}
+
+@media (max-width: 720px) {
+  .gv-activity-ticks__meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .gv-activity-ticks__meta {
+    white-space: normal;
+  }
+
+  .gv-activity-ticks__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .gv-activity-ticks__row-value {
+    text-align: left;
+  }
+}

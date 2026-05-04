@@ -1,0 +1,28 @@
+declare chief = Actor("village-chief")
+declare player = Player()
+
+chapter START:
+    chief "You're on your feet. Good."
+    goto OFFER
+
+chapter OFFER:
+    chief "I have something to ask of you, ${player.name}."
+    chief "The village has been falling apart around us. Planks rotting underfoot, walls that lean a little further each season."
+    chief "I need hands willing to work. Nothing that will undo what you have recovered."
+    chief "It will be a good exercise for your body, and it will help the village."
+    goto ASK
+chapter ASK:
+    chief "Will you help out with some labour around the village?"
+    choice:
+        -> "What needs doing?":
+            player "What kind of work are we talking about?"
+            chief "Carrying timber. Pulling old nails. Patching the grain store floor before the rains come."
+            chief "Work that asks for a back and a few unbroken hours, not a blade."
+            goto ASK
+        -> "I'll help":
+            goto ACCEPT
+
+chapter ACCEPT:
+    chief "Good. This kind of labour builds something quieter than glory."
+    chief "Start when you're ready. The people here will show you what needs doing."
+    call startQuestById("quest_chief_labour")

@@ -33,7 +33,10 @@
     </aside>
   </main>
 
-  <gv-shell-footer [version]="version()" />
+  <gv-shell-footer
+    [version]="version()"
+    (gegVisualizerRequested)="gegVisualizerOpenRequested.emit()"
+  />
 
   <gv-shell-save-manager-modal
     [open]="isSaveManagerOpen()"
@@ -58,6 +61,12 @@
     (closed)="gameplayLogCloseRequested.emit()"
   />
 
+  <gv-shell-geg-visualizer-dialog
+    [open]="isGegVisualizerOpen()"
+    [snapshot]="gegDebugSnapshot()"
+    (closed)="gegVisualizerCloseRequested.emit()"
+  />
+
   <gv-shell-character-creation-dialog
     [open]="isCharacterCreationOpen()"
     [required]="isCharacterCreationRequired()"
@@ -69,5 +78,6 @@
     [session]="gameDialogSession()"
     (advanceRequested)="gameDialogAdvanceRequested.emit()"
     (choiceSelected)="gameDialogChoiceSelected.emit($event)"
+    (closeRequested)="gameDialogCloseRequested.emit()"
   />
 </div>

@@ -5,7 +5,7 @@
 //      Blocked on: design + service layer implementation.
 //      Do not implement modal open logic until those services are available.
 
-import { Component, input, signal } from "@angular/core";
+import { Component, input, output, signal } from "@angular/core";
 
 const TIPS: readonly string[] = [
   "Zero HP is generally considered sub-optimal.",
@@ -26,6 +26,7 @@ const TIPS: readonly string[] = [
 })
 export class ShellFooterComponent {
   readonly version = input("0.0.1");
+  readonly gegVisualizerRequested = output<void>();
 
   protected readonly tip = signal(
     TIPS[Math.floor(Math.random() * TIPS.length)]

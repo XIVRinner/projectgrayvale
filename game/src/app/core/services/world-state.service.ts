@@ -1,9 +1,8 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
+import type { Player } from "@rinner/grayvale-core";
 import {
   canMove,
   enterSublocation,
-  type Guard,
-  type GuardContext,
   hasSublocation,
   leaveSublocation,
   move,
@@ -11,9 +10,7 @@ import {
 } from "@rinner/grayvale-worldgraph";
 import { forkJoin } from "rxjs";
 
-import {
-  WorldGraphLoader
-} from "../../data/loaders/world-graph.loader";
+import { WorldGraphLoader } from "../../data/loaders/world-graph.loader";
 import {
   type WorldGuardCatalog,
   WorldGuardsLoader
@@ -30,27 +27,8 @@ import { GameActionService } from "./game-action.service";
 import type { SaveSlotWorldState } from "./world-state.models";
 import {
   createWorldGuardResolver,
-  evaluateWorldGuardsDetailed,
   validateWorldGuardCatalogUsage
 } from "./world-guard-evaluator";
-import {
-  buildActionPanelGroup,
-  mergeActionPanelGroups,
-  type ActionPanelGroupView
-} from "../../shared/models/action-panel-group.model";
-
-export type WorldActionKind = "sublocation-enter" | "sublocation-exit" | "world-travel";
-
-export interface WorldActionView {
-  readonly id: string;
-  readonly label: string;
-  readonly kind: WorldActionKind;
-  readonly disabled?: boolean;
-  readonly disabledReason?: string;
-  readonly payload?: Record<string, string | number | boolean>;
-}
-
-export interface WorldActionGroupView extends ActionPanelGroupView<WorldActionView> {}
 
 @Injectable({ providedIn: "root" })
 export class WorldStateService {
@@ -68,14 +46,20 @@ export class WorldStateService {
 
   readonly loadError = this.loadErrorState.asReadonly();
   readonly isReady = computed(
-    () => this.graphState() !== null && this.catalogState() !== null && this.loadErrorState() === null
+    () =>
+      this.graphState() !== null &&
+      this.catalogState() !== null &&
+      this.loadErrorState() === null
   );
+
+  readonly worldGraph = computed(() => this.graphState());
+  readonly worldGuardCatalog = computed(() => this.guardCatalogState());
+  readonly worldLocationsCatalog = computed(() => this.catalogState());
 
   readonly currentWorld = computed(() => this.roster.activeWorld());
 
   readonly locationMetadataById = computed(() => {
     const catalog = this.catalogState();
-
     return new Map(
       catalog?.locations.map((location) => [location.id, location]) ?? []
     );
@@ -110,106 +94,6 @@ export class WorldStateService {
     () => this.currentSublocationMetadata()?.label ?? null
   );
 
-  readonly actionGroups = computed<readonly WorldActionGroupView[]>(() => {
-    const activeSlot = this.roster.activeSlot();
-    const guardCatalog = this.guardCatalogState();
-    const graph = this.graphState();
-    const location = this.currentLocationMetadata();
-    const world = this.currentWorld();
-
-    if (!activeSlot || !graph || !guardCatalog || !location || !world) {
-      return [];
-    }
-
-    const currentSublocation = this.currentSublocationMetadata();
-
-    if (currentSublocation) {
-      const guardContext = buildGuardContext(activeSlot.player, world);
-      const exitAccess = evaluateWorldGuardsDetailed(
-        currentSublocation.exitGuards,
-        guardContext,
-        guardCatalog
-      );
-      const exitAction: WorldActionView = {
-        id: buildExitSublocationActionId(currentSublocation.id),
-        label:
-          currentSublocation.exitActionLabel ?? `Leave ${currentSublocation.label}`,
-        kind: "sublocation-exit",
-        payload: {
-          sublocationId: currentSublocation.id
-        }
-      };
-
-      return [
-        buildActionPanelGroup("movement", [
-          exitAccess.passes
-            ? exitAction
-            : { ...exitAction, disabled: true, disabledReason: exitAccess.failureReason }
-        ])
-      ];
-    }
-
-    const localChoices = location.sublocations
-      .filter((entry) => entry.isReturnable)
-      .map<WorldActionView>((entry) => ({
-        id: buildEnterSublocationActionId(entry.id),
-        label: entry.entryActionLabel ?? `Enter ${entry.label}`,
-        kind: "sublocation-enter",
-        payload: {
-          sublocationId: entry.id
-        }
-      }));
-    const guardContext = buildGuardContext(activeSlot.player, world);
-    const travelChoices = graph.edges
-      .filter((edge) => edge.from === world.currentLocation)
-      .map<WorldActionView | null>((edge) => {
-        const destination = this.locationMetadataById().get(edge.to);
-        const destinationLocation = graph.locations[edge.to];
-
-        if (!destination || !destinationLocation) {
-          return null;
-        }
-        const access = evaluateTravelAccess(
-          edge,
-          destinationLocation.guards,
-          guardContext,
-          guardCatalog
-        );
-
-        return {
-          id: buildTravelActionId(edge.from, edge.to),
-          label: `Travel to ${destination.label}`,
-          kind: "world-travel",
-          disabled: !access.passes,
-          disabledReason: access.failureReason,
-          payload: {
-            fromLocationId: edge.from,
-            targetLocationId: edge.to
-          }
-        };
-      })
-      .filter((entry): entry is WorldActionView => entry !== null);
-
-    return mergeActionPanelGroups<WorldActionView>([
-      {
-        kind: "movement",
-        choices: localChoices
-      },
-      {
-        kind: "travel",
-        choices: travelChoices
-      }
-    ]);
-  });
-
-  private readonly actionsById = computed(() => {
-    const entries = this.actionGroups().flatMap((group) =>
-      group.choices.map((choice) => [choice.id, choice] as const)
-    );
-
-    return new Map(entries);
-  });
-
   constructor() {
     forkJoin({
       graph: this.worldGraphLoader.load(),
@@ -229,7 +113,11 @@ export class WorldStateService {
         this.loadErrorState.set(null);
       },
       error: (error: unknown) => {
-        this.debugLog.logMessage("world", "Failed to load world navigation data.", errorToMessage(error));
+        this.debugLog.logMessage(
+          "world",
+          "Failed to load world navigation data.",
+          errorToMessage(error)
+        );
         this.graphState.set(null);
         this.guardCatalogState.set(null);
         this.catalogState.set(null);
@@ -238,93 +126,104 @@ export class WorldStateService {
     });
   }
 
-  executeAction(actionId: string): boolean {
-    const action = this.actionsById().get(actionId);
-
-    if (!action || action.disabled) {
-      this.debugLog.logMessage("world", "World action rejected.", {
-        actionId,
-        reason: !action ? "missing-action" : "disabled-action",
-        disabledReason: action?.disabledReason
-      });
-      return false;
-    }
-
-    this.debugLog.logMessage("world", "World action selected.", action);
-
-    const nextWorld = this.resolveNextWorld(action);
-
-    if (!nextWorld) {
-      this.debugLog.logMessage("world", "World action could not resolve a next world state.", {
-        actionId
-      });
-      return false;
-    }
-
-    const executed = this.gameAction.executeWorldAction(
-      {
-        actionId: action.id,
-        actionKind: action.kind,
-        payload: action.payload
-      },
-      nextWorld
-    );
-
-    this.debugLog.logMessage(
-      "world",
-      executed ? "World action committed." : "World action failed during commit.",
-      {
-        actionId,
-        nextWorld
-      }
-    );
-
-    return executed;
-  }
-
-  private resolveNextWorld(action: WorldActionView): SaveSlotWorldState | null {
+  executeTravel(
+    fromLocationId: string,
+    toLocationId: string
+  ): boolean {
     const activeSlot = this.roster.activeSlot();
     const graph = this.graphState();
     const guardCatalog = this.guardCatalogState();
-    const world = this.currentWorld();
+    const world = this.roster.activeWorld();
 
     if (!activeSlot || !graph || !guardCatalog || !world) {
-      return null;
+      this.debugLog.logMessage("world", "Travel rejected: world data unavailable.", {
+        fromLocationId,
+        toLocationId
+      });
+      return false;
     }
 
-    switch (action.kind) {
-      case "sublocation-enter": {
-        const targetSublocationId = action.payload?.["sublocationId"];
+    const guardContext = buildGuardContext(activeSlot.player, world);
+    const guardResolver = createWorldGuardResolver(guardCatalog);
 
-        if (typeof targetSublocationId !== "string") {
-          return null;
-        }
-
-        if (!hasSublocation(graph, world.currentLocation, targetSublocationId)) {
-          return null;
-        }
-
-        return enterSublocation(world, targetSublocationId);
-      }
-      case "sublocation-exit":
-        return leaveSublocation(world);
-      case "world-travel": {
-        const targetLocationId = action.payload?.["targetLocationId"];
-
-        if (typeof targetLocationId !== "string") {
-          return null;
-        }
-
-        const guardContext = buildGuardContext(activeSlot.player, world);
-        const guardResolver = createWorldGuardResolver(guardCatalog);
-
-        if (!canMove(graph, world.currentLocation, targetLocationId, guardContext, guardResolver)) {
-          return null;
-        }
-
-        return move(world, targetLocationId);
-      }
+    if (!canMove(graph, fromLocationId, toLocationId, guardContext, guardResolver)) {
+      this.debugLog.logMessage("world", "Travel rejected: guards blocked the route.", {
+        fromLocationId,
+        toLocationId
+      });
+      return false;
     }
+
+    const nextWorld = move(world, toLocationId);
+
+    return this.gameAction.executeWorldAction(
+      {
+        actionId: "travel-" + fromLocationId + "-to-" + toLocationId,
+        actionKind: "world-travel",
+        payload: { fromLocationId, targetLocationId: toLocationId }
+      },
+      nextWorld
+    );
+  }
+
+  executeEnterSublocation(
+    sublocationId: string
+  ): boolean {
+    const graph = this.graphState();
+    const world = this.roster.activeWorld();
+
+    if (!graph || !world) {
+      this.debugLog.logMessage("world", "Sublocation enter rejected: world data unavailable.", {
+        sublocationId
+      });
+      return false;
+    }
+
+    if (!hasSublocation(graph, world.currentLocation, sublocationId)) {
+      this.debugLog.logMessage("world", "Sublocation enter rejected: sublocation not found.", {
+        sublocationId,
+        currentLocation: world.currentLocation
+      });
+      return false;
+    }
+
+    const nextWorld = enterSublocation(world, sublocationId);
+
+    return this.gameAction.executeWorldAction(
+      {
+        actionId: "enter-" + sublocationId,
+        actionKind: "sublocation-enter",
+        payload: { sublocationId }
+      },
+      nextWorld
+    );
+  }
+
+  executeExitSublocation(): boolean {
+    const world = this.roster.activeWorld();
+
+    if (!world) {
+      this.debugLog.logMessage("world", "Sublocation exit rejected: no active world.");
+      return false;
+    }
+
+    const currentSublocationId = world.sublocations.at(-1);
+
+    if (!currentSublocationId) {
+      this.debugLog.logMessage("world", "Sublocation exit rejected: not inside a sublocation.");
+      return false;
+    }
+
+    const nextWorld = leaveSublocation(world);
+
+    return this.gameAction.executeWorldAction(
+      {
+        actionId: "leave-" + currentSublocationId,
+        actionKind: "sublocation-exit",
+        payload: { sublocationId: currentSublocationId }
+      },
+      nextWorld
+    );
   }
 }
 
@@ -370,27 +269,43 @@ function validateWorldCatalog(graph: WorldGraph, catalog: WorldLocationsCatalog)
   }
 }
 
-function validateWorldGuardUsage(graph: WorldGraph, catalog: WorldGuardCatalog, locationsCatalog: WorldLocationsCatalog): void {
+function validateWorldGuardUsage(
+  graph: WorldGraph,
+  catalog: WorldGuardCatalog,
+  locationsCatalog: WorldLocationsCatalog
+): void {
   for (const [locationId, location] of Object.entries(graph.locations)) {
-    validateWorldGuardCatalogUsage(location.guards, catalog, `world graph.locations.${locationId}`);
+    validateWorldGuardCatalogUsage(
+      location.guards,
+      catalog,
+      "world graph.locations." + locationId
+    );
   }
 
   for (const [index, edge] of graph.edges.entries()) {
-    validateWorldGuardCatalogUsage(edge.guards, catalog, `world graph.edges[${index}]`);
+    validateWorldGuardCatalogUsage(edge.guards, catalog, "world graph.edges[" + index + "]");
   }
 
   for (const location of locationsCatalog.locations) {
     for (const sublocation of location.sublocations) {
       validateWorldGuardCatalogUsage(
+        sublocation.entryGuards,
+        catalog,
+        "world locations." + location.id + ".sublocations." + sublocation.id + ".entryGuards"
+      );
+      validateWorldGuardCatalogUsage(
         sublocation.exitGuards,
         catalog,
-        `world locations.${location.id}.sublocations.${sublocation.id}.exitGuards`
+        "world locations." + location.id + ".sublocations." + sublocation.id + ".exitGuards"
       );
     }
   }
 }
 
-function buildGuardContext(player: GuardContext["player"], world: GuardContext["world"]): GuardContext {
+function buildGuardContext(
+  player: Player,
+  world: SaveSlotWorldState
+): { player: Player; npcs: Record<string, never>; world: { currentLocation: string; sublocations: string[] } } {
   return {
     player,
     npcs: {},
@@ -401,44 +316,9 @@ function buildGuardContext(player: GuardContext["player"], world: GuardContext["
   };
 }
 
-function evaluateTravelAccess(
-  edge: WorldGraph["edges"][number],
-  destinationGuards: readonly Guard[] | undefined,
-  context: GuardContext,
-  guardCatalog: WorldGuardCatalog
-): {
-  readonly passes: boolean;
-  readonly failureReason?: string;
-} {
-  const edgeResult = evaluateWorldGuardsDetailed(edge.guards, context, guardCatalog);
-
-  if (!edgeResult.passes) {
-    return edgeResult;
-  }
-
-  return evaluateWorldGuardsDetailed(
-    destinationGuards,
-    context,
-    guardCatalog
-  );
-}
-
-function buildEnterSublocationActionId(sublocationId: string): string {
-  return `enter-${sublocationId}`;
-}
-
-function buildExitSublocationActionId(sublocationId: string): string {
-  return `leave-${sublocationId}`;
-}
-
-function buildTravelActionId(fromLocationId: string, toLocationId: string): string {
-  return `travel-${fromLocationId}-to-${toLocationId}`;
-}
-
 function errorToMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-
   return "Failed to load world navigation data.";
 }

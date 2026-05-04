@@ -1,0 +1,171 @@
+<gv-dialog-shell
+  [open]="open()"
+  title="GEG Visualizer"
+  eyebrow="Debug Tool"
+  subtitle="Compiled Gameplay Execution Graph state for the active runtime context."
+  ariaLabel="Gameplay execution graph visualizer"
+  [variant]="'reference'"
+  [width]="'log'"
+  (closed)="closed.emit()"
+>
+  @if (snapshot(); as graph) {
+    <section class="gv-geg-visualizer">
+      <section class="gv-geg-visualizer__summary">
+        <article class="gv-geg-visualizer__metric">
+          <p class="gv-geg-visualizer__metric-label">Version</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.graphVersion }}</p>
+        </article>
+        <article class="gv-geg-visualizer__metric">
+          <p class="gv-geg-visualizer__metric-label">Contexts</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.contextCount }}</p>
+        </article>
+        <article class="gv-geg-visualizer__metric">
+          <p class="gv-geg-visualizer__metric-label">Actions</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.actionCount }}</p>
+        </article>
+        <article class="gv-geg-visualizer__metric">
+          <p class="gv-geg-visualizer__metric-label">Activity Registry</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.activityRegistryCount }}</p>
+        </article>
+        <article class="gv-geg-visualizer__metric">
+          <p class="gv-geg-visualizer__metric-label">Compiled Activities</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.compiledActivityCount }}</p>
+        </article>
+        <article class="gv-geg-visualizer__metric">
+          <p class="gv-geg-visualizer__metric-label">Activity Loader</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.activitiesLoaded ? 'loaded' : 'pending' }}</p>
+        </article>
+        <article class="gv-geg-visualizer__metric gv-geg-visualizer__metric--wide">
+          <p class="gv-geg-visualizer__metric-label">Current Context</p>
+          <p class="gv-geg-visualizer__metric-value">{{ graph.currentContextId ?? "none" }}</p>
+        </article>
+      </section>
+
+      @if (graph.activityLoadError) {
+        <section class="gv-geg-visualizer__card">
+          <h3 class="gv-geg-visualizer__title">Activity Loader Error</h3>
+          <p class="gv-geg-visualizer__copy">{{ graph.activityLoadError }}</p>
+        </section>
+      }
+
+      <section class="gv-geg-visualizer__grid">
+        <article class="gv-geg-visualizer__card">
+          <h3 class="gv-geg-visualizer__title">Contexts</h3>
+          <ul class="gv-geg-visualizer__list">
+            @for (context of graph.contexts; track trackContext($index, context)) {
+              <li
+                class="gv-geg-visualizer__list-item"
+                [attr.data-current]="context.isCurrent ? 'true' : null"
+                [attr.data-selected]="isSelectedContext(context.id) ? 'true' : null"
+              >
+                <button
+                  type="button"
+                  class="gv-geg-visualizer__context-button"
+                  (click)="selectContext(context.id)"
+                >
+                  <p class="gv-geg-visualizer__context-id">{{ context.id }}</p>
+                  <p class="gv-geg-visualizer__meta">
+                    {{ context.locationId }}
+                    @if (context.sublocationId) {
+                      <span> / {{ context.sublocationId }}</span>
+                    }
+                  </p>
+                  <p class="gv-geg-visualizer__meta">{{ context.actionCount }} action(s)</p>
+                </button>
+              </li>
+            }
+          </ul>
+        </article>
+
+        <article class="gv-geg-visualizer__card">
+          <h3 class="gv-geg-visualizer__title">
+            Selected Context Actions
+            @if (selectedContext(); as selectedContext) {
+              <span class="gv-geg-visualizer__title-context">({{ selectedContext.id }})</span>
+            }
+          </h3>
+          @if (selectedContextActions().length === 0) {
+            <p class="gv-geg-visualizer__copy">No actions compiled for the selected context.</p>
+          } @else {
+            <ul class="gv-geg-visualizer__list">
+              @for (action of selectedContextActions(); track trackAction($index, action)) {
+                <li class="gv-geg-visualizer__list-item">
+                  <div class="gv-geg-visualizer__row">
+                    <p class="gv-geg-visualizer__context-id">{{ action.id }}</p>
+                    <span class="gv-geg-visualizer__chip">{{ action.executionKind }}</span>
+                    <span class="gv-geg-visualizer__chip">{{ action.groupKind }}</span>
+                  </div>
+                  <p class="gv-geg-visualizer__meta">{{ action.label }}</p>
+                  <p class="gv-geg-visualizer__meta">
+                    visibleWhen: {{ action.visibleGuards.length ? action.visibleGuards.join(', ') : 'none' }}
+                  </p>
+                  <p class="gv-geg-visualizer__meta">
+                    enabledWhen: {{ action.enabledGuards.length ? action.enabledGuards.join(', ') : 'none' }}
+                  </p>
+                  <p class="gv-geg-visualizer__meta">
+                    visible={{ action.isVisible }} | enabled={{ action.isEnabled }}
+                    @if (action.disabledReason) {
+                      <span> | reason={{ action.disabledReason }}</span>
+                    }
+                  </p>
+                </li>
+              }
+            </ul>
+          }
+        </article>
+      </section>
+
+      <section class="gv-geg-visualizer__card">
+        <h3 class="gv-geg-visualizer__title">Activity Compile Status</h3>
+        @if (graph.activities.length === 0) {
+          <p class="gv-geg-visualizer__copy">No activities loaded from registry.</p>
+        } @else {
+          <ul class="gv-geg-visualizer__list">
+            @for (activity of graph.activities; track activity.id) {
+              <li class="gv-geg-visualizer__list-item">
+                <div class="gv-geg-visualizer__row">
+                  <p class="gv-geg-visualizer__context-id">{{ activity.id }}</p>
+                  <span class="gv-geg-visualizer__chip">
+                    {{ activity.compiled ? 'compiled' : 'missing' }}
+                  </span>
+                </div>
+                <p class="gv-geg-visualizer__meta">authored context: {{ activity.authoredContextId }}</p>
+                <p class="gv-geg-visualizer__meta">
+                  compiled context: {{ activity.compiledContextId ?? 'not in graph' }}
+                </p>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="gv-geg-visualizer__card">
+        <h3 class="gv-geg-visualizer__title">Compile Diagnostics ({{ graph.diagnostics.length }})</h3>
+        @if (graph.diagnostics.length === 0) {
+          <p class="gv-geg-visualizer__copy">
+            No compile diagnostics were emitted for the current graph build.
+          </p>
+        } @else {
+          <ul class="gv-geg-visualizer__list">
+            @for (diagnostic of graph.diagnostics; track $index) {
+              <li class="gv-geg-visualizer__list-item">
+                <p class="gv-geg-visualizer__meta">
+                  <strong>{{ diagnostic.severity.toUpperCase() }}</strong>
+                  <span> {{ diagnostic.code }}</span>
+                </p>
+                <p class="gv-geg-visualizer__copy">{{ diagnostic.message }}</p>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </section>
+  } @else {
+    <section class="gv-geg-visualizer__empty">
+      <p class="gv-geg-visualizer__title">Graph not available.</p>
+      <p class="gv-geg-visualizer__copy">
+        Wait for world data and activities to load, then reopen this panel.
+      </p>
+    </section>
+  }
+</gv-dialog-shell>

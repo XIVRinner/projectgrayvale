@@ -3,8 +3,6 @@ import { TestBed } from "@angular/core/testing";
 import { samplePlayer, type Quest } from "@rinner/grayvale-core";
 import { of, Subject } from "rxjs";
 
-import { ActivitiesLoader } from "../../data/loaders/activities.loader";
-import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import type { CharacterCreatorOptions } from "../../data/loaders/character-creator-options.loader";
 import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-creator-options.loader";
 import { CharacterRosterService } from "../../core/services/character-roster.service";
@@ -12,6 +10,7 @@ import { GameDialogService } from "../../core/services/game-dialog.service";
 import { GameQuestService } from "../../core/services/game-quest.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
 import { WorldStateService } from "../../core/services/world-state.service";
+import { GameplayGraphRuntime } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import { QuestsLoader } from "../../data/loaders/quests.loader";
 
 import { ShellContainerComponent } from "./shell-container.component";
@@ -26,7 +25,22 @@ describe("ShellContainerComponent", () => {
   });
 
   it("shows the single Wake up action before the prologue completes", async () => {
-    const { component } = await createFixture();
+    const { component, setRuntimeActionGroups, fixture } = await createFixture();
+
+    setRuntimeActionGroups([
+      {
+        kind: "talk",
+        label: "TALK",
+        themeKey: "talk",
+        choices: [
+          {
+            id: "story:wake-up",
+            label: "Wake up"
+          }
+        ]
+      }
+    ]);
+    fixture.detectChanges();
 
     expect(component.actionGroups()).toEqual([
       {
@@ -144,14 +158,6 @@ describe("ShellContainerComponent", () => {
         ]
       }
     ]);
-    expect(component.statusItems()).toEqual(
-      expect.arrayContaining([
-        {
-          label: "Quest",
-          value: "Quest received: reach 10.0 Vitality."
-        }
-      ])
-    );
     expect(component.questTrackerPanel()).toEqual({
       title: "Quest Tracker",
       emptyLabel: "No active quests. Story and field work will appear here when they are underway.",
@@ -175,7 +181,7 @@ describe("ShellContainerComponent", () => {
   });
 
   it("applies recover activity vitality gains and hides recover once the quest completes", async () => {
-    const { component, roster, gameQuests } = await createFixture();
+    const { component, roster, gameQuests, setRuntimeActionGroups, fixture } = await createFixture();
 
     roster.applyActiveCharacterDeltas([
       {
@@ -195,20 +201,31 @@ describe("ShellContainerComponent", () => {
 
     (component as any).handleActionSelected("activity:recover");
     expect(roster.activeCharacter()?.attributes["vitality"]).toBe(9);
-    expect(component.statusItems()).toEqual(
-      expect.arrayContaining([
-        {
-          label: "Attribute",
-          value: "Vitality +1.0 -> 9.0"
-        }
-      ])
-    );
 
     (component as any).handleActionSelected("activity:recover");
     expect(roster.activeCharacter()?.attributes["vitality"]).toBe(10);
     expect(roster.activeCharacter()?.activityState?.availability["recover"]).toEqual({
       status: "locked"
     });
+
+    // Simulate runtime removing recover from action groups (activity locked)
+    setRuntimeActionGroups([
+      {
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
+        choices: [
+          {
+            id: "leave-chief-house",
+            label: "Leave chief house",
+            disabled: undefined,
+            disabledReason: undefined
+          }
+        ]
+      }
+    ]);
+    fixture.detectChanges();
+
     expect(component.actionGroups()).toEqual([
       {
         kind: "movement",
@@ -301,6 +318,7 @@ async function createFixture(): Promise<{
     attributesById: ReturnType<typeof signal<Map<string, never>>>;
     skillsById: ReturnType<typeof signal<Map<string, never>>>;
   };
+  setRuntimeActionGroups: (groups: ReturnType<typeof signal>[0]) => void;
 }> {
   const roster = new CharacterRosterService();
   const player = clonePlayer(samplePlayer);
@@ -319,30 +337,6 @@ async function createFixture(): Promise<{
   }
   roster.createCharacter(player);
 
-  const activities: readonly GameActivityDefinition[] = [
-    {
-      id: "recover",
-      name: "Recover",
-      description: "Steady your breathing and let the worst of the pain pass.",
-      location: { locationId: "village-arkama", sublocationId: "chief-house" },
-      tags: ["recovery", "rest"],
-      governingAttributes: ["vitality"],
-      difficulty: 5,
-      rewards: [
-        {
-          type: "attribute",
-          targetId: "vitality",
-          value: {
-            type: "flat",
-            amount: 1
-          },
-          distribution: {
-            type: "deterministic"
-          }
-        }
-      ]
-    }
-  ];
   const quests: readonly Quest[] = [
     {
       id: "quest_recovery",
@@ -416,11 +410,24 @@ async function createFixture(): Promise<{
     skillsById: signal(new Map())
   };
 
+  const gameplayRuntimeActionGroups = signal([
+    {
+      kind: "movement" as const,
+      label: "MOVEMENT",
+      themeKey: "movement" as const,
+      choices: [
+        {
+          id: "leave-chief-house",
+          label: "Leave chief house"
+        }
+      ]
+    }
+  ]);
+
   await TestBed.configureTestingModule({
     imports: [ShellContainerComponent],
     providers: [
       { provide: CharacterRosterService, useValue: roster },
-      { provide: ActivitiesLoader, useValue: { load: () => of(activities) } },
       { provide: QuestsLoader, useValue: { load: () => of(quests) } },
       {
         provide: CharacterCreatorOptionsLoader,
@@ -436,21 +443,26 @@ async function createFixture(): Promise<{
         useValue: {
           currentLocationLabel: signal("Arkama Village"),
           currentSublocationLabel: signal("Chief House"),
-          loadError: signal<string | null>(null),
-          actionGroups: signal([
-            {
-              kind: "movement",
-              label: "MOVEMENT",
-              themeKey: "movement",
-              choices: [
-                {
-                  id: "leave-chief-house",
-                  label: "Leave chief house"
-                }
-              ]
-            }
-          ])
+          loadError: signal<string | null>(null)
         }
+      },
+      {
+        provide: GameplayGraphRuntime,
+        useFactory: (gameQuests: GameQuestService) => ({
+          isReady: signal(true),
+          actionGroups: gameplayRuntimeActionGroups,
+          debugSnapshot: signal(null),
+          executeAction: (actionId: string) => {
+            if (actionId.startsWith("activity:")) {
+              const activityId = actionId.slice("activity:".length);
+              gameQuests.executeActivityById(activityId);
+              return { ok: true, actionId };
+            }
+
+            return { ok: true, actionId };
+          }
+        }),
+        deps: [GameQuestService]
       }
     ]
   }).compileComponents();
@@ -465,6 +477,7 @@ async function createFixture(): Promise<{
     gameDialog,
     gameQuests,
     gameSettings,
+    setRuntimeActionGroups: (groups) => gameplayRuntimeActionGroups.set(groups as never),
     component: fixture.componentInstance
   };
 }

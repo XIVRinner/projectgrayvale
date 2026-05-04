@@ -1,6 +1,9 @@
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, effect, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
+import { ActivityService } from "../../core/services/activity.service";
+import type { ActivityTickSnapshotView } from "../../shared/components/activity-tick-feed/activity-tick-feed.types";
 import { HomeViewComponent } from "./home-view.component";
 import { HomeAdventurerSummary, HomeQuickLink } from "./home.types";
 
@@ -11,11 +14,19 @@ import { HomeAdventurerSummary, HomeQuickLink } from "./home.types";
     <gv-home-view
       [adventurer]="adventurer()"
       [quickLinks]="quickLinks"
+      [activeActivityId]="activeActivityId()"
+      [activityTicks]="activityTicks()"
     />
   `
 })
 export class HomeContainerComponent {
   private readonly roster = inject(CharacterRosterService);
+  private readonly activityService = inject(ActivityService);
+
+  readonly activeActivityId = this.activityService.activeActivityId;
+  private readonly activityTicksState = signal<readonly ActivityTickSnapshotView[]>([]);
+
+  readonly activityTicks = this.activityTicksState.asReadonly();
 
   readonly adventurer = computed<HomeAdventurerSummary | null>(() => {
     const active = this.roster.activeCharacter();
@@ -82,4 +93,18 @@ export class HomeContainerComponent {
       disabled: false
     }
   ];
+
+  constructor() {
+    // Clear the feed whenever the active activity changes (start or stop)
+    effect(() => {
+      this.activeActivityId();
+      this.activityTicksState.set([]);
+    });
+
+    this.activityService.tickApplied$
+      .pipe(takeUntilDestroyed())
+      .subscribe((snapshot) => {
+        this.activityTicksState.update((entries) => [snapshot, ...entries].slice(0, 10));
+      });
+  }
 }

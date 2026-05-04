@@ -1,4 +1,5 @@
 import type {
+  QuestReward,
   ActivityObjective,
   AttributeObjective,
   CompositeObjective,
@@ -171,8 +172,50 @@ export function assertValidQuest(
     assertValidQuestObjective(objective, `${path}.objectives[${index}]`);
   });
 
-  if (quest.rewards !== undefined && !Array.isArray(quest.rewards)) {
-    throw new Error(`${path}.rewards must be an array when provided.`);
+  if (quest.rewards !== undefined) {
+    if (!Array.isArray(quest.rewards)) {
+      throw new Error(`${path}.rewards must be an array when provided.`);
+    }
+
+    quest.rewards.forEach((reward, index) => {
+      assertValidQuestReward(reward, `${path}.rewards[${index}]`);
+    });
+  }
+}
+
+export function assertValidQuestReward(
+  value: unknown,
+  path = "questReward"
+): asserts value is QuestReward {
+  const reward = assertObjectiveRecord(value, path);
+
+  switch (reward.type) {
+    case "attribute_unlock":
+      assertNonEmptyString(reward.attributeId, "attributeId", path);
+      if (reward.unlocked !== undefined && typeof reward.unlocked !== "boolean") {
+        throw new Error(`${path}.unlocked must be a boolean when provided.`);
+      }
+      return;
+    case "activity_availability":
+      assertNonEmptyString(reward.activityId, "activityId", path);
+      if (
+        reward.status !== "locked" &&
+        reward.status !== "enabled" &&
+        reward.status !== "disabled"
+      ) {
+        throw new Error(`${path}.status must be "locked", "enabled", or "disabled".`);
+      }
+      if (
+        reward.disabledReason !== undefined &&
+        (typeof reward.disabledReason !== "string" || reward.disabledReason.trim().length === 0)
+      ) {
+        throw new Error(`${path}.disabledReason must be a non-empty string when provided.`);
+      }
+      return;
+    default:
+      throw new Error(
+        `${path}.type must be one of "attribute_unlock" or "activity_availability".`
+      );
   }
 }
 

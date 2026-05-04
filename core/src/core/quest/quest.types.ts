@@ -38,6 +38,19 @@ export type CompositeObjective = {
   objectives: QuestObjective[];
 };
 
+export type AttributeUnlockReward = {
+  type: "attribute_unlock";
+  attributeId: string;
+  unlocked?: boolean;
+};
+
+export type ActivityAvailabilityReward = {
+  type: "activity_availability";
+  activityId: string;
+  status: "locked" | "enabled" | "disabled";
+  disabledReason?: string;
+};
+
 export type QuestObjective =
   | AttributeObjective
   | ItemObjective
@@ -45,8 +58,10 @@ export type QuestObjective =
   | KillObjective
   | CompositeObjective;
 
+export type QuestReward = AttributeUnlockReward | ActivityAvailabilityReward;
+
 export interface Quest {
   id: string;
   objectives: QuestObjective[];
-  rewards?: unknown[];
+  rewards?: QuestReward[];
 }

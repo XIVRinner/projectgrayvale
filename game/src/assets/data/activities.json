@@ -16,7 +16,31 @@
         "targetId": "vitality",
         "value": {
           "type": "flat",
-          "amount": 1
+          "amount": 0.5
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "village-labour",
+    "name": "Help with Village Labour",
+    "description": "Carry timber, pull bent nails, and patch floors — whatever the village needs.",
+    "location": {
+      "locationId": "village-arkama"
+    },
+    "tags": ["labour", "village"],
+    "governingAttributes": ["strength"],
+    "difficulty": 5,
+    "rewards": [
+      {
+        "type": "attribute",
+        "targetId": "strength",
+        "value": {
+          "type": "flat",
+          "amount": 0.5
         },
         "distribution": {
           "type": "deterministic"

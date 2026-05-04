@@ -20,6 +20,12 @@
           "isReturnable": true,
           "entryActionLabel": "Return to chief house",
           "exitActionLabel": "Leave chief house",
+          "entryGuards": [
+            {
+              "type": "quest_not_started",
+              "params": { "questId": "quest_chief_labour" }
+            }
+          ],
           "exitGuards": [
             {
               "type": "quest_completed",
