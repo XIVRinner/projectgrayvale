@@ -43,3 +43,7 @@ export type {
   PenaltyDelta,
   CombatDelta
 } from "@rinner/grayvale-core";
+
+export type { CombatRng } from "./rng";
+export { DefaultCombatRng, TestCombatRng } from "./rng";
+export { CombatEngine } from "./engine";
