@@ -55,3 +55,58 @@ export const coyoteScratch: AbilityDefinition = {
     }
   ]
 };
+
+export const slashingCut: AbilityDefinition = {
+  id: "ability_slashing_cut",
+  displayName: "Slashing Cut",
+  tags: ["attack", "melee", "short_blade", "slashing"],
+  abilityType: "attack",
+  targetRule: "main_target",
+  consumesAction: true,
+  cooldownTicks: 0,
+  damagePackets: [
+    {
+      damageType: "slashing",
+      interval: { min: 2, max: 5 }
+    }
+  ],
+  appliesEffects: [
+    {
+      effectId: "effect_piercing_talon",
+      stacks: 1,
+      target: "self"
+    }
+  ]
+};
+
+export const piercingFinisher: AbilityDefinition = {
+  id: "ability_piercing_finisher",
+  displayName: "Piercing Finisher",
+  tags: ["attack", "melee", "short_blade", "piercing", "finisher"],
+  abilityType: "attack",
+  targetRule: "main_target",
+  consumesAction: true,
+  cooldownTicks: 0,
+  damagePackets: [
+    {
+      damageType: "piercing",
+      interval: { min: 5, max: 12 }
+    }
+  ]
+};
+
+export const autoAttack: AbilityDefinition = {
+  id: "ability_auto_attack",
+  displayName: "Auto Attack",
+  tags: ["attack", "melee", "auto"],
+  abilityType: "attack",
+  targetRule: "main_target",
+  consumesAction: true,
+  cooldownTicks: 0,
+  damagePackets: [
+    {
+      damageType: "slashing",
+      interval: { min: 1, max: 3 }
+    }
+  ]
+};

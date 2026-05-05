@@ -5,5 +5,11 @@ export const shortBladeSkill: SkillDefinition = {
   displayName: "Short Blade",
   tags: ["combat", "melee", "short_blade"],
   defaultRotationId: "rotation_short_blade_default",
-  abilityIds: ["ability_basic_thrust", "ability_quick_slash"]
+  abilityIds: [
+    "ability_basic_thrust",
+    "ability_quick_slash",
+    "ability_slashing_cut",
+    "ability_piercing_finisher",
+    "ability_auto_attack"
+  ]
 };
