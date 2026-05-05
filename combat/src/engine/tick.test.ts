@@ -422,7 +422,6 @@ describe("runTick — cooldown lifecycle", () => {
         ability_fixed_slash: fixedSlash,
         ability_coyote_scratch: coyoteScratchAbility,
         ability_auto_attack: autoAttack,
-        ability_bleeding: autoAttack, // unused filler
       },
       effects: {
         effect_bleeding: bleedingEffect,

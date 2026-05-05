@@ -98,9 +98,9 @@ function resolveDotsAndTickEffects(
         if (dot.scaling.type === "flat") {
           basePerStack = dot.scaling.value;
         } else if (dot.scaling.type === "percent_of_last_piercing_damage") {
-          basePerStack = Math.round(
-            (instance.metadata?.dotBaseAmount as number ?? 0) * dot.scaling.value
-          );
+          const stored = instance.metadata?.dotBaseAmount;
+          const base = typeof stored === "number" ? stored : 0;
+          basePerStack = Math.round(base * dot.scaling.value);
         }
         const totalDamage = basePerStack * updatedInstance.stacks;
         if (totalDamage > 0) {
@@ -497,8 +497,12 @@ function resolveActions(
       const dotBase =
         piercingToTarget > 0
           ? piercingToTarget
-          : (effectTarget.activeEffects.find((e) => e.effectId === effectDef.id)
-              ?.metadata?.dotBaseAmount as number ?? 0);
+          : (() => {
+              const stored = effectTarget.activeEffects.find(
+                (e) => e.effectId === effectDef.id
+              )?.metadata?.dotBaseAmount;
+              return typeof stored === "number" ? stored : 0;
+            })();
 
       result[effectTargetId] = applyEffectToActor(
         result[effectTargetId],
