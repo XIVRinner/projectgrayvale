@@ -15,6 +15,9 @@ function evaluateCondition(
     );
     return (instance?.stacks ?? 0) >= condition.threshold;
   }
+  if (condition.type === "ability_not_on_cooldown") {
+    return (actorState.cooldowns[condition.abilityId] ?? 0) === 0;
+  }
   return false;
 }
 

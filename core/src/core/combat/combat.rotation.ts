@@ -1,10 +1,15 @@
 import type { AbilityId, EffectId, SkillId } from "./combat.ids";
 
-export type RotationCondition = {
-  type: "effect_stacks_gte";
-  effectId: EffectId;
-  threshold: number;
-};
+export type RotationCondition =
+  | {
+      type: "effect_stacks_gte";
+      effectId: EffectId;
+      threshold: number;
+    }
+  | {
+      type: "ability_not_on_cooldown";
+      abilityId: AbilityId;
+    };
 
 export interface RotationActionRule {
   abilityId: AbilityId;
