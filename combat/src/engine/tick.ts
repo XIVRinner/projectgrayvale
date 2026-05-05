@@ -439,9 +439,10 @@ function resolveActions(
     const target = actors[targetId];
     if (!target || target.defeated) continue;
 
-    // Dodge check — evaluated before damage rolls
+    // Dodge check — evaluated before damage rolls; rng.chance(0) is always false
+    // so no guard needed when dodgeChance is absent or zero.
     const dodgeChance = target.dodgeChance ?? 0;
-    if (dodgeChance > 0 && rng.chance(dodgeChance)) {
+    if (rng.chance(dodgeChance)) {
       attacks.push({ sourceId: actorId, targetId, abilityId, totalDamage: 0, piercingDamage: 0, miss: false, dodged: true });
       continue;
     }
