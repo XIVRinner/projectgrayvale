@@ -7,7 +7,7 @@ export const bleedingEffect: EffectDefinition = {
   effectType: "dot",
   durationTicks: 4,
   maxStacks: 5,
-  sourceSpecific: false,
+  sourceSpecific: true,
   tickTiming: "start_of_tick",
   damageOverTime: {
     damageType: "slashing",
@@ -47,7 +47,7 @@ export const attackDamageDownEffect: EffectDefinition = {
     {
       target: "damage_done",
       operation: "multiply",
-      value: 0.8
+      value: 0.95
     }
   ]
 };

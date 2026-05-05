@@ -1056,3 +1056,443 @@ describe("createInitialCombatState — dodgeChance from definition", () => {
     expect(state.actors[player.id].dodgeChance).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// MVP effects system — acceptance criteria
+// ---------------------------------------------------------------------------
+
+describe("MVP effects — bleed timing", () => {
+  /** Ability that applies bleed to the main target (piercing hit so dotBaseAmount > 0). */
+  const applyBleedAbility: AbilityDefinition = {
+    id: "ability_apply_bleed",
+    displayName: "Apply Bleed",
+    tags: ["attack", "melee"],
+    abilityType: "attack",
+    targetRule: "main_target",
+    consumesAction: true,
+    cooldownTicks: 0,
+    damagePackets: [{ damageType: "piercing", interval: { min: 5, max: 5 } }],
+    appliesEffects: [
+      { effectId: "effect_bleeding", stacks: 1, target: "main_target" },
+    ],
+  };
+
+  function makeBleedCtx(activity: CombatActivityDefinition): CombatTickContext {
+    return {
+      activity,
+      abilities: {
+        ability_apply_bleed: applyBleedAbility,
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_bleeding: bleedingEffect },
+      rotations: {
+        [activity.playerActorId]: singleAbilityRotation("ability_apply_bleed"),
+        [activity.enemyActorIds[0]]: singleAbilityRotation("ability_auto_attack"),
+      },
+    };
+  }
+
+  it("bleed is not present before being applied", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    expect(state.actors[enemy.id].activeEffects).toHaveLength(0);
+  });
+
+  it("bleed does NOT deal tick damage on the same tick it is applied", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeBleedCtx(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+
+    // Bleed should be applied this tick
+    const bleedInstance = after.actors[enemy.id].activeEffects.find(
+      (e) => e.effectId === "effect_bleeding"
+    );
+    expect(bleedInstance).toBeDefined();
+
+    // No effect_tick log should appear on the same tick bleed is applied
+    const dotTickLogs = after.logs.filter((l) => l.type === "effect_tick");
+    expect(dotTickLogs).toHaveLength(0);
+  });
+
+  it("bleed deals tick damage on the following tick", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeBleedCtx(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    // Tick 1: bleed applied, no tick damage yet
+    const after1 = runTick(state, ctx, new TestCombatRng([0.5]));
+    const bleedAfterTick1 = after1.actors[enemy.id].activeEffects.find(
+      (e) => e.effectId === "effect_bleeding"
+    );
+    expect(bleedAfterTick1).toBeDefined();
+
+    // Tick 2: bleed ticks
+    const after2 = runTick(after1, ctx, new TestCombatRng([0.5]));
+    const dotTickLogs = after2.logs.filter((l) => l.type === "effect_tick");
+    expect(dotTickLogs).toHaveLength(1);
+    expect(dotTickLogs[0].effectId).toBe("effect_bleeding");
+    expect(dotTickLogs[0].actorId).toBe(enemy.id);
+  });
+
+  it("bleed is source-specific: two separate sources create independent instances", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeBleedCtx(noPrepActivity);
+    // Pre-seed the enemy with a bleed from a different source
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const stateWithExistingBleed = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [enemy.id]: {
+          ...state.actors[enemy.id],
+          activeEffects: [
+            {
+              effectId: "effect_bleeding",
+              sourceActorId: "actor_other_source",
+              targetActorId: enemy.id,
+              stacks: 1,
+              remainingTicks: bleedingEffect.durationTicks,
+              metadata: { dotBaseAmount: 5 },
+            },
+          ],
+        },
+      },
+    };
+
+    const after = runTick(stateWithExistingBleed, ctx, new TestCombatRng([0.5]));
+    // Player applies bleed from a different source → two separate instances
+    const bleedInstances = after.actors[enemy.id].activeEffects.filter(
+      (e) => e.effectId === "effect_bleeding"
+    );
+    expect(bleedInstances).toHaveLength(2);
+    expect(bleedInstances.some((e) => e.sourceActorId === "actor_other_source")).toBe(true);
+    expect(bleedInstances.some((e) => e.sourceActorId === player.id)).toBe(true);
+  });
+});
+
+describe("MVP effects — attack_damage_down reduces direct damage", () => {
+  it("attack_damage_down reduces outgoing damage by approximately 5%", () => {
+    // fixedSlash = 5 damage; with 0.95 multiplier → Math.round(5 * 0.95) = 5 (rounds up from 4.75)
+    // Use a custom attack that produces a round number after the modifier
+    const fixedTenSlash: AbilityDefinition = {
+      id: "ability_fixed_ten",
+      displayName: "Fixed Ten",
+      tags: ["attack", "melee"],
+      abilityType: "attack",
+      targetRule: "main_target",
+      consumesAction: true,
+      cooldownTicks: 0,
+      damagePackets: [{ damageType: "slashing", interval: { min: 20, max: 20 } }],
+    };
+
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx: CombatTickContext = {
+      activity: noPrepActivity,
+      abilities: {
+        ability_fixed_ten: fixedTenSlash,
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_attack_damage_down: attackDamageDownEffect },
+      rotations: {
+        [player.id]: singleAbilityRotation("ability_fixed_ten"),
+        [enemy.id]: singleAbilityRotation("ability_auto_attack"),
+      },
+    };
+
+    // Baseline: player attacks without debuff → 20 damage
+    const baseState = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const baseAfter = runTick(baseState, ctx, new TestCombatRng([0.5]));
+    const baseDmgLog = baseAfter.logs.find(
+      (l) => l.type === "damage" && l.actorId === player.id
+    );
+    expect(baseDmgLog?.amount).toBe(20);
+
+    // With attack_damage_down on player → Math.round(20 * 0.95) = 19
+    const stateWithDebuff = {
+      ...baseState,
+      actors: {
+        ...baseState.actors,
+        [player.id]: {
+          ...baseState.actors[player.id],
+          activeEffects: [
+            {
+              effectId: "effect_attack_damage_down",
+              sourceActorId: enemy.id,
+              targetActorId: player.id,
+              stacks: 1,
+              remainingTicks: attackDamageDownEffect.durationTicks,
+            },
+          ],
+        },
+      },
+    };
+    const debuffAfter = runTick(stateWithDebuff, ctx, new TestCombatRng([0.5]));
+    const debuffDmgLog = debuffAfter.logs.find(
+      (l) => l.type === "damage" && l.actorId === player.id
+    );
+    expect(debuffDmgLog?.amount).toBe(19);
+  });
+
+  it("attack_damage_down expires after its duration ticks", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx: CombatTickContext = {
+      activity: noPrepActivity,
+      abilities: {
+        ability_fixed_slash: fixedSlash,
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_attack_damage_down: attackDamageDownEffect },
+      rotations: {
+        [player.id]: singleAbilityRotation("ability_fixed_slash"),
+        [enemy.id]: singleAbilityRotation("ability_auto_attack"),
+      },
+    };
+
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [player.id]: {
+          ...state.actors[player.id],
+          activeEffects: [
+            {
+              effectId: "effect_attack_damage_down",
+              sourceActorId: enemy.id,
+              targetActorId: player.id,
+              stacks: 1,
+              remainingTicks: attackDamageDownEffect.durationTicks,
+            },
+          ],
+        },
+      },
+    };
+
+    // Run 3 ticks (duration) — effect should be gone after
+    let s = state;
+    for (let i = 0; i < 3; i++) {
+      s = runTick(s, ctx, new TestCombatRng([0.5]));
+    }
+    const remaining = s.actors[player.id].activeEffects.filter(
+      (e) => e.effectId === "effect_attack_damage_down"
+    );
+    expect(remaining).toHaveLength(0);
+  });
+});
+
+describe("MVP effects — piercing_talon stacks consumed by finisher", () => {
+  /** Build a context with the short blade abilities and effects. */
+  function makePiercingTalonCtx(activity: CombatActivityDefinition): CombatTickContext {
+    return {
+      activity,
+      abilities: {
+        ability_piercing_finisher: piercingFinisher,
+        ability_slashing_cut: slashingCut,
+        ability_auto_attack: autoAttack,
+      },
+      effects: {
+        effect_piercing_talon: piercingTalonStack,
+      },
+      rotations: {
+        [activity.playerActorId]: singleAbilityRotation("ability_piercing_finisher"),
+        [activity.enemyActorIds[0]]: singleAbilityRotation("ability_auto_attack"),
+      },
+    };
+  }
+
+  it("2 piercing_talon stacks are consumed when piercing finisher fires", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makePiercingTalonCtx(noPrepActivity);
+
+    // Pre-seed player with exactly 2 piercing_talon stacks
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const stateWithTalons = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [player.id]: {
+          ...state.actors[player.id],
+          activeEffects: [
+            {
+              effectId: "effect_piercing_talon",
+              sourceActorId: player.id,
+              targetActorId: player.id,
+              stacks: 2,
+            },
+          ],
+        },
+      },
+    };
+
+    const after = runTick(stateWithTalons, ctx, new TestCombatRng([0.5]));
+    // All stacks consumed → effect should be gone
+    const talonInstance = after.actors[player.id].activeEffects.find(
+      (e) => e.effectId === "effect_piercing_talon"
+    );
+    expect(talonInstance).toBeUndefined();
+  });
+
+  it("consuming piercing_talon logs an effect_expired entry", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makePiercingTalonCtx(noPrepActivity);
+
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const stateWithTalons = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [player.id]: {
+          ...state.actors[player.id],
+          activeEffects: [
+            {
+              effectId: "effect_piercing_talon",
+              sourceActorId: player.id,
+              targetActorId: player.id,
+              stacks: 2,
+            },
+          ],
+        },
+      },
+    };
+
+    const after = runTick(stateWithTalons, ctx, new TestCombatRng([0.5]));
+    const expiredLog = after.logs.find(
+      (l) => l.type === "effect_expired" && l.effectId === "effect_piercing_talon"
+    );
+    expect(expiredLog).toBeDefined();
+  });
+
+  it("consuming piercing_talon adds to effectsExpired in the accumulated delta", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makePiercingTalonCtx(noPrepActivity);
+
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const stateWithTalons = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [player.id]: {
+          ...state.actors[player.id],
+          activeEffects: [
+            {
+              effectId: "effect_piercing_talon",
+              sourceActorId: player.id,
+              targetActorId: player.id,
+              stacks: 2,
+            },
+          ],
+        },
+      },
+    };
+
+    const after = runTick(stateWithTalons, ctx, new TestCombatRng([0.5]));
+    const expiredDelta = after.accumulatedDelta.effectsExpired.find(
+      (e) => e.effectId === "effect_piercing_talon"
+    );
+    expect(expiredDelta).toBeDefined();
+    expect(expiredDelta?.stacks).toBe(2);
+  });
+
+  it("excess piercing_talon stacks beyond 2 are preserved after finisher", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makePiercingTalonCtx(noPrepActivity);
+
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const stateWithTalons = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [player.id]: {
+          ...state.actors[player.id],
+          activeEffects: [
+            {
+              effectId: "effect_piercing_talon",
+              sourceActorId: player.id,
+              targetActorId: player.id,
+              stacks: 3,
+            },
+          ],
+        },
+      },
+    };
+
+    const after = runTick(stateWithTalons, ctx, new TestCombatRng([0.5]));
+    const talonInstance = after.actors[player.id].activeEffects.find(
+      (e) => e.effectId === "effect_piercing_talon"
+    );
+    expect(talonInstance).toBeDefined();
+    expect(talonInstance?.stacks).toBe(1);
+  });
+});
+
+describe("MVP effects — effect changes logged and in delta", () => {
+  it("effectsApplied in accumulated delta contains entry when an effect is applied", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx: CombatTickContext = {
+      activity: noPrepActivity,
+      abilities: {
+        ability_apply_flat_dot: applyFlatDotAbility,
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_flat_dot: flatDotEffect },
+      rotations: {
+        [player.id]: singleAbilityRotation("ability_apply_flat_dot"),
+        [enemy.id]: singleAbilityRotation("ability_auto_attack"),
+      },
+    };
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    expect(after.accumulatedDelta.effectsApplied).toHaveLength(1);
+    expect(after.accumulatedDelta.effectsApplied[0].effectId).toBe("effect_flat_dot");
+  });
+
+  it("effectsExpired in accumulated delta contains entry when an effect expires", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx: CombatTickContext = {
+      activity: noPrepActivity,
+      abilities: {
+        ability_fixed_slash: fixedSlash,
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_flat_dot: flatDotEffect },
+      rotations: {
+        [player.id]: singleAbilityRotation("ability_fixed_slash"),
+        [enemy.id]: singleAbilityRotation("ability_auto_attack"),
+      },
+    };
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [enemy.id]: {
+          ...state.actors[enemy.id],
+          activeEffects: [
+            {
+              effectId: "effect_flat_dot",
+              sourceActorId: player.id,
+              targetActorId: enemy.id,
+              stacks: 1,
+              remainingTicks: 1,
+            },
+          ],
+        },
+      },
+    };
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    expect(after.accumulatedDelta.effectsExpired).toHaveLength(1);
+    expect(after.accumulatedDelta.effectsExpired[0].effectId).toBe("effect_flat_dot");
+  });
+});

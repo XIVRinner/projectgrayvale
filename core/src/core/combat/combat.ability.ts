@@ -15,6 +15,13 @@ export interface EffectApplicationDefinition {
   target: TargetRule;
 }
 
+/** Declares that using this ability spends stacks of an active effect. */
+export interface EffectSpendDefinition {
+  effectId: EffectId;
+  stacks: number;
+  target: TargetRule;
+}
+
 export interface AbilityDefinition {
   id: AbilityId;
   displayName: string;
@@ -31,6 +38,9 @@ export interface AbilityDefinition {
   resourceGains?: ResourceChange[];
 
   appliesEffects?: EffectApplicationDefinition[];
+
+  /** Effect stacks spent (consumed) when this ability is used. */
+  spendsEffects?: EffectSpendDefinition[];
 
   targetRule: TargetRule;
 

@@ -92,6 +92,13 @@ export const piercingFinisher: AbilityDefinition = {
       damageType: "piercing",
       interval: { min: 5, max: 12 }
     }
+  ],
+  spendsEffects: [
+    {
+      effectId: "effect_piercing_talon",
+      stacks: 2,
+      target: "self"
+    }
   ]
 };
 
