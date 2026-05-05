@@ -52,5 +52,5 @@ export type {
 
 export type { CombatRng } from "./rng";
 export { DefaultCombatRng, TestCombatRng } from "./rng";
-export { CombatEngine, createInitialCombatState } from "./engine";
-export { compileShortBladeRotation, selectNextAction } from "./rotation";
+export { CombatEngine, createInitialCombatState, tickCooldowns } from "./engine";
+export { compileCoyoteRotation, compileShortBladeRotation, selectNextAction } from "./rotation";
