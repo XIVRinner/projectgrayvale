@@ -23,6 +23,8 @@ export function finalizeCombat(state: CombatRunState): CombatDelta {
   return {
     activityId: state.activityId,
     outcome: state.outcome,
+    // currentTick is incremented at the end of every runTick call, so it equals
+    // the total number of ticks that ran during this combat.
     ticksElapsed: state.currentTick,
     actorChanges: accumulatedDelta.actorChanges,
     resourceChanges: accumulatedDelta.resourceChanges,
