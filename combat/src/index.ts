@@ -44,9 +44,13 @@ export type {
   XpDelta,
   LootDelta,
   PenaltyDelta,
-  CombatDelta
+  CombatDelta,
+  RotationCondition,
+  RotationActionRule,
+  CompiledRotation
 } from "@rinner/grayvale-core";
 
 export type { CombatRng } from "./rng";
 export { DefaultCombatRng, TestCombatRng } from "./rng";
 export { CombatEngine, createInitialCombatState } from "./engine";
+export { compileShortBladeRotation, selectNextAction } from "./rotation";

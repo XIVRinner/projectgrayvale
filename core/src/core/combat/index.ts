@@ -12,3 +12,4 @@ export * from "./combat.state";
 export * from "./combat.activity";
 export * from "./combat.log";
 export * from "./combat.delta";
+export * from "./combat.rotation";
