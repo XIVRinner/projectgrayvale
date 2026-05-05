@@ -649,3 +649,126 @@ describe("runCombat — MVP short blade vs coyote", () => {
     expect(final.accumulatedDelta.actorChanges.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Damage calculation — resistance, immunity, and miss
+// ---------------------------------------------------------------------------
+
+describe("runTick — flat resistance reduces damage", () => {
+  it("reduces damage by the flat resistance value", () => {
+    // fixedSlash deals exactly 5 slashing damage; slashing resistance = 3 → net 2
+    const player = makeLowHpPlayer(50);
+    const enemy: EnemyDefinition = {
+      ...makeLowHpEnemy(50),
+      resistances: { slashing: 3 },
+    };
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    // Player takes fixedSlash (5) from enemy, no resistance → 50 - 5 = 45
+    expect(after.actors[player.id].currentHp).toBe(45);
+    // Enemy takes fixedSlash (5) reduced by 3 → net 2 → 50 - 2 = 48
+    expect(after.actors[enemy.id].currentHp).toBe(48);
+  });
+
+  it("emits a damage log with the net (post-resistance) amount", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy: EnemyDefinition = {
+      ...makeLowHpEnemy(50),
+      resistances: { slashing: 2 },
+    };
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const dmgLog = after.logs.find(
+      (l) => l.type === "damage" && l.targetActorId === enemy.id
+    );
+    expect(dmgLog).toBeDefined();
+    expect(dmgLog?.amount).toBe(3); // 5 - 2
+  });
+});
+
+describe("runTick — immunity produces a miss", () => {
+  it("logs a miss when the target is immune to the damage type", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy: EnemyDefinition = {
+      ...makeLowHpEnemy(50),
+      immunities: { slashing: true },
+    };
+    const ctx = makeContext(noPrepActivity); // fixedSlash is slashing
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const missLog = after.logs.find(
+      (l) => l.type === "miss" && l.targetActorId === enemy.id
+    );
+    expect(missLog).toBeDefined();
+    // Enemy HP must be unchanged
+    expect(after.actors[enemy.id].currentHp).toBe(50);
+  });
+
+  it("does not emit a damage log when immunity blocks all packets", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy: EnemyDefinition = {
+      ...makeLowHpEnemy(50),
+      immunities: { slashing: true },
+    };
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const dmgLog = after.logs.find(
+      (l) => l.type === "damage" && l.targetActorId === enemy.id
+    );
+    expect(dmgLog).toBeUndefined();
+  });
+});
+
+describe("runTick — resistance drains damage to miss", () => {
+  it("produces a miss when resistance equals or exceeds the rolled damage", () => {
+    // fixedSlash rolls exactly 5; resistance = 5 → net 0 → miss
+    const player = makeLowHpPlayer(200);
+    const enemy: EnemyDefinition = {
+      ...makeLowHpEnemy(50),
+      resistances: { slashing: 5 },
+    };
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const missLog = after.logs.find(
+      (l) => l.type === "miss" && l.targetActorId === enemy.id
+    );
+    expect(missLog).toBeDefined();
+    expect(after.actors[enemy.id].currentHp).toBe(50);
+  });
+
+  it("produces a miss when resistance exceeds the rolled damage", () => {
+    // fixedSlash rolls exactly 5; resistance = 10 → net -5 → miss
+    const player = makeLowHpPlayer(200);
+    const enemy: EnemyDefinition = {
+      ...makeLowHpEnemy(50),
+      resistances: { slashing: 10 },
+    };
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const missLog = after.logs.find(
+      (l) => l.type === "miss" && l.targetActorId === enemy.id
+    );
+    expect(missLog).toBeDefined();
+    expect(after.actors[enemy.id].currentHp).toBe(50);
+  });
+});
+
+describe("runTick — damage rolls are integers", () => {
+  it("damage amount logged is always an integer", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const dmgLogs = after.logs.filter((l) => l.type === "damage");
+    for (const log of dmgLogs) {
+      expect(log.amount).toBeDefined();
+      expect(Number.isInteger(log.amount)).toBe(true);
+    }
+  });
+});
