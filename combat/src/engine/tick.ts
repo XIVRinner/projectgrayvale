@@ -85,6 +85,29 @@ function newAccumulator(): TickAccumulator {
 const DEATH_ATTACK_LOCKOUT_SECONDS = 30;
 
 /**
+ * Returns a map of armorSkill id → total slot weight for every equipped item
+ * that declares both an {@link EquipmentDefinition.armorSkill} and an
+ * {@link EquipmentDefinition.armorSlotWeight}.  Items without either field are
+ * ignored.  Returns an empty object when no equipment context is provided.
+ */
+function buildArmorWeightBySkill(
+  equipment: Record<string, EquipmentDefinition> | undefined,
+  playerEquipment: EquipmentLoadout | undefined
+): Record<string, number> {
+  if (!equipment || !playerEquipment) return {};
+
+  const result: Record<string, number> = {};
+  for (const itemId of Object.values(playerEquipment)) {
+    if (!itemId) continue;
+    const itemDef = equipment[itemId];
+    if (!itemDef?.armorSkill) continue;
+    const weight = itemDef.armorSlotWeight ?? 0;
+    result[itemDef.armorSkill] = (result[itemDef.armorSkill] ?? 0) + weight;
+  }
+  return result;
+}
+
+/**
  * Pushes XP delta entries for every defeated enemy that has an entry in
  * {@link CombatTickContext.enemyXp}. Character XP, offensive skill XP
  * (using the player's rotation skill), and armor skill XP (when armor with
@@ -107,17 +130,10 @@ function accumulateVictoryXp(
     context.difficultyProfiles?.[activity.difficulty]?.xpMagicNumber ?? 1.0;
 
   // Build armor-skill → total slot weight map from equipped armor pieces.
-  const armorWeightBySkill: Record<string, number> = {};
-  if (context.equipment && context.playerEquipment) {
-    for (const itemId of Object.values(context.playerEquipment)) {
-      if (!itemId) continue;
-      const itemDef = context.equipment[itemId];
-      if (!itemDef?.armorSkill) continue;
-      const weight = itemDef.armorSlotWeight ?? 0;
-      armorWeightBySkill[itemDef.armorSkill] =
-        (armorWeightBySkill[itemDef.armorSkill] ?? 0) + weight;
-    }
-  }
+  const armorWeightBySkill = buildArmorWeightBySkill(
+    context.equipment,
+    context.playerEquipment
+  );
 
   for (const enemyId of activity.enemyActorIds) {
     const xpDef = enemyXp[enemyId];

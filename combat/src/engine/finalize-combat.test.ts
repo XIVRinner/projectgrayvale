@@ -578,6 +578,8 @@ describe("finalizeCombat — armor skill XP", () => {
 
   it("armor XP is also scaled by the difficulty magic number", () => {
     // Use armorSkillXp: 12 so that floor(12 × 0.35 × 0.75) = floor(3.15) = 3 (non-zero).
+    // characterXp: 20 and offensiveSkillXp: 16 are arbitrary non-zero values to ensure
+    // those entries are also present; only armorSkillXp is the focus of this test.
     const armorScalingXp: EnemyXpDefinition = { characterXp: 20, offensiveSkillXp: 16, armorSkillXp: 12 };
     const ctx: CombatTickContext = {
       ...makeContext(noPrepActivity),
