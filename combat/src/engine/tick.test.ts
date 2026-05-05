@@ -26,6 +26,7 @@ import {
   slashingCut,
   piercingFinisher,
   autoAttack,
+  instantPierce,
   coyoteScratch,
   shortBladeSkill,
 } from "@rinner/grayvale-core";
@@ -770,5 +771,288 @@ describe("runTick — damage rolls are integers", () => {
       expect(log.amount).toBeDefined();
       expect(Number.isInteger(log.amount)).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Dodge
+// ---------------------------------------------------------------------------
+
+describe("runTick — dodge negates incoming damage", () => {
+  /** Player actor with 100% dodge chance for deterministic tests. */
+  function makeFullDodgePlayer(hp: number): ActorDefinition {
+    return { ...makeLowHpPlayer(hp), id: "actor_test_player" };
+  }
+
+  function withDodgeChance(
+    state: CombatRunState,
+    actorId: string,
+    chance: number
+  ): CombatRunState {
+    return {
+      ...state,
+      actors: {
+        ...state.actors,
+        [actorId]: { ...state.actors[actorId], dodgeChance: chance },
+      },
+    };
+  }
+
+  it("player takes no damage when dodge chance is 1 (RNG below threshold)", () => {
+    const player = makeFullDodgePlayer(50);
+    const enemy = makeLowHpEnemy(50);
+    const ctx = makeContext(noPrepActivity);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    // Set player dodge to 1 so the first rng.chance call (0.0 < 1.0) is true
+    state = withDodgeChance(state, player.id, 1);
+    // RNG value 0.0 → dodge check succeeds; enemy still attacks (fixed slash = 5)
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5]));
+    expect(after.actors[player.id].currentHp).toBe(50); // no damage to player
+    expect(after.actors[enemy.id].currentHp).toBe(45);  // enemy still takes damage
+  });
+
+  it("emits a dodge log when a dodge occurs", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(50);
+    const ctx = makeContext(noPrepActivity);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5]));
+    const dodgeLogs = after.logs.filter((l) => l.type === "dodge");
+    expect(dodgeLogs).toHaveLength(1);
+    expect(dodgeLogs[0].actorId).toBe(player.id);
+  });
+
+  it("dodge adds +1 range to the dodging actor", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(50);
+    const ctx = makeContext(noPrepActivity);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5]));
+    expect(after.actors[player.id].range).toBe(1);
+  });
+
+  it("no dodge log when dodge chance is 0", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(50);
+    const ctx = makeContext(noPrepActivity);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    // dodgeChance defaults to undefined → no dodge
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const dodgeLogs = after.logs.filter((l) => l.type === "dodge");
+    expect(dodgeLogs).toHaveLength(0);
+    // player takes damage normally
+    expect(after.actors[player.id].currentHp).toBe(45);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// On-dodge Instant Pierce reaction (Short Blade)
+// ---------------------------------------------------------------------------
+
+describe("runTick — on-dodge Instant Pierce reaction", () => {
+  /** Build a context with instant pierce available and player dodge chance = 1. */
+  function makeInstantPierceCtx(
+    activity: CombatActivityDefinition,
+    playerRotation: CompiledRotation,
+    enemyRotation: CompiledRotation = singleAbilityRotation("ability_fixed_slash")
+  ): CombatTickContext {
+    return {
+      activity,
+      abilities: {
+        ability_fixed_slash: fixedSlash,
+        ability_instant_pierce: instantPierce,
+        ability_auto_attack: autoAttack,
+      },
+      effects: {
+        effect_bleeding: bleedingEffect,
+        effect_attack_damage_down: attackDamageDownEffect,
+      },
+      rotations: {
+        [activity.playerActorId]: playerRotation,
+        [activity.enemyActorIds[0]]: enemyRotation,
+      },
+    };
+  }
+
+  const pierceRotation: CompiledRotation = {
+    skillId: "skill_short_blade",
+    onDodgeReactionAbilityId: "ability_instant_pierce",
+    rules: [{ abilityId: "ability_fixed_slash" }],
+  };
+
+  function withDodgeChance(
+    state: CombatRunState,
+    actorId: string,
+    chance: number
+  ): CombatRunState {
+    return {
+      ...state,
+      actors: {
+        ...state.actors,
+        [actorId]: { ...state.actors[actorId], dodgeChance: chance },
+      },
+    };
+  }
+
+  it("Instant Pierce fires and deals damage when player dodges", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeInstantPierceCtx(noPrepActivity, pierceRotation);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    // RNG: [0.0 → dodge check passes], [rollInt for instant pierce ≥ 5]
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5, 0.5]));
+    expect(after.actors[player.id].currentHp).toBe(50); // player dodged, no damage
+    expect(after.actors[enemy.id].currentHp).toBeLessThan(200); // Instant Pierce hit
+  });
+
+  it("Instant Pierce action log is emitted", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeInstantPierceCtx(noPrepActivity, pierceRotation);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5, 0.5]));
+    const reactionLog = after.logs.find(
+      (l) => l.type === "action_selected" && l.abilityId === "ability_instant_pierce"
+    );
+    expect(reactionLog).toBeDefined();
+    expect(reactionLog?.actorId).toBe(player.id);
+  });
+
+  it("Instant Pierce applies attack_damage_down to the enemy", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeInstantPierceCtx(noPrepActivity, pierceRotation);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    // Bleed chance 0.5 — provide a high RNG value so bleed does NOT proc, then damage roll
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5, 0.9]));
+    const attackDownOnEnemy = after.actors[enemy.id].activeEffects.find(
+      (e) => e.effectId === "effect_attack_damage_down"
+    );
+    expect(attackDownOnEnemy).toBeDefined();
+  });
+
+  it("Instant Pierce does not consume the main action (main attack also lands)", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    // Enemy also dodges → enemy fires Instant Pierce too (not relevant here)
+    // We only care that the player's main fixed-slash still fires
+    const ctx = makeInstantPierceCtx(noPrepActivity, pierceRotation);
+    // dodgeChance = 0 → no dodge, Instant Pierce should NOT fire
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    // Player takes fixedSlash = 5 damage; no dodge, no Instant Pierce
+    expect(after.actors[player.id].currentHp).toBe(195);
+    const reactionLog = after.logs.find(
+      (l) => l.abilityId === "ability_instant_pierce"
+    );
+    expect(reactionLog).toBeUndefined();
+  });
+
+  it("Instant Pierce does not fire when on internal cooldown", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeInstantPierceCtx(noPrepActivity, pierceRotation);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    // Pre-inject Instant Pierce cooldown on the player (2 → after tick-down = 1 → still on cooldown)
+    state = {
+      ...state,
+      actors: {
+        ...state.actors,
+        [player.id]: {
+          ...state.actors[player.id],
+          cooldowns: { ability_instant_pierce: 2 },
+        },
+      },
+    };
+    const enemyHpBefore = state.actors[enemy.id].currentHp;
+    // RNG 0.0 → dodge check passes; reaction must be skipped due to cooldown
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5]));
+    const reactionLog = after.logs.find(
+      (l) => l.abilityId === "ability_instant_pierce"
+    );
+    expect(reactionLog).toBeUndefined();
+    // Enemy should also take main-action damage but NOT reaction damage.
+    // Player's rotation is fixedSlash (5), so enemy hp = 200 - 5 = 195
+    expect(after.actors[enemy.id].currentHp).toBe(enemyHpBefore - 5);
+  });
+
+  it("Instant Pierce fires at most once per tick even if player dodges multiple attacks", () => {
+    // Use a two-enemy variant to have two incoming attacks on the player
+    const twoEnemyActivity: CombatActivityDefinition = {
+      id: "activity_two_enemies",
+      displayName: "Two Enemies",
+      playerActorId: "actor_test_player",
+      enemyActorIds: ["actor_test_enemy", "actor_test_enemy_2"],
+      prepTicks: 0,
+      difficulty: "story",
+    };
+    const enemy1: EnemyDefinition = { ...makeLowHpEnemy(200), id: "actor_test_enemy" };
+    const enemy2: EnemyDefinition = { ...makeLowHpEnemy(200), id: "actor_test_enemy_2" };
+    const player = makeLowHpPlayer(50);
+
+    const ctx: CombatTickContext = {
+      activity: twoEnemyActivity,
+      abilities: {
+        ability_fixed_slash: fixedSlash,
+        ability_instant_pierce: instantPierce,
+        ability_auto_attack: autoAttack,
+      },
+      effects: {
+        effect_bleeding: bleedingEffect,
+        effect_attack_damage_down: attackDamageDownEffect,
+      },
+      rotations: {
+        [player.id]: pierceRotation,
+        [enemy1.id]: singleAbilityRotation("ability_fixed_slash"),
+        [enemy2.id]: singleAbilityRotation("ability_fixed_slash"),
+      },
+    };
+
+    let state = createInitialCombatState(twoEnemyActivity, player, [enemy1, enemy2]);
+    state = {
+      ...state,
+      actors: { ...state.actors, [player.id]: { ...state.actors[player.id], dodgeChance: 1 } },
+    };
+
+    // Many RNG values to cover both dodge checks + reaction + any bleed procs
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.0, 0.5, 0.9, 0.5]));
+
+    const reactionLogs = after.logs.filter(
+      (l) => l.type === "action_selected" && l.abilityId === "ability_instant_pierce"
+    );
+    // Reaction fires exactly once, not twice
+    expect(reactionLogs).toHaveLength(1);
+  });
+
+  it("Instant Pierce places the ability on cooldown", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeInstantPierceCtx(noPrepActivity, pierceRotation);
+    let state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    state = withDodgeChance(state, player.id, 1);
+    const after = runTick(state, ctx, new TestCombatRng([0.0, 0.5, 0.9]));
+    expect(after.actors[player.id].cooldowns["ability_instant_pierce"]).toBeGreaterThan(0);
+  });
+});
+
+describe("createInitialCombatState — dodgeChance from definition", () => {
+  it("copies dodgeChance from actor definition to actor combat state", () => {
+    const player: ActorDefinition = { ...makeLowHpPlayer(50), dodgeChance: 0.25 };
+    const enemy = makeLowHpEnemy(50);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    expect(state.actors[player.id].dodgeChance).toBe(0.25);
+  });
+
+  it("dodgeChance is undefined when not set on definition", () => {
+    const player = makeLowHpPlayer(50);
+    const enemy = makeLowHpEnemy(50);
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    expect(state.actors[player.id].dodgeChance).toBeUndefined();
   });
 });

@@ -19,6 +19,8 @@ export interface ActorCombatState {
   range: number;
   defeated: boolean;
 
+  dodgeChance?: number;
+
   resistances?: ResistanceProfile;
   immunities?: ImmunityProfile;
 }
