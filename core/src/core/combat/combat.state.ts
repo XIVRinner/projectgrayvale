@@ -1,6 +1,7 @@
 import type { ActorId, AbilityId, EffectId, ResourceId, TagId, ActivityId } from "./combat.ids";
 import type { CombatOutcome, ActorDelta, ResourceDelta, EffectDelta, XpDelta, LootDelta, PenaltyDelta } from "./combat.delta";
 import type { CombatLogEntry } from "./combat.log";
+import type { ResistanceProfile, ImmunityProfile } from "./combat.resistance";
 
 export interface ActorCombatState {
   actorId: ActorId;
@@ -17,6 +18,9 @@ export interface ActorCombatState {
 
   range: number;
   defeated: boolean;
+
+  resistances?: ResistanceProfile;
+  immunities?: ImmunityProfile;
 }
 
 export interface ActiveEffectInstance {

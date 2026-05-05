@@ -402,6 +402,7 @@ function resolveActions(
     abilityId: AbilityId;
     totalDamage: number;
     piercingDamage: number;
+    miss: boolean;
   }
 
   // First pass: roll all damage using pre-action states
@@ -423,6 +424,11 @@ function resolveActions(
     let totalDamage = 0;
     let piercingDamage = 0;
     for (const packet of ability.damagePackets) {
+      // Immunity check: immune damage types contribute 0 damage
+      if (target.immunities?.[packet.damageType]) {
+        continue;
+      }
+
       const base = rng.rollInt(packet.interval.min, packet.interval.max);
       const mult = computeDamageMultiplier(
         actor.activeEffects,
@@ -430,32 +436,50 @@ function resolveActions(
         packet.damageType,
         context.effects
       );
-      const dmg = Math.round(base * mult);
+      const afterMult = Math.round(base * mult);
+
+      // Apply flat resistance reduction; clamp each packet at 0 so high
+      // resistance to one damage type cannot cancel other packets' damage.
+      const resistance = target.resistances?.[packet.damageType] ?? 0;
+      const dmg = Math.max(0, afterMult - resistance);
+
       totalDamage += dmg;
-      if (packet.damageType === "piercing") piercingDamage += dmg;
+      if (packet.damageType === "piercing" && dmg > 0) piercingDamage += dmg;
     }
 
-    attacks.push({ sourceId: actorId, targetId, abilityId, totalDamage, piercingDamage });
+    const miss = totalDamage <= 0;
+    attacks.push({ sourceId: actorId, targetId, abilityId, totalDamage, piercingDamage, miss });
   }
 
   // Second pass: apply all damage simultaneously
   let result = { ...actors };
   for (const atk of attacks) {
-    const target = result[atk.targetId];
-    result[atk.targetId] = { ...target, currentHp: target.currentHp - atk.totalDamage };
-    acc.actorDeltas.push({ actorId: atk.targetId, hpChange: -atk.totalDamage });
-    acc.logs.push({
-      tick,
-      type: "damage",
-      actorId: atk.sourceId,
-      targetActorId: atk.targetId,
-      abilityId: atk.abilityId,
-      amount: atk.totalDamage,
-      message: `${atk.sourceId} deals ${atk.totalDamage} damage to ${atk.targetId} with ${atk.abilityId}`,
-    });
+    if (atk.miss) {
+      acc.logs.push({
+        tick,
+        type: "miss",
+        actorId: atk.sourceId,
+        targetActorId: atk.targetId,
+        abilityId: atk.abilityId,
+        message: `${atk.sourceId} missed ${atk.targetId} with ${atk.abilityId}`,
+      });
+    } else {
+      const target = result[atk.targetId];
+      result[atk.targetId] = { ...target, currentHp: target.currentHp - atk.totalDamage };
+      acc.actorDeltas.push({ actorId: atk.targetId, hpChange: -atk.totalDamage });
+      acc.logs.push({
+        tick,
+        type: "damage",
+        actorId: atk.sourceId,
+        targetActorId: atk.targetId,
+        abilityId: atk.abilityId,
+        amount: atk.totalDamage,
+        message: `${atk.sourceId} deals ${atk.totalDamage} damage to ${atk.targetId} with ${atk.abilityId}`,
+      });
 
-    if (atk.piercingDamage > 0) {
-      result[atk.targetId] = updatePiercingDotBase(result[atk.targetId], atk.piercingDamage, context.effects);
+      if (atk.piercingDamage > 0) {
+        result[atk.targetId] = updatePiercingDotBase(result[atk.targetId], atk.piercingDamage, context.effects);
+      }
     }
   }
 
