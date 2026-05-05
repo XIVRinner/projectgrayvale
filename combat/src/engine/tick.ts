@@ -16,6 +16,9 @@ import type {
   EnemyXpDefinition,
   CombatPhase,
   CombatOutcome,
+  DifficultyProfile,
+  EquipmentDefinition,
+  EquipmentLoadout,
 } from "@rinner/grayvale-core";
 import type { CombatRng } from "../rng/combat-rng";
 import { tickCooldowns } from "./tick-cooldowns";
@@ -37,6 +40,24 @@ export interface CombatTickContext {
    * When provided, XP entries are added to the delta on a victory outcome.
    */
   enemyXp?: Record<ActorId, EnemyXpDefinition>;
+  /**
+   * Difficulty profile lookup, keyed by difficulty id.
+   * When provided, the matching profile's xpMagicNumber is applied to all XP
+   * calculations. Defaults to 1.0 when absent or when the activity's difficulty
+   * has no matching entry.
+   */
+  difficultyProfiles?: Record<string, DifficultyProfile>;
+  /**
+   * Equipment item definitions, keyed by item id.
+   * Required alongside {@link playerEquipment} to compute armor skill XP.
+   */
+  equipment?: Record<string, EquipmentDefinition>;
+  /**
+   * The player's current equipment loadout (slot → item id).
+   * Used together with {@link equipment} to determine which armor pieces
+   * contribute armorSkill XP and their respective slot weights.
+   */
+  playerEquipment?: EquipmentLoadout;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,9 +85,34 @@ function newAccumulator(): TickAccumulator {
 const DEATH_ATTACK_LOCKOUT_SECONDS = 30;
 
 /**
+ * Returns a map of armorSkill id → total slot weight for every equipped item
+ * that declares both an {@link EquipmentDefinition.armorSkill} and an
+ * {@link EquipmentDefinition.armorSlotWeight}.  Items without either field are
+ * ignored.  Returns an empty object when no equipment context is provided.
+ */
+function buildArmorWeightBySkill(
+  equipment: Record<string, EquipmentDefinition> | undefined,
+  playerEquipment: EquipmentLoadout | undefined
+): Record<string, number> {
+  if (!equipment || !playerEquipment) return {};
+
+  const result: Record<string, number> = {};
+  for (const itemId of Object.values(playerEquipment)) {
+    if (!itemId) continue;
+    const itemDef = equipment[itemId];
+    if (!itemDef?.armorSkill) continue;
+    const weight = itemDef.armorSlotWeight ?? 0;
+    result[itemDef.armorSkill] = (result[itemDef.armorSkill] ?? 0) + weight;
+  }
+  return result;
+}
+
+/**
  * Pushes XP delta entries for every defeated enemy that has an entry in
- * {@link CombatTickContext.enemyXp}. Character XP and offensive skill XP
- * (using the player's rotation skill) are both included when non-zero.
+ * {@link CombatTickContext.enemyXp}. Character XP, offensive skill XP
+ * (using the player's rotation skill), and armor skill XP (when armor with
+ * a defined skill and slot weight is equipped) are all included when
+ * non-zero after the difficulty magic number is applied.
  */
 function accumulateVictoryXp(
   activity: CombatActivityDefinition,
@@ -79,27 +125,54 @@ function accumulateVictoryXp(
   const playerActorId = activity.playerActorId;
   const playerRotation = context.rotations[playerActorId];
 
+  // Resolve difficulty magic number; default to 1.0 when no profile is found.
+  const xpMagicNumber =
+    context.difficultyProfiles?.[activity.difficulty]?.xpMagicNumber ?? 1.0;
+
+  // Build armor-skill → total slot weight map from equipped armor pieces.
+  const armorWeightBySkill = buildArmorWeightBySkill(
+    context.equipment,
+    context.playerEquipment
+  );
+
   for (const enemyId of activity.enemyActorIds) {
     const xpDef = enemyXp[enemyId];
     if (!xpDef) continue;
 
-    if (xpDef.characterXp > 0) {
+    const characterXp = Math.floor(xpDef.characterXp * xpMagicNumber);
+    if (characterXp > 0) {
       acc.xp.push({
         targetActorId: playerActorId,
         xpType: "character",
-        amount: xpDef.characterXp,
+        amount: characterXp,
         reason: `Defeated ${enemyId}`,
       });
     }
 
-    if (xpDef.offensiveSkillXp > 0 && playerRotation?.skillId) {
+    const offensiveXp = Math.floor(xpDef.offensiveSkillXp * xpMagicNumber);
+    if (offensiveXp > 0 && playerRotation?.skillId) {
       acc.xp.push({
         targetActorId: playerActorId,
         xpType: "skill",
         skillId: playerRotation.skillId,
-        amount: xpDef.offensiveSkillXp,
+        amount: offensiveXp,
         reason: `Defeated ${enemyId}`,
       });
+    }
+
+    if (xpDef.armorSkillXp > 0) {
+      for (const [skillId, totalWeight] of Object.entries(armorWeightBySkill)) {
+        const armorXp = Math.floor(xpDef.armorSkillXp * totalWeight * xpMagicNumber);
+        if (armorXp > 0) {
+          acc.xp.push({
+            targetActorId: playerActorId,
+            xpType: "skill",
+            skillId,
+            amount: armorXp,
+            reason: `Defeated ${enemyId}`,
+          });
+        }
+      }
     }
   }
 }

@@ -13,3 +13,10 @@ export const shortBladeSkill: SkillDefinition = {
     "ability_auto_attack"
   ]
 };
+
+export const lightArmorSkill: SkillDefinition = {
+  id: "skill_light_armor",
+  displayName: "Light Armor",
+  tags: ["combat", "defense", "light_armor"],
+  abilityIds: []
+};

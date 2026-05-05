@@ -27,6 +27,8 @@ import {
   autoAttack,
   coyoteScratch,
   shortBladeSkill,
+  storyDifficultyProfile,
+  leatherChestpiece,
 } from "@rinner/grayvale-core";
 
 // ---------------------------------------------------------------------------
@@ -468,5 +470,181 @@ describe("finalizeCombat — fled outcome", () => {
     const fledState: CombatRunState = { ...initial, phase: "ended", outcome: "fled" };
     const delta = finalizeCombat(fledState);
     expect(delta.penalties).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// finalizeCombat — difficulty magic number scales XP
+// ---------------------------------------------------------------------------
+
+describe("finalizeCombat — difficulty magic number scales XP", () => {
+  // story difficulty xpMagicNumber is 0.75
+  // Math.floor(10 * 0.75) = 7
+  // Math.floor(5  * 0.75) = 3
+  it("character XP is scaled by the difficulty magic number", () => {
+    const ctx: CombatTickContext = {
+      ...makeContextWithEnemyXp(noPrepActivity),
+      difficultyProfiles: { story: storyDifficultyProfile },
+    };
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const charXp = delta.xp.find((x) => x.xpType === "character");
+    expect(charXp?.amount).toBe(Math.floor(testEnemyXp.characterXp * storyDifficultyProfile.xpMagicNumber));
+  });
+
+  it("offensive skill XP is scaled by the difficulty magic number", () => {
+    const ctx: CombatTickContext = {
+      ...makeContextWithEnemyXp(noPrepActivity),
+      difficultyProfiles: { story: storyDifficultyProfile },
+    };
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const skillXp = delta.xp.find((x) => x.xpType === "skill");
+    expect(skillXp?.amount).toBe(Math.floor(testEnemyXp.offensiveSkillXp * storyDifficultyProfile.xpMagicNumber));
+  });
+
+  it("XP amounts are unchanged when no difficulty profiles are provided", () => {
+    const ctx = makeContextWithEnemyXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const charXp = delta.xp.find((x) => x.xpType === "character");
+    const skillXp = delta.xp.find((x) => x.xpType === "skill");
+    expect(charXp?.amount).toBe(testEnemyXp.characterXp);
+    expect(skillXp?.amount).toBe(testEnemyXp.offensiveSkillXp);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// finalizeCombat — armor skill XP
+// ---------------------------------------------------------------------------
+
+describe("finalizeCombat — armor skill XP", () => {
+  function makeContextWithArmorAndXp(activity: CombatActivityDefinition): CombatTickContext {
+    return {
+      ...makeContextWithEnemyXp(activity),
+      equipment: { [leatherChestpiece.id]: leatherChestpiece },
+      playerEquipment: { chest: leatherChestpiece.id },
+    };
+  }
+
+  it("armor skill XP entry is emitted when armor is equipped", () => {
+    const ctx = makeContextWithArmorAndXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const armorXp = delta.xp.find(
+      (x) => x.xpType === "skill" && x.skillId === leatherChestpiece.armorSkill
+    );
+    expect(armorXp).toBeDefined();
+    expect(armorXp?.targetActorId).toBe(noPrepActivity.playerActorId);
+  });
+
+  it("armor XP amount applies slot weight (floor of armorSkillXp × slotWeight)", () => {
+    const ctx = makeContextWithArmorAndXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const armorXp = delta.xp.find(
+      (x) => x.xpType === "skill" && x.skillId === leatherChestpiece.armorSkill
+    );
+    const expected = Math.floor(
+      testEnemyXp.armorSkillXp * (leatherChestpiece.armorSlotWeight ?? 0)
+    );
+    expect(armorXp?.amount).toBe(expected);
+  });
+
+  it("armor XP is also scaled by the difficulty magic number", () => {
+    // Use armorSkillXp: 12 so that floor(12 × 0.35 × 0.75) = floor(3.15) = 3 (non-zero).
+    // characterXp: 20 and offensiveSkillXp: 16 are arbitrary non-zero values to ensure
+    // those entries are also present; only armorSkillXp is the focus of this test.
+    const armorScalingXp: EnemyXpDefinition = { characterXp: 20, offensiveSkillXp: 16, armorSkillXp: 12 };
+    const ctx: CombatTickContext = {
+      ...makeContext(noPrepActivity),
+      enemyXp: { [noPrepActivity.enemyActorIds[0]]: armorScalingXp },
+      difficultyProfiles: { story: storyDifficultyProfile },
+      equipment: { [leatherChestpiece.id]: leatherChestpiece },
+      playerEquipment: { chest: leatherChestpiece.id },
+    };
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const armorXp = delta.xp.find(
+      (x) => x.xpType === "skill" && x.skillId === leatherChestpiece.armorSkill
+    );
+    const expected = Math.floor(
+      armorScalingXp.armorSkillXp *
+        (leatherChestpiece.armorSlotWeight ?? 0) *
+        storyDifficultyProfile.xpMagicNumber
+    );
+    expect(armorXp).toBeDefined();
+    expect(armorXp?.amount).toBe(expected);
+  });
+
+  it("no armor XP when equipment map is absent", () => {
+    const ctx = makeContextWithEnemyXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    // Only character + offensive skill — no armor entry
+    expect(delta.xp.length).toBe(2);
+  });
+
+  it("no armor XP when playerEquipment is absent", () => {
+    const ctx: CombatTickContext = {
+      ...makeContextWithEnemyXp(noPrepActivity),
+      equipment: { [leatherChestpiece.id]: leatherChestpiece },
+      // playerEquipment intentionally omitted
+    };
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    expect(delta.xp.length).toBe(2);
+  });
+
+  it("armor XP is absent on defeat even when armor is equipped", () => {
+    const ctx = makeContextWithArmorAndXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(5),
+      [makeLowHpEnemy(1000)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    expect(delta.xp).toHaveLength(0);
   });
 });

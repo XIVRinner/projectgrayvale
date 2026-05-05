@@ -18,3 +18,15 @@ export const oldDagger: EquipmentDefinition = {
     slashing: { min: 2, max: 5 }
   }
 };
+
+export const leatherChestpiece: EquipmentDefinition = {
+  id: "item_leather_chest",
+  displayName: "Leather Chestpiece",
+  itemType: "equipment",
+  slot: "chest",
+  itemLevel: 1,
+  levelRequirement: 1,
+  armorSkill: "skill_light_armor",
+  armorSlotWeight: 0.35,
+  tags: ["armor", "light_armor", "leather", "chest"]
+};
