@@ -13,6 +13,7 @@ import type {
   CombatActivityDefinition,
   AbilityDefinition,
   CombatRunState,
+  EnemyXpDefinition,
 } from "../index";
 import {
   playerActor,
@@ -301,5 +302,171 @@ describe("finalizeCombat — MVP short blade vs coyote", () => {
     for (let t = 0; t < final.currentTick; t++) {
       expect(ticksInLogs.has(t)).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// finalizeCombat — XP entries on victory
+// ---------------------------------------------------------------------------
+
+// armorSkillXp is a required field of EnemyXpDefinition but is not accumulated
+// in the MVP because the player has no armor skill in their rotation. It is
+// present in the fixture only to satisfy the type; see the "armor skill XP"
+// test below.
+const testEnemyXp: EnemyXpDefinition = {
+  characterXp: 10,
+  offensiveSkillXp: 5,
+  armorSkillXp: 3,
+};
+
+function makeContextWithEnemyXp(activity: CombatActivityDefinition): CombatTickContext {
+  return {
+    ...makeContext(activity),
+    enemyXp: {
+      [activity.enemyActorIds[0]]: testEnemyXp,
+    },
+  };
+}
+
+describe("finalizeCombat — XP entries on victory", () => {
+  it("delta xp includes a character XP entry targeting the player", () => {
+    const ctx = makeContextWithEnemyXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const charXp = delta.xp.find((x) => x.xpType === "character");
+    expect(charXp).toBeDefined();
+    expect(charXp?.amount).toBe(testEnemyXp.characterXp);
+    expect(charXp?.targetActorId).toBe(noPrepActivity.playerActorId);
+  });
+
+  it("delta xp includes a skill XP entry with the player rotation skillId", () => {
+    const ctx = makeContextWithEnemyXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    const skillXp = delta.xp.find((x) => x.xpType === "skill");
+    expect(skillXp).toBeDefined();
+    expect(skillXp?.amount).toBe(testEnemyXp.offensiveSkillXp);
+    expect(skillXp?.skillId).toBe("skill_test");
+    expect(skillXp?.targetActorId).toBe(noPrepActivity.playerActorId);
+  });
+
+  it("armorSkillXp is not accumulated (no armor skill in player rotation)", () => {
+    const ctx = makeContextWithEnemyXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    // Only character + offensive skill entries expected; no armor skill entry.
+    expect(delta.xp.every((x) => x.xpType !== "skill" || x.skillId !== undefined)).toBe(true);
+    expect(delta.xp.length).toBe(2);
+  });
+
+  it("delta xp is empty on victory when enemyXp is not provided in context", () => {
+    const ctx = makeContext(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    expect(delta.xp).toHaveLength(0);
+  });
+
+  it("delta xp is empty on defeat", () => {
+    const ctx = makeContextWithEnemyXp(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(5),
+      [makeLowHpEnemy(1000)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    expect(delta.xp).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// finalizeCombat — death penalty on defeat
+// ---------------------------------------------------------------------------
+
+describe("finalizeCombat — death penalty on defeat", () => {
+  it("delta penalties contains a death_attack_lockout entry targeting the player", () => {
+    const ctx = makeContext(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(5),
+      [makeLowHpEnemy(1000)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    expect(delta.penalties).toHaveLength(1);
+    expect(delta.penalties[0].penaltyType).toBe("death_attack_lockout");
+    expect(delta.penalties[0].targetActorId).toBe(noPrepActivity.playerActorId);
+    expect(delta.penalties[0].durationSeconds).toBeGreaterThan(0);
+  });
+
+  it("delta penalties is empty on victory", () => {
+    const ctx = makeContext(noPrepActivity);
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(5)]
+    );
+    const final = runCombat(initial, ctx, new TestCombatRng([0.5]));
+    const delta = finalizeCombat(final);
+    expect(delta.penalties).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// finalizeCombat — fled outcome passes through
+// ---------------------------------------------------------------------------
+
+describe("finalizeCombat — fled outcome", () => {
+  it("carries the fled outcome into the delta", () => {
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(1000)]
+    );
+    const fledState: CombatRunState = { ...initial, phase: "ended", outcome: "fled" };
+    const delta = finalizeCombat(fledState);
+    expect(delta.outcome).toBe("fled");
+  });
+
+  it("delta xp is empty on fled", () => {
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(1000)]
+    );
+    const fledState: CombatRunState = { ...initial, phase: "ended", outcome: "fled" };
+    const delta = finalizeCombat(fledState);
+    expect(delta.xp).toHaveLength(0);
+  });
+
+  it("delta penalties is empty on fled", () => {
+    const initial = createInitialCombatState(
+      noPrepActivity,
+      makeLowHpPlayer(1000),
+      [makeLowHpEnemy(1000)]
+    );
+    const fledState: CombatRunState = { ...initial, phase: "ended", outcome: "fled" };
+    const delta = finalizeCombat(fledState);
+    expect(delta.penalties).toHaveLength(0);
   });
 });

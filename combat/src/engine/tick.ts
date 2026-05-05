@@ -11,6 +11,9 @@ import type {
   CombatLogEntry,
   ActorDelta,
   EffectDelta,
+  XpDelta,
+  PenaltyDelta,
+  EnemyXpDefinition,
   CombatPhase,
   CombatOutcome,
 } from "@rinner/grayvale-core";
@@ -29,6 +32,11 @@ export interface CombatTickContext {
   effects: Record<string, EffectDefinition>;
   /** Compiled rotation for each actor, keyed by actorId. */
   rotations: Record<ActorId, CompiledRotation>;
+  /**
+   * XP definitions for each enemy actor, keyed by actorId.
+   * When provided, XP entries are added to the delta on a victory outcome.
+   */
+  enemyXp?: Record<ActorId, EnemyXpDefinition>;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,10 +48,75 @@ interface TickAccumulator {
   actorDeltas: ActorDelta[];
   effectsApplied: EffectDelta[];
   effectsExpired: EffectDelta[];
+  xp: XpDelta[];
+  penalties: PenaltyDelta[];
 }
 
 function newAccumulator(): TickAccumulator {
-  return { logs: [], actorDeltas: [], effectsApplied: [], effectsExpired: [] };
+  return { logs: [], actorDeltas: [], effectsApplied: [], effectsExpired: [], xp: [], penalties: [] };
+}
+
+// ---------------------------------------------------------------------------
+// End-of-combat delta helpers
+// ---------------------------------------------------------------------------
+
+/** Death lockout applied to the player actor on defeat (MVP constant). */
+const DEATH_ATTACK_LOCKOUT_SECONDS = 30;
+
+/**
+ * Pushes XP delta entries for every defeated enemy that has an entry in
+ * {@link CombatTickContext.enemyXp}. Character XP and offensive skill XP
+ * (using the player's rotation skill) are both included when non-zero.
+ */
+function accumulateVictoryXp(
+  activity: CombatActivityDefinition,
+  context: CombatTickContext,
+  acc: TickAccumulator
+): void {
+  const { enemyXp } = context;
+  if (!enemyXp) return;
+
+  const playerActorId = activity.playerActorId;
+  const playerRotation = context.rotations[playerActorId];
+
+  for (const enemyId of activity.enemyActorIds) {
+    const xpDef = enemyXp[enemyId];
+    if (!xpDef) continue;
+
+    if (xpDef.characterXp > 0) {
+      acc.xp.push({
+        targetActorId: playerActorId,
+        xpType: "character",
+        amount: xpDef.characterXp,
+        reason: `Defeated ${enemyId}`,
+      });
+    }
+
+    if (xpDef.offensiveSkillXp > 0 && playerRotation?.skillId) {
+      acc.xp.push({
+        targetActorId: playerActorId,
+        xpType: "skill",
+        skillId: playerRotation.skillId,
+        amount: xpDef.offensiveSkillXp,
+        reason: `Defeated ${enemyId}`,
+      });
+    }
+  }
+}
+
+/**
+ * Pushes a {@link PenaltyDelta} death-attack-lockout entry for the player
+ * actor on a defeat outcome.
+ */
+function accumulateDefeatPenalty(
+  activity: CombatActivityDefinition,
+  acc: TickAccumulator
+): void {
+  acc.penalties.push({
+    targetActorId: activity.playerActorId,
+    penaltyType: "death_attack_lockout",
+    durationSeconds: DEATH_ATTACK_LOCKOUT_SECONDS,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -825,6 +898,8 @@ function buildNextState(
         ...state.accumulatedDelta.effectsExpired,
         ...acc.effectsExpired,
       ],
+      xp: [...state.accumulatedDelta.xp, ...acc.xp],
+      penalties: [...state.accumulatedDelta.penalties, ...acc.penalties],
     },
   };
 }
@@ -883,6 +958,11 @@ export function runTick(
 
   const dotEnd = checkCombatEnd(actors, context.activity);
   if (dotEnd !== null) {
+    if (dotEnd.outcome === "victory") {
+      accumulateVictoryXp(context.activity, context, acc);
+    } else if (dotEnd.outcome === "defeat") {
+      accumulateDefeatPenalty(context.activity, acc);
+    }
     acc.logs.push({
       tick,
       type: "outcome",
@@ -932,6 +1012,11 @@ export function runTick(
   const outcome = actionEnd?.outcome;
 
   if (actionEnd) {
+    if (actionEnd.outcome === "victory") {
+      accumulateVictoryXp(context.activity, context, acc);
+    } else if (actionEnd.outcome === "defeat") {
+      accumulateDefeatPenalty(context.activity, acc);
+    }
     acc.logs.push({
       tick,
       type: "outcome",
