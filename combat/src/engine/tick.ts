@@ -770,7 +770,9 @@ function resolveActions(
 function applyCooldownsFromActions(
   actors: Record<ActorId, ActorCombatState>,
   selectedActions: Record<ActorId, AbilityId>,
-  abilities: Record<string, AbilityDefinition>
+  abilities: Record<string, AbilityDefinition>,
+  acc: TickAccumulator,
+  tick: number
 ): Record<ActorId, ActorCombatState> {
   const result = { ...actors };
   for (const [actorId, abilityId] of Object.entries(selectedActions)) {
@@ -781,6 +783,14 @@ function applyCooldownsFromActions(
       ...actor,
       cooldowns: { ...actor.cooldowns, [abilityId]: ability.cooldownTicks },
     };
+    acc.logs.push({
+      tick,
+      type: "cooldown",
+      actorId,
+      abilityId,
+      amount: ability.cooldownTicks,
+      message: `${actorId} placed ${abilityId} on cooldown for ${ability.cooldownTicks} ticks`,
+    });
   }
   return result;
 }
@@ -911,7 +921,7 @@ export function runTick(
   // Step 11 — resource generation (MVP no-op)
 
   // Step 12 — cooldown application
-  actors = applyCooldownsFromActions(actors, selectedActions, context.abilities);
+  actors = applyCooldownsFromActions(actors, selectedActions, context.abilities, acc, tick);
 
   // Step 13 — post-action death check
   actors = markDefeated(actors, tick, acc);
