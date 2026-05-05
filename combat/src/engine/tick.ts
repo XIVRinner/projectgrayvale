@@ -382,6 +382,23 @@ function updatePiercingDotBase(
 }
 
 /**
+ * Returns the dot base amount for a percent_of_last_piercing_damage effect.
+ * Uses `piercingDamageThisTick` when positive; otherwise falls back to the
+ * stored `dotBaseAmount` in the existing effect instance.
+ */
+function getDotBase(
+  target: ActorCombatState,
+  effectDefId: string,
+  piercingDamageThisTick: number
+): number {
+  if (piercingDamageThisTick > 0) return piercingDamageThisTick;
+  const stored = target.activeEffects.find(
+    (e) => e.effectId === effectDefId
+  )?.metadata?.dotBaseAmount;
+  return typeof stored === "number" ? stored : 0;
+}
+
+/**
  * Resolves all selected actions simultaneously.
  *
  * Damage is computed from the pre-action actor states so that two actors can
@@ -403,9 +420,10 @@ function resolveActions(
     totalDamage: number;
     piercingDamage: number;
     miss: boolean;
+    dodged: boolean;
   }
 
-  // First pass: roll all damage using pre-action states
+  // First pass: roll all damage using pre-action states; check dodge before damage calculation
   const attacks: AttackOutcome[] = [];
   for (const [actorId, abilityId] of Object.entries(selectedActions)) {
     const actor = actors[actorId];
@@ -420,6 +438,14 @@ function resolveActions(
     if (!targetId) continue;
     const target = actors[targetId];
     if (!target || target.defeated) continue;
+
+    // Dodge check — evaluated before damage rolls; rng.chance(0) is always false
+    // so no guard needed when dodgeChance is absent or zero.
+    const dodgeChance = target.dodgeChance ?? 0;
+    if (rng.chance(dodgeChance)) {
+      attacks.push({ sourceId: actorId, targetId, abilityId, totalDamage: 0, piercingDamage: 0, miss: false, dodged: true });
+      continue;
+    }
 
     let totalDamage = 0;
     let piercingDamage = 0;
@@ -448,13 +474,25 @@ function resolveActions(
     }
 
     const miss = totalDamage <= 0;
-    attacks.push({ sourceId: actorId, targetId, abilityId, totalDamage, piercingDamage, miss });
+    attacks.push({ sourceId: actorId, targetId, abilityId, totalDamage, piercingDamage, miss, dodged: false });
   }
 
-  // Second pass: apply all damage simultaneously
+  // Second pass: apply all damage simultaneously; handle dodge outcomes
   let result = { ...actors };
   for (const atk of attacks) {
-    if (atk.miss) {
+    if (atk.dodged) {
+      // Dodge negates all damage and adds +1 range to the dodging actor
+      const dodger = result[atk.targetId];
+      result[atk.targetId] = { ...dodger, range: dodger.range + 1 };
+      acc.logs.push({
+        tick,
+        type: "dodge",
+        actorId: atk.targetId,
+        targetActorId: atk.sourceId,
+        abilityId: atk.abilityId,
+        message: `${atk.targetId} dodges ${atk.abilityId} from ${atk.sourceId} (+1 range)`,
+      });
+    } else if (atk.miss) {
       acc.logs.push({
         tick,
         type: "miss",
@@ -483,7 +521,125 @@ function resolveActions(
     }
   }
 
-  // Third pass: apply ability effects
+  // On-dodge reaction pass: each actor may trigger its on-dodge reaction at most once per tick
+  const dodgeReactionUsedThisTick = new Set<ActorId>();
+  for (const atk of attacks) {
+    if (!atk.dodged) continue;
+    const dodgerId = atk.targetId;
+    if (dodgeReactionUsedThisTick.has(dodgerId)) continue;
+
+    const rotation = context.rotations[dodgerId];
+    const reactionAbilityId = rotation?.onDodgeReactionAbilityId;
+    if (!reactionAbilityId) continue;
+
+    // Internal cooldown check — reaction must not be on cooldown
+    const dodger = result[dodgerId];
+    if ((dodger.cooldowns[reactionAbilityId] ?? 0) > 0) continue;
+
+    const reactionAbility = context.abilities[reactionAbilityId];
+    if (!reactionAbility) continue;
+
+    const reactionTargetId = getMainTarget(dodgerId, context.activity, result);
+    if (!reactionTargetId) continue;
+    const reactionTarget = result[reactionTargetId];
+    if (!reactionTarget || reactionTarget.defeated) continue;
+
+    acc.logs.push({
+      tick,
+      type: "action_selected",
+      actorId: dodgerId,
+      abilityId: reactionAbilityId,
+      message: `${dodgerId} triggers ${reactionAbilityId} (on-dodge reaction)`,
+    });
+
+    // Roll reaction damage
+    let reactionTotalDamage = 0;
+    let reactionPiercingDamage = 0;
+    for (const packet of reactionAbility.damagePackets ?? []) {
+      if (reactionTarget.immunities?.[packet.damageType]) continue;
+      const base = rng.rollInt(packet.interval.min, packet.interval.max);
+      const mult = computeDamageMultiplier(
+        dodger.activeEffects,
+        reactionTarget.activeEffects,
+        packet.damageType,
+        context.effects
+      );
+      const afterMult = Math.round(base * mult);
+      const resistance = reactionTarget.resistances?.[packet.damageType] ?? 0;
+      const dmg = Math.max(0, afterMult - resistance);
+      reactionTotalDamage += dmg;
+      if (packet.damageType === "piercing" && dmg > 0) reactionPiercingDamage += dmg;
+    }
+
+    if (reactionTotalDamage > 0) {
+      result[reactionTargetId] = {
+        ...result[reactionTargetId],
+        currentHp: result[reactionTargetId].currentHp - reactionTotalDamage,
+      };
+      acc.actorDeltas.push({ actorId: reactionTargetId, hpChange: -reactionTotalDamage });
+      acc.logs.push({
+        tick,
+        type: "damage",
+        actorId: dodgerId,
+        targetActorId: reactionTargetId,
+        abilityId: reactionAbilityId,
+        amount: reactionTotalDamage,
+        message: `${dodgerId} deals ${reactionTotalDamage} damage to ${reactionTargetId} with ${reactionAbilityId} (reaction)`,
+      });
+
+      if (reactionPiercingDamage > 0) {
+        result[reactionTargetId] = updatePiercingDotBase(
+          result[reactionTargetId],
+          reactionPiercingDamage,
+          context.effects
+        );
+      }
+    }
+
+    // Apply reaction ability effects
+    for (const application of reactionAbility.appliesEffects ?? []) {
+      const effectDef = context.effects[application.effectId];
+      if (!effectDef) continue;
+
+      const prob = application.chance ?? 1;
+      if (prob < 1 && !rng.chance(prob)) continue;
+
+      let effectTargetId: ActorId | null = null;
+      if (application.target === "self") {
+        effectTargetId = dodgerId;
+      } else {
+        effectTargetId = reactionTargetId;
+      }
+      if (!effectTargetId) continue;
+
+      const dotBase = getDotBase(result[effectTargetId], effectDef.id, reactionPiercingDamage);
+      result[effectTargetId] = applyEffectToActor(
+        result[effectTargetId],
+        effectTargetId,
+        dodgerId,
+        effectDef,
+        application.stacks ?? 1,
+        dotBase,
+        acc,
+        tick
+      );
+    }
+
+    // Apply internal cooldown for the reaction ability
+    if (reactionAbility.cooldownTicks) {
+      result[dodgerId] = {
+        ...result[dodgerId],
+        cooldowns: {
+          ...result[dodgerId].cooldowns,
+          [reactionAbilityId]: reactionAbility.cooldownTicks,
+        },
+      };
+    }
+
+    dodgeReactionUsedThisTick.add(dodgerId);
+  }
+
+  // Third pass: apply ability effects from main selected actions
   for (const [actorId, abilityId] of Object.entries(selectedActions)) {
     const ability = context.abilities[abilityId];
     if (!ability?.appliesEffects?.length) continue;
@@ -518,15 +674,7 @@ function resolveActions(
       const piercingToTarget = attacks
         .filter((a) => a.targetId === effectTargetId && a.piercingDamage > 0)
         .reduce((sum, a) => sum + a.piercingDamage, 0);
-      const dotBase =
-        piercingToTarget > 0
-          ? piercingToTarget
-          : (() => {
-              const stored = effectTarget.activeEffects.find(
-                (e) => e.effectId === effectDef.id
-              )?.metadata?.dotBaseAmount;
-              return typeof stored === "number" ? stored : 0;
-            })();
+      const dotBase = getDotBase(result[effectTargetId], effectDef.id, piercingToTarget);
 
       result[effectTargetId] = applyEffectToActor(
         result[effectTargetId],
@@ -617,7 +765,8 @@ function buildNextState(
  *    Skipped during prep phase; prep ticks only do steps 2–5.
  * 7. Simultaneous action resolution — damage packets from all actors are
  *    rolled from the pre-action state so mutual kills are possible.
- * 8. Defensive resolution (MVP stub — no dodge/block).
+ * 8. Defensive resolution — dodge check per attack (negates damage, +1 range for dodger;
+ *    triggers on-dodge reactions such as Instant Pierce for Short Blade).
  * 9. Damage calculation — modifiers from active effects are applied.
  * 10. Effect application — ability after-effects are applied.
  * 11. Resource generation (MVP no-op).

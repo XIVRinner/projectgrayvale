@@ -16,6 +16,8 @@ export interface ActorDefinition {
   resistances?: ResistanceProfile;
   immunities?: ImmunityProfile;
 
+  dodgeChance?: number;
+
   equipment?: EquipmentLoadout;
   skills?: SkillId[];
 }

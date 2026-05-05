@@ -23,6 +23,7 @@ export function compileShortBladeRotation(
 ): CompiledRotation {
   return {
     skillId: skill.id,
+    onDodgeReactionAbilityId: "ability_instant_pierce",
     rules: [
       {
         abilityId: "ability_piercing_finisher",

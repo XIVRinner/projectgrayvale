@@ -24,6 +24,7 @@ function buildActorState(def: ActorDefinition): ActorCombatState {
     cooldowns: {},
     range: 0,
     defeated: false,
+    dodgeChance: def.dodgeChance,
     resistances: def.resistances,
     immunities: def.immunities,
   };

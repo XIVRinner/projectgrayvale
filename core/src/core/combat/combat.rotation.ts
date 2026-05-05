@@ -20,4 +20,6 @@ export interface RotationActionRule {
 export interface CompiledRotation {
   skillId: SkillId;
   rules: RotationActionRule[];
+  /** Ability to trigger as a free reaction when this actor dodges an attack. */
+  onDodgeReactionAbilityId?: AbilityId;
 }

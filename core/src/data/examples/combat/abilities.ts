@@ -110,3 +110,33 @@ export const autoAttack: AbilityDefinition = {
     }
   ]
 };
+
+export const instantPierce: AbilityDefinition = {
+  id: "ability_instant_pierce",
+  displayName: "Instant Pierce",
+  tags: ["attack", "melee", "short_blade", "piercing", "reaction"],
+  abilityType: "reaction",
+  targetRule: "main_target",
+  consumesAction: false,
+  isReaction: true,
+  cooldownTicks: 2,
+  damagePackets: [
+    {
+      damageType: "piercing",
+      interval: { min: 5, max: 10 }
+    }
+  ],
+  appliesEffects: [
+    {
+      effectId: "effect_bleeding",
+      chance: 0.5,
+      stacks: 1,
+      target: "main_target"
+    },
+    {
+      effectId: "effect_attack_damage_down",
+      stacks: 1,
+      target: "main_target"
+    }
+  ]
+};

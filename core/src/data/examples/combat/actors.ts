@@ -10,6 +10,7 @@ export const playerActor: ActorDefinition = {
   equipment: {
     main_hand: "item_old_dagger"
   },
+  dodgeChance: 0.15,
   resources: [
     {
       id: "stamina",
