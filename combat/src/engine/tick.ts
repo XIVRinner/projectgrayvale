@@ -689,6 +689,77 @@ function resolveActions(
     }
   }
 
+  // Fourth pass: spend effect stacks declared in spendsEffects
+  for (const [actorId, abilityId] of Object.entries(selectedActions)) {
+    const ability = context.abilities[abilityId];
+    if (!ability?.spendsEffects?.length) continue;
+
+    const actor = result[actorId];
+    if (actor.defeated) continue;
+
+    const mainTargetId = getMainTarget(actorId, context.activity, result);
+
+    for (const spend of ability.spendsEffects) {
+      let spendTargetId: ActorId | null = null;
+      if (spend.target === "self") {
+        spendTargetId = actorId;
+      } else if (
+        spend.target === "main_target" ||
+        spend.target === "enemy" ||
+        spend.target === "current_target"
+      ) {
+        spendTargetId = mainTargetId;
+      }
+      if (!spendTargetId) continue;
+
+      const spendTarget = result[spendTargetId];
+      const instance = spendTarget.activeEffects.find(
+        (e) => e.effectId === spend.effectId
+      );
+      if (!instance) continue;
+
+      const newStacks = instance.stacks - spend.stacks;
+      const effectDef = context.effects[spend.effectId];
+      const effectName = effectDef?.displayName ?? spend.effectId;
+      const abilityName = context.abilities[abilityId]?.displayName ?? abilityId;
+      if (newStacks <= 0) {
+        result[spendTargetId] = {
+          ...result[spendTargetId],
+          activeEffects: result[spendTargetId].activeEffects.filter(
+            (e) => e !== instance
+          ),
+        };
+        acc.effectsExpired.push({
+          effectId: instance.effectId,
+          sourceActorId: instance.sourceActorId,
+          targetActorId: spendTargetId,
+          stacks: instance.stacks,
+        });
+        acc.logs.push({
+          tick,
+          type: "effect_expired",
+          actorId: spendTargetId,
+          effectId: instance.effectId,
+          message: `${effectName} consumed on ${spendTargetId} by ${abilityName}`,
+        });
+      } else {
+        result[spendTargetId] = {
+          ...result[spendTargetId],
+          activeEffects: result[spendTargetId].activeEffects.map((e) =>
+            e === instance ? { ...e, stacks: newStacks } : e
+          ),
+        };
+        acc.logs.push({
+          tick,
+          type: "effect_applied",
+          actorId: spendTargetId,
+          effectId: instance.effectId,
+          message: `${effectName} spent on ${spendTargetId} by ${abilityName} (${newStacks} stacks remaining)`,
+        });
+      }
+    }
+  }
+
   return result;
 }
 
