@@ -382,6 +382,23 @@ function updatePiercingDotBase(
 }
 
 /**
+ * Returns the dot base amount for a percent_of_last_piercing_damage effect.
+ * Uses `piercingDamageThisTick` when positive; otherwise falls back to the
+ * stored `dotBaseAmount` in the existing effect instance.
+ */
+function getDotBase(
+  target: ActorCombatState,
+  effectDefId: string,
+  piercingDamageThisTick: number
+): number {
+  if (piercingDamageThisTick > 0) return piercingDamageThisTick;
+  const stored = target.activeEffects.find(
+    (e) => e.effectId === effectDefId
+  )?.metadata?.dotBaseAmount;
+  return typeof stored === "number" ? stored : 0;
+}
+
+/**
  * Resolves all selected actions simultaneously.
  *
  * Damage is computed from the pre-action actor states so that two actors can
@@ -504,11 +521,11 @@ function resolveActions(
   }
 
   // On-dodge reaction pass: each actor may trigger its on-dodge reaction at most once per tick
-  const reactionUsedThisTick = new Set<ActorId>();
+  const dodgeReactionUsedThisTick = new Set<ActorId>();
   for (const atk of attacks) {
     if (!atk.dodged) continue;
     const dodgerId = atk.targetId;
-    if (reactionUsedThisTick.has(dodgerId)) continue;
+    if (dodgeReactionUsedThisTick.has(dodgerId)) continue;
 
     const rotation = context.rotations[dodgerId];
     const reactionAbilityId = rotation?.onDodgeReactionAbilityId;
@@ -579,15 +596,6 @@ function resolveActions(
     }
 
     // Apply reaction ability effects
-    const dotBase = reactionPiercingDamage > 0
-      ? reactionPiercingDamage
-      : (() => {
-          const stored = result[reactionTargetId].activeEffects.find(
-            (e) => e.effectId === "effect_bleeding"
-          )?.metadata?.dotBaseAmount;
-          return typeof stored === "number" ? stored : 0;
-        })();
-
     for (const application of reactionAbility.appliesEffects ?? []) {
       const effectDef = context.effects[application.effectId];
       if (!effectDef) continue;
@@ -603,14 +611,14 @@ function resolveActions(
       }
       if (!effectTargetId) continue;
 
-      const effectBase = application.effectId === "effect_bleeding" ? dotBase : 0;
+      const dotBase = getDotBase(result[effectTargetId], effectDef.id, reactionPiercingDamage);
       result[effectTargetId] = applyEffectToActor(
         result[effectTargetId],
         effectTargetId,
         dodgerId,
         effectDef,
         application.stacks ?? 1,
-        effectBase,
+        dotBase,
         acc,
         tick
       );
@@ -627,7 +635,7 @@ function resolveActions(
       };
     }
 
-    reactionUsedThisTick.add(dodgerId);
+    dodgeReactionUsedThisTick.add(dodgerId);
   }
 
   // Third pass: apply ability effects from main selected actions
@@ -665,15 +673,7 @@ function resolveActions(
       const piercingToTarget = attacks
         .filter((a) => a.targetId === effectTargetId && a.piercingDamage > 0)
         .reduce((sum, a) => sum + a.piercingDamage, 0);
-      const dotBase =
-        piercingToTarget > 0
-          ? piercingToTarget
-          : (() => {
-              const stored = effectTarget.activeEffects.find(
-                (e) => e.effectId === effectDef.id
-              )?.metadata?.dotBaseAmount;
-              return typeof stored === "number" ? stored : 0;
-            })();
+      const dotBase = getDotBase(result[effectTargetId], effectDef.id, piercingToTarget);
 
       result[effectTargetId] = applyEffectToActor(
         result[effectTargetId],
