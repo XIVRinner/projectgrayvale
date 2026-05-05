@@ -4,5 +4,7 @@ export * from "./world-graph/action.types";
 export * from "./world-graph/action.dispatcher";
 export * from "./world-graph/graph.logic";
 export * from "./world-graph/guard.logic";
+export * from "./world-graph/combat-node.types";
+export * from "./world-graph/combat-node.logic";
 export * from "./router/lifecycle.types";
 export * from "./router/locationRouter";
