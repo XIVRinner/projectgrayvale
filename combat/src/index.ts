@@ -52,7 +52,7 @@ export type {
 
 export type { CombatRng } from "./rng";
 export { DefaultCombatRng, TestCombatRng } from "./rng";
-export { CombatEngine, createInitialCombatState, tickCooldowns } from "./engine";
+export { CombatEngine, createInitialCombatState, tickCooldowns, finalizeCombat } from "./engine";
 export type { CombatTickContext } from "./engine";
 export { runTick, runCombat } from "./engine";
 export { compileCoyoteRotation, compileShortBladeRotation, selectNextAction } from "./rotation";

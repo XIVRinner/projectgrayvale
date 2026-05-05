@@ -1496,3 +1496,68 @@ describe("MVP effects — effect changes logged and in delta", () => {
     expect(after.accumulatedDelta.effectsExpired[0].effectId).toBe("effect_flat_dot");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Cooldown log entries
+// ---------------------------------------------------------------------------
+
+describe("runTick — cooldown log entries", () => {
+  it("emits a cooldown log when an ability with cooldownTicks > 0 is used", () => {
+    const player = makeLowHpPlayer(200);
+    const enemyDef = makeLowHpEnemy(200);
+    const ctx: CombatTickContext = {
+      activity: noPrepActivity,
+      abilities: {
+        ability_fixed_slash: fixedSlash,
+        ability_coyote_scratch: coyoteScratch, // cooldownTicks: 4
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_bleeding: bleedingEffect },
+      rotations: {
+        [player.id]: singleAbilityRotation("ability_fixed_slash"),
+        [enemyDef.id]: singleAbilityRotation("ability_coyote_scratch"),
+      },
+    };
+    const state = createInitialCombatState(noPrepActivity, player, [enemyDef]);
+    // bleed chance is 0.6 — provide a value >= 0.6 so bleed does NOT proc, then damage roll
+    const after = runTick(state, ctx, new TestCombatRng([0.5, 0.9]));
+    const cdLog = after.logs.find(
+      (l) => l.type === "cooldown" && l.abilityId === "ability_coyote_scratch"
+    );
+    expect(cdLog).toBeDefined();
+    expect(cdLog?.actorId).toBe(enemyDef.id);
+    expect(cdLog?.amount).toBe(4);
+  });
+
+  it("does not emit a cooldown log for abilities with cooldownTicks 0 or undefined", () => {
+    const player = makeLowHpPlayer(200);
+    const enemy = makeLowHpEnemy(200);
+    const ctx = makeContext(noPrepActivity); // fixedSlash has cooldownTicks: 0
+    const state = createInitialCombatState(noPrepActivity, player, [enemy]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5]));
+    const cdLogs = after.logs.filter((l) => l.type === "cooldown");
+    expect(cdLogs).toHaveLength(0);
+  });
+
+  it("cooldown log includes tick number", () => {
+    const player = makeLowHpPlayer(200);
+    const enemyDef = makeLowHpEnemy(200);
+    const ctx: CombatTickContext = {
+      activity: noPrepActivity,
+      abilities: {
+        ability_fixed_slash: fixedSlash,
+        ability_coyote_scratch: coyoteScratch,
+        ability_auto_attack: autoAttack,
+      },
+      effects: { effect_bleeding: bleedingEffect },
+      rotations: {
+        [player.id]: singleAbilityRotation("ability_fixed_slash"),
+        [enemyDef.id]: singleAbilityRotation("ability_coyote_scratch"),
+      },
+    };
+    const state = createInitialCombatState(noPrepActivity, player, [enemyDef]);
+    const after = runTick(state, ctx, new TestCombatRng([0.5, 0.9]));
+    const cdLog = after.logs.find((l) => l.type === "cooldown");
+    expect(cdLog?.tick).toBe(0); // first tick is tick 0
+  });
+});
