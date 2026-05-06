@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.gv-equip-panel {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-equip-panel__title {
+  margin: 0;
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gv-color-accent);
+  line-height: 1.2;
+}
+
+.gv-equip-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gv-space-sm);
+}
+
+.gv-equip-panel__state {
+  display: flex;
+  align-items: center;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-md);
+  border-radius: var(--gv-radius-md);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-equip-panel__state--loading {
+  color: var(--gv-color-text-muted);
+  background: var(--gv-color-overlay-soft);
+}
+
+.gv-equip-panel__state--error {
+  color: var(--gv-color-danger);
+  background: color-mix(in srgb, var(--gv-color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gv-color-danger) 30%, transparent);
+}
+
+@media (max-width: 30rem) {
+  .gv-equip-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}

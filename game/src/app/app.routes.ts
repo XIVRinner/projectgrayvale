@@ -25,6 +25,13 @@ export const routes: Routes = [
           )
       },
       {
+        path: "character-sheet",
+        loadChildren: () =>
+          import("./features/character-sheet/character-sheet.routes").then(
+            (m) => m.CHARACTER_SHEET_ROUTES
+          )
+      },
+      {
         path: "home",
         redirectTo: ""
       }

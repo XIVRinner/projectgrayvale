@@ -1,0 +1,181 @@
+[
+  {
+    "id": "weapon_dagger_rustleaf",
+    "name": "Rustleaf Dagger",
+    "category": "equipment",
+    "rarity": "uncommon",
+    "tags": ["dagger", "melee", "short_blade"],
+    "slot": "main_hand",
+    "itemLevel": 8,
+    "description": "A thin blade carved from rust-stained rootwood, favoured by scouts in the marshlands.",
+    "requirements": { "levelRequirement": 4 },
+    "combatStats": [
+      { "stat": "physical_damage", "value": 10, "operation": "add" },
+      { "stat": "dodge_chance", "value": 0.04, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+10 Physical Damage", "+4% Dodge Chance"],
+      "flavorText": "Carved in Rustfen. Smells faintly of old mud."
+    }
+  },
+  {
+    "id": "armor_hood_rainwoven",
+    "name": "Rainwoven Hood",
+    "category": "equipment",
+    "rarity": "common",
+    "tags": ["light", "starter", "head"],
+    "slot": "head",
+    "itemLevel": 5,
+    "description": "A light hood stitched for scouts and marsh travelers.",
+    "combatStats": [
+      { "stat": "armor", "value": 6, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+6 Armor"]
+    }
+  },
+  {
+    "id": "armor_mail_graymark",
+    "name": "Graymark Mail",
+    "category": "equipment",
+    "rarity": "uncommon",
+    "tags": ["medium", "martial", "chest"],
+    "slot": "chest",
+    "itemLevel": 7,
+    "description": "A medium body piece worn by patrols along the Graymark road.",
+    "combatStats": [
+      { "stat": "armor", "value": 18, "operation": "add" },
+      { "stat": "vitality", "value": 4, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+18 Armor", "+4 Vitality"]
+    }
+  },
+  {
+    "id": "armor_gloves_irongrip",
+    "name": "Irongrip Gauntlets",
+    "category": "equipment",
+    "rarity": "rare",
+    "tags": ["heavy", "gloves"],
+    "slot": "gloves",
+    "itemLevel": 12,
+    "requirements": { "levelRequirement": 10 },
+    "combatStats": [
+      { "stat": "armor", "value": 10, "operation": "add" },
+      { "stat": "strength", "value": 3, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+10 Armor", "+3 Strength"],
+      "flavorText": "Forged for grip, not grace."
+    }
+  },
+  {
+    "id": "armor_legs_ashwalker",
+    "name": "Ashwalker Greaves",
+    "category": "equipment",
+    "rarity": "epic",
+    "specialRarity": "infernal",
+    "tags": ["infernal", "heavy", "legs"],
+    "slot": "legs",
+    "itemLevel": 20,
+    "requirements": { "levelRequirement": 18 },
+    "combatStats": [
+      { "stat": "armor", "value": 24, "operation": "add" },
+      { "stat": "fire_resistance", "value": 0.12, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+24 Armor", "+12% Fire Resistance"],
+      "effectLines": ["Reduces fire damage taken by an additional 5%."],
+      "flavorText": "Tempered in the Ashen Vault. Heat-scarred, never melted."
+    }
+  },
+  {
+    "id": "armor_boots_mudstride",
+    "name": "Mudstride Boots",
+    "category": "equipment",
+    "rarity": "common",
+    "tags": ["light", "boots"],
+    "slot": "boots",
+    "itemLevel": 5,
+    "combatStats": [
+      { "stat": "armor", "value": 4, "operation": "add" },
+      { "stat": "movement_speed", "value": 0.02, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+4 Armor", "+2% Movement Speed"]
+    }
+  },
+  {
+    "id": "weapon_buckler_ashwood",
+    "name": "Ashwood Buckler",
+    "category": "equipment",
+    "rarity": "common",
+    "tags": ["shield", "off_hand"],
+    "slot": "off_hand",
+    "itemLevel": 6,
+    "combatStats": [
+      { "stat": "block_chance", "value": 0.08, "operation": "add" },
+      { "stat": "armor", "value": 5, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+8% Block Chance", "+5 Armor"]
+    }
+  },
+  {
+    "id": "ring_bone_carved",
+    "name": "Bone-Carved Ring",
+    "category": "equipment",
+    "rarity": "uncommon",
+    "tags": ["ring", "accessory"],
+    "slot": "ring",
+    "itemLevel": 9,
+    "combatStats": [
+      { "stat": "physical_damage", "value": 4, "operation": "add" },
+      { "stat": "max_hp", "value": 15, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+4 Physical Damage", "+15 Max HP"],
+      "flavorText": "Worn smooth by years of nervous turning."
+    }
+  },
+  {
+    "id": "weapon_blade_voidedge",
+    "name": "Void-Edge Blade",
+    "category": "equipment",
+    "rarity": "legendary",
+    "specialRarity": "legendary",
+    "tags": ["sword", "melee", "main_hand", "void"],
+    "slot": "main_hand",
+    "itemLevel": 30,
+    "requirements": { "levelRequirement": 28 },
+    "combatStats": [
+      { "stat": "physical_damage", "value": 45, "operation": "add" },
+      { "stat": "void_damage", "value": 20, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+45 Physical Damage", "+20 Void Damage"],
+      "effectLines": ["Attacks have 8% chance to apply Void Wound."],
+      "flavorText": "It does not cut. It erases."
+    }
+  },
+  {
+    "id": "armor_helm_divine_crown",
+    "name": "Crown of Pale Vigil",
+    "category": "equipment",
+    "rarity": "divine",
+    "specialRarity": "divine",
+    "tags": ["head", "divine", "heavy"],
+    "slot": "head",
+    "itemLevel": 40,
+    "requirements": { "levelRequirement": 38 },
+    "combatStats": [
+      { "stat": "armor", "value": 38, "operation": "add" },
+      { "stat": "mentality", "value": 12, "operation": "add" }
+    ],
+    "tooltip": {
+      "statLines": ["+38 Armor", "+12 Mentality"],
+      "effectLines": ["Grants 10% resistance to dark and void damage."],
+      "flavorText": "Worn by the Pale Vigil. The eyes within never blink."
+    }
+  }
+]

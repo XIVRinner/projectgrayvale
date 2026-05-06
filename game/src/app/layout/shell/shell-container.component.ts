@@ -139,6 +139,7 @@ export class ShellContainerComponent {
 
   readonly navItems = signal<readonly ShellNavItem[]>([
     { label: "Home", route: "/" },
+    { label: "Character Sheet", route: "/character-sheet" },
     { label: "Creator Lab", route: "/creator" }
   ]);
 

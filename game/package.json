@@ -22,9 +22,6 @@
     "e2e:install": "playwright install"
   },
   "dependencies": {
-    "@rinner/grayvale-core": "*",
-    "@rinner/grayvale-worldgraph": "*",
-    "@rinner/grayvale-dialogue": "*",
     "@angular/common": "^21.2.0",
     "@angular/compiler": "^21.2.0",
     "@angular/core": "^21.2.0",
@@ -36,6 +33,9 @@
     "@ngrx/store": "^21.0.0",
     "@ngrx/store-devtools": "^21.0.0",
     "@primeuix/themes": "^2.0.3",
+    "@rinner/grayvale-core": "*",
+    "@rinner/grayvale-dialogue": "*",
+    "@rinner/grayvale-worldgraph": "*",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
     "primeng": "^21.1.6",
@@ -44,10 +44,10 @@
     "zone.js": "~0.16.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.1",
     "@angular/build": "^21.2.9",
     "@angular/cli": "^21.2.9",
     "@angular/compiler-cli": "^21.2.0",
+    "@playwright/test": "^1.55.1",
     "@types/jest": "^30.0.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
@@ -56,5 +56,8 @@
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.5",
     "typescript": "~5.9.2"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.60.2"
   }
 }
