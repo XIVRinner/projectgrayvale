@@ -113,6 +113,37 @@ function evaluateKnownGuard(guard: Guard, context: GuardContext): boolean {
       const status = context.player.questLog?.quests[questId]?.status;
       return status === undefined;
     }
+    case "quest_active": {
+      const questId = readOptionalStringParam(guard.params, "questId");
+
+      if (!questId) {
+        return false;
+      }
+
+      return context.player.questLog?.quests[questId]?.status === "active";
+    }
+    case "quest_step_active": {
+      const questId = readOptionalStringParam(guard.params, "questId");
+      const stepId = readOptionalStringParam(guard.params, "stepId");
+      const entry = questId ? context.player.questLog?.quests[questId] : undefined;
+
+      if (!entry || !stepId) {
+        return false;
+      }
+
+      return entry.status === "active" && entry.currentStep === stepId;
+    }
+    case "quest_step_completed": {
+      const questId = readOptionalStringParam(guard.params, "questId");
+      const stepId = readOptionalStringParam(guard.params, "stepId");
+      const entry = questId ? context.player.questLog?.quests[questId] : undefined;
+
+      if (!entry || !stepId) {
+        return false;
+      }
+
+      return entry.completedSteps?.includes(stepId) ?? false;
+    }
     case "player_attribute_at_least": {
       const attributeId = readOptionalStringParam(guard.params, "attributeId");
       const minimumValue = readNumericParam(guard.params, "minimumValue");

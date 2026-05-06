@@ -21,6 +21,18 @@
       "failureMessageTemplate": "This place is no longer available."
     },
     {
+      "type": "quest_active",
+      "failureMessageTemplate": "Progress the required quest before continuing."
+    },
+    {
+      "type": "quest_step_active",
+      "failureMessageTemplate": "Advance the required quest step before continuing."
+    },
+    {
+      "type": "quest_step_completed",
+      "failureMessageTemplate": "Complete the required quest step before continuing."
+    },
+    {
       "type": "player_attribute_at_least",
       "failureMessageTemplate": "Reach {minimumValue} {attributeId} before continuing."
     }

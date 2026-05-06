@@ -14,18 +14,48 @@ describe("QuestsLoader", () => {
       ) as unknown
     );
 
-    await expect(firstValueFrom(loader.load())).resolves.toEqual([
-      {
-        id: "quest_recovery",
-        objectives: [
-          {
-            type: "attribute_reached",
-            attribute: "vitality",
-            target: 10
-          }
-        ]
-      }
-    ]);
+    await expect(firstValueFrom(loader.load())).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "quest_recovery",
+          objectives: [
+            {
+              type: "attribute_reached",
+              attribute: "vitality",
+              target: 10
+            }
+          ]
+        }),
+        expect.objectContaining({
+          id: "quest_chief_labour",
+          steps: [
+            {
+              id: "build_strength",
+              label: "Reach 10.0 Strength",
+              objectives: [
+                {
+                  type: "attribute_reached",
+                  attribute: "strength",
+                  target: 10
+                }
+              ],
+              rewards: [
+                {
+                  type: "activity_availability",
+                  activityId: "village-labour",
+                  status: "locked"
+                }
+              ]
+            },
+            {
+              id: "report_to_chief",
+              label: "Speak to the Chief",
+              completion: "manual"
+            }
+          ]
+        })
+      ])
+    );
   });
 });
 

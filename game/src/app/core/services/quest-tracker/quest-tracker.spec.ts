@@ -18,7 +18,8 @@ describe("QuestTracker", () => {
 
     tracker.loadActiveQuests([
       {
-        id: "quest_vitality",
+        questId: "quest_vitality",
+        stepId: "build_vitality",
         objectives: [
           {
             type: "attribute_reached",
@@ -39,6 +40,7 @@ describe("QuestTracker", () => {
     expect(tracker.getState()).toEqual([
       {
         questId: "quest_vitality",
+        stepId: "build_vitality",
         objectives: {
           "quest_vitality:0": {
             current: 10,
@@ -56,7 +58,8 @@ describe("QuestTracker", () => {
 
     tracker.loadActiveQuests([
       {
-        id: "quest_hides",
+        questId: "quest_hides",
+        stepId: "collect_hides",
         objectives: [
           {
             type: "item_collected",
@@ -73,6 +76,7 @@ describe("QuestTracker", () => {
 
     expect(tracker.getState()[0]).toEqual({
       questId: "quest_hides",
+      stepId: "collect_hides",
       objectives: {
         "quest_hides:0": {
           current: 10,
@@ -93,6 +97,7 @@ describe("QuestTracker", () => {
 
     expect(tracker.getState()[0]).toEqual({
       questId: "quest_monster",
+      stepId: "hunt_and_skin",
       objectives: {
         "quest_monster:0": {
           current: 1,
@@ -128,7 +133,8 @@ describe("QuestTracker", () => {
 
     tracker.loadActiveQuests([
       {
-        id: "quest_choice",
+        questId: "quest_choice",
+        stepId: "choose_path",
         objectives: [
           {
             type: "composite",
@@ -154,6 +160,7 @@ describe("QuestTracker", () => {
 
     expect(tracker.getState()[0]).toEqual({
       questId: "quest_choice",
+      stepId: "choose_path",
       objectives: {
         "quest_choice:0": {
           current: 1,
@@ -180,7 +187,8 @@ describe("QuestTracker", () => {
 
     tracker.loadActiveQuests([
       {
-        id: "quest_hunt",
+        questId: "quest_hunt",
+        stepId: "hunt_goblins",
         objectives: [
           {
             type: "kill",
@@ -197,6 +205,7 @@ describe("QuestTracker", () => {
 
     expect(tracker.getState()[0]).toEqual({
       questId: "quest_hunt",
+      stepId: "hunt_goblins",
       objectives: {
         "quest_hunt:0": {
           current: 5,
@@ -213,7 +222,8 @@ describe("QuestTracker", () => {
 
     tracker.loadActiveQuests([
       {
-        id: "quest_logging",
+        questId: "quest_logging",
+        stepId: "practice_logging",
         objectives: [
           {
             type: "activity_duration",
@@ -229,6 +239,7 @@ describe("QuestTracker", () => {
 
     expect(tracker.getState()[0]).toEqual({
       questId: "quest_logging",
+      stepId: "practice_logging",
       objectives: {
         "quest_logging:0": {
           current: 5,
@@ -247,7 +258,8 @@ describe("QuestTracker", () => {
 
     tracker.loadActiveQuests([
       {
-        id: "quest_pipeline",
+        questId: "quest_pipeline",
+        stepId: "collect_ore",
         objectives: [
           {
             type: "item_collected",
@@ -273,6 +285,7 @@ describe("QuestTracker", () => {
 
     expect(tracker.getState()[0]).toEqual({
       questId: "quest_pipeline",
+      stepId: "collect_ore",
       objectives: {
         "quest_pipeline:0": {
           current: 2,
@@ -346,9 +359,10 @@ function createActivityDelta(activityId: string, duration: number): Delta {
   };
 }
 
-function createAndQuest(): Quest {
+function createAndQuest() {
   return {
-    id: "quest_monster",
+    questId: "quest_monster",
+    stepId: "hunt_and_skin",
     objectives: [
       {
         type: "composite",

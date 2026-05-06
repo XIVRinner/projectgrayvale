@@ -46,6 +46,22 @@
           "isReturnable": true,
           "entryActionLabel": "Enter tavern",
           "exitActionLabel": "Leave tavern"
+        },
+        {
+          "id": "bridgitte-house",
+          "label": "Bridgitte's House",
+          "subtitle": "A quiet house where an old adventurer keeps her past within arm's reach.",
+          "sceneImagePath": "assets/images/location-backgrounds/bridgette-house.png",
+          "availableNpcIds": ["bridgitte"],
+          "isReturnable": true,
+          "entryActionLabel": "Visit Bridgitte's house",
+          "exitActionLabel": "Leave Bridgitte's house",
+          "entryGuards": [
+            {
+              "type": "quest_completed",
+              "params": { "questId": "quest_chief_labour" }
+            }
+          ]
         }
       ]
     },

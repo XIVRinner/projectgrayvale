@@ -12,6 +12,12 @@
     "portraitPath": "assets/images/dialogue-heads/village-chief.png"
   },
   {
+    "id": "bridgitte",
+    "name": "Bridgitte",
+    "title": "Retired Adventurer",
+    "portraitPath": "assets/images/dialogue-heads/bridgette.png"
+  },
+  {
     "id": "player",
     "name": "You",
     "title": "Unknown Adventurer",

@@ -6,6 +6,7 @@ import type {
   ItemObjective,
   KillObjective,
   Quest,
+  QuestStep,
   QuestObjective
 } from "./quest.types";
 
@@ -164,13 +165,50 @@ export function assertValidQuest(
 
   assertNonEmptyString(quest.id, "id", path);
 
-  if (!Array.isArray(quest.objectives)) {
-    throw new Error(`${path}.objectives must be an array.`);
+  if (quest.objectives !== undefined) {
+    if (!Array.isArray(quest.objectives)) {
+      throw new Error(`${path}.objectives must be an array when provided.`);
+    }
+
+    quest.objectives.forEach((objective, index) => {
+      assertValidQuestObjective(objective, `${path}.objectives[${index}]`);
+    });
   }
 
-  quest.objectives.forEach((objective, index) => {
-    assertValidQuestObjective(objective, `${path}.objectives[${index}]`);
-  });
+  if (quest.steps !== undefined) {
+    if (!Array.isArray(quest.steps) || quest.steps.length === 0) {
+      throw new Error(`${path}.steps must be a non-empty array when provided.`);
+    }
+
+    const seenIds = new Set<string>();
+
+    quest.steps.forEach((step, index) => {
+      assertValidQuestStep(step, `${path}.steps[${index}]`);
+
+      if (seenIds.has(step.id)) {
+        throw new Error(`${path}.steps[${index}].id must be unique within the quest.`);
+      }
+
+      seenIds.add(step.id);
+    });
+  }
+
+  if (
+    (quest.objectives === undefined || quest.objectives.length === 0) &&
+    (quest.steps === undefined || quest.steps.length === 0)
+  ) {
+    throw new Error(`${path} must define either objectives or steps.`);
+  }
+
+  if (quest.startRewards !== undefined) {
+    if (!Array.isArray(quest.startRewards)) {
+      throw new Error(`${path}.startRewards must be an array when provided.`);
+    }
+
+    quest.startRewards.forEach((reward, index) => {
+      assertValidQuestReward(reward, `${path}.startRewards[${index}]`);
+    });
+  }
 
   if (quest.rewards !== undefined) {
     if (!Array.isArray(quest.rewards)) {
@@ -180,6 +218,57 @@ export function assertValidQuest(
     quest.rewards.forEach((reward, index) => {
       assertValidQuestReward(reward, `${path}.rewards[${index}]`);
     });
+  }
+}
+
+export function assertValidQuestStep(
+  value: unknown,
+  path = "questStep"
+): asserts value is QuestStep {
+  const step = assertObjectiveRecord(value, path);
+
+  assertNonEmptyString(step.id, "id", path);
+
+  if (
+    step.label !== undefined &&
+    (typeof step.label !== "string" || step.label.trim().length === 0)
+  ) {
+    throw new Error(`${path}.label must be a non-empty string when provided.`);
+  }
+
+  if (
+    step.completion !== undefined &&
+    step.completion !== "automatic" &&
+    step.completion !== "manual"
+  ) {
+    throw new Error(`${path}.completion must be "automatic" or "manual" when provided.`);
+  }
+
+  if (step.objectives !== undefined) {
+    if (!Array.isArray(step.objectives)) {
+      throw new Error(`${path}.objectives must be an array when provided.`);
+    }
+
+    step.objectives.forEach((objective, index) => {
+      assertValidQuestObjective(objective, `${path}.objectives[${index}]`);
+    });
+  }
+
+  if (step.rewards !== undefined) {
+    if (!Array.isArray(step.rewards)) {
+      throw new Error(`${path}.rewards must be an array when provided.`);
+    }
+
+    step.rewards.forEach((reward, index) => {
+      assertValidQuestReward(reward, `${path}.rewards[${index}]`);
+    });
+  }
+
+  if (
+    step.completion !== "manual" &&
+    (!Array.isArray(step.objectives) || step.objectives.length === 0)
+  ) {
+    throw new Error(`${path}.automatic steps must define at least one objective.`);
   }
 }
 
@@ -212,9 +301,15 @@ export function assertValidQuestReward(
         throw new Error(`${path}.disabledReason must be a non-empty string when provided.`);
       }
       return;
+    case "skill_unlock":
+      assertNonEmptyString(reward.skillId, "skillId", path);
+      if (reward.unlocked !== undefined && typeof reward.unlocked !== "boolean") {
+        throw new Error(`${path}.unlocked must be a boolean when provided.`);
+      }
+      return;
     default:
       throw new Error(
-        `${path}.type must be one of "attribute_unlock" or "activity_availability".`
+        `${path}.type must be one of "attribute_unlock", "activity_availability", or "skill_unlock".`
       );
   }
 }

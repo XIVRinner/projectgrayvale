@@ -3,10 +3,12 @@ import {
   type ActivityDefinition,
   type ActivityReward,
   type Delta,
+  type PlayerQuestEntry,
   type Player,
   type Quest,
   type QuestLog,
   type QuestObjective,
+  type QuestStep,
   type QuestReward
 } from "@rinner/grayvale-core";
 import { Subject, type Subscription } from "rxjs";
@@ -16,13 +18,13 @@ import { QuestsLoader } from "../../data/loaders/quests.loader";
 import { CharacterRosterService } from "./character-roster.service";
 import { DebugLogService } from "./game-log/debug-log.service";
 import type { GameQuestEvent } from "./game-quest.types";
-import { QuestTracker, type QuestRuntimeState } from "./quest-tracker/quest-tracker";
+import {
+  QuestTracker,
+  type QuestRuntimeState,
+  type TrackedQuestStep
+} from "./quest-tracker/quest-tracker";
 
-const RECOVERY_ACTIVITY_ID = "recover";
 const RECOVERY_QUEST_ID = "quest_recovery";
-const CHIEF_LABOUR_ACTIVITY_ID = "village-labour";
-const CHIEF_LABOUR_QUEST_ID = "quest_chief_labour";
-const QUEST_RUNTIME_STEP_ID = "runtime_objectives";
 const PROLOGUE_ARC_ID = "prologue";
 const PROLOGUE_QUEST_HANDOFF_CHAPTER = 2;
 const AUTHORED_QUEST_RETRY_DELAY_MS = 1500;
@@ -71,7 +73,9 @@ export class GameQuestService {
     });
 
     this.questTracker.questProgress$.subscribe((state) => {
-      this.runtimeStatesState.set(this.questTracker.getState());
+      this.runtimeStatesState.set(
+        this.mergeRuntimeStatesWithManual(this.questTracker.getState())
+      );
 
       const summary = this.describeQuestProgress(state);
 
@@ -89,7 +93,7 @@ export class GameQuestService {
     });
 
     this.questTracker.questCompleted$.subscribe((questId) => {
-      this.handleQuestCompleted(questId);
+      this.handleTrackedStepCompleted(questId);
     });
 
     this.roster.deltaApplied$.subscribe((delta) => {
@@ -106,22 +110,7 @@ export class GameQuestService {
       }
 
       this.flushPendingQuestStarts();
-
-      if (this.reconcileScriptedQuestState()) {
-        return;
-      }
-
-      const syncKey = buildQuestSyncKey(
-        this.roster.activeSlotId(),
-        this.roster.activeCharacter()?.questLog,
-        this.authoredQuestsState()
-      );
-
-      if (syncKey === this.lastSyncKey) {
-        return;
-      }
-
-      this.refreshActiveQuests();
+      this.syncQuestState();
     });
   }
 
@@ -206,6 +195,37 @@ export class GameQuestService {
     return this.startQuestInternal(quest);
   }
 
+  resolveQuestStep(questId: string, stepId: string): boolean {
+    const player = this.roster.activeCharacter();
+    const quest = this.authoredQuestsState().find((entry) => entry.id === questId);
+    const entry = player?.questLog?.quests[questId];
+
+    this.debugLog.logMessage("quest", "Manual quest step resolution requested.", {
+      questId,
+      stepId,
+      hasPlayer: player !== null,
+      hasQuest: quest !== undefined,
+      currentStep: entry?.currentStep ?? null,
+      status: entry?.status ?? null
+    });
+
+    if (!player || !quest || !entry || entry.status !== "active") {
+      return false;
+    }
+
+    if (entry.currentStep !== stepId) {
+      return false;
+    }
+
+    const step = getQuestStepByIdLocal(quest, stepId);
+
+    if (!step || resolveStepCompletionMode(step) !== "manual") {
+      return false;
+    }
+
+    return this.advanceQuestStep(quest, entry, step);
+  }
+
   private ensureAuthoredQuestsLoaded(forceReload = false): void {
     if (!forceReload && this.authoredQuestsState().length > 0) {
       return;
@@ -238,7 +258,7 @@ export class GameQuestService {
         });
         this.authoredQuestsState.set(quests);
         this.flushPendingQuestStarts();
-        this.refreshActiveQuests();
+        this.syncQuestState(true);
       },
       error: (error: unknown) => {
         this.questsLoadSubscription = null;
@@ -254,6 +274,24 @@ export class GameQuestService {
     });
   }
 
+  private syncQuestState(forceRefresh = false): void {
+    if (this.reconcileScriptedQuestState()) {
+      return;
+    }
+
+    const syncKey = buildQuestSyncKey(
+      this.roster.activeSlotId(),
+      this.roster.activeCharacter()?.questLog,
+      this.authoredQuestsState()
+    );
+
+    if (!forceRefresh && syncKey === this.lastSyncKey) {
+      return;
+    }
+
+    this.refreshActiveQuests();
+  }
+
   private scheduleAuthoredQuestReload(): void {
     if (this.questsLoadRetryHandle !== null) {
       return;
@@ -267,8 +305,9 @@ export class GameQuestService {
 
   private startQuestInternal(quest: Quest): boolean {
     const player = this.roster.activeCharacter();
+    const firstStep = getQuestStepsLocal(quest)[0];
 
-    if (!player) {
+    if (!player || !firstStep) {
       this.debugLog.logMessage("quest", "Quest start failed because there is no active player.", {
         questId: quest.id
       });
@@ -291,8 +330,9 @@ export class GameQuestService {
         target: "player",
         path: ["questLog", "quests", quest.id],
         value: {
-          currentStep: QUEST_RUNTIME_STEP_ID,
-          status: "active"
+          currentStep: firstStep.id,
+          status: "active",
+          completedSteps: []
         },
         meta: {
           gameplayLogHandledBy: "quest-event"
@@ -300,27 +340,7 @@ export class GameQuestService {
       }
     ];
 
-    if (quest.id === RECOVERY_QUEST_ID) {
-      deltas.push({
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", RECOVERY_ACTIVITY_ID],
-        value: {
-          status: "enabled"
-        }
-      });
-    }
-
-    if (quest.id === CHIEF_LABOUR_QUEST_ID) {
-      deltas.push({
-        type: "set",
-        target: "player",
-        path: ["activityState", "availability", CHIEF_LABOUR_ACTIVITY_ID],
-        value: {
-          status: "enabled"
-        }
-      });
-    }
+    deltas.push(...buildQuestRewardDeltas(quest.startRewards));
 
     const updatedSlot = this.roster.applyActiveCharacterDeltas(deltas);
 
@@ -332,7 +352,8 @@ export class GameQuestService {
     }
 
     this.pendingQuestStartIds.delete(quest.id);
-    const message = `Quest received: ${describeQuestInstruction(quest)}.`;
+    applyQuestRewards(this.roster, quest.startRewards);
+    const message = `Quest received: ${describeQuestInstruction(quest, firstStep.id)}.`;
 
     this.latestQuestMessageState.set(message);
     this.debugLog.logMessage("quest", "Quest started.", {
@@ -457,69 +478,149 @@ export class GameQuestService {
       .filter(([, entry]) => entry.status === "active")
       .map(([questId]) => questId);
     const activeQuests = authoredQuests.filter((quest) => activeQuestIds.includes(quest.id));
+    const { trackedSteps, manualStates } = collectActiveQuestStepStates(activeQuests, player.questLog);
 
     this.debugLog.logMessage("quest", "Refreshing active quest tracker state.", {
-      activeQuestIds
+      activeQuestIds,
+      trackedStepCount: trackedSteps.length,
+      manualStepCount: manualStates.length
     });
-    this.questTracker.loadActiveQuests(activeQuests);
-    seedTrackerFromPlayer(this.questTracker, player, activeQuests);
-    this.runtimeStatesState.set(this.questTracker.getState());
+    this.questTracker.loadActiveQuests(trackedSteps);
+    seedTrackerFromPlayer(this.questTracker, player, trackedSteps);
+    this.runtimeStatesState.set(this.mergeRuntimeStatesWithManual(this.questTracker.getState()));
   }
 
-  private handleQuestCompleted(questId: string): void {
+  private handleTrackedStepCompleted(questId: string): void {
     const activePlayer = this.roster.activeCharacter();
     const quest = this.authoredQuestsState().find((entry) => entry.id === questId);
+    const questEntry = activePlayer?.questLog?.quests[questId];
 
-    if (!activePlayer || !quest) {
+    if (!activePlayer || !quest || !questEntry) {
       this.debugLog.logMessage("quest", "Quest completion ignored because the player or quest definition was missing.", {
         questId
       });
       return;
     }
 
-    const currentStatus = activePlayer.questLog?.quests[questId]?.status;
-
-    if (currentStatus === "completed") {
-      this.debugLog.logMessage("quest", "Quest completion skipped because the quest was already completed.", {
-        questId
-      });
+    if (questEntry.status !== "active") {
       return;
     }
 
-    const deltas: Delta[] = [
-      {
-        type: "set",
-        target: "player",
-        path: ["questLog", "quests", questId],
-        value: {
-          currentStep: QUEST_RUNTIME_STEP_ID,
-          status: "completed",
-          completedSteps: [QUEST_RUNTIME_STEP_ID]
-        },
-        meta: {
-          gameplayLogHandledBy: "quest-event"
-        }
+    const step = getQuestStepByIdLocal(quest, questEntry.currentStep);
+
+    if (!step) {
+      return;
+    }
+
+    this.advanceQuestStep(quest, questEntry, step);
+  }
+
+  private advanceQuestStep(
+    quest: Quest,
+    entry: PlayerQuestEntry,
+    step: QuestStep
+  ): boolean {
+    const steps = getQuestStepsLocal(quest);
+    const stepIndex = steps.findIndex((candidate) => candidate.id === step.id);
+
+    if (stepIndex < 0) {
+      return false;
+    }
+
+    const completedSteps = [...new Set([...(entry.completedSteps ?? []), step.id])];
+    const nextStep = steps[stepIndex + 1];
+    const deltas: Delta[] = [];
+
+    deltas.push({
+      type: "set",
+      target: "player",
+      path: ["questLog", "quests", quest.id],
+      value: nextStep
+        ? {
+            currentStep: nextStep.id,
+            status: "active",
+            completedSteps
+          }
+        : {
+            currentStep: step.id,
+            status: "completed",
+            completedSteps
+          },
+      meta: {
+        gameplayLogHandledBy: "quest-event"
       }
-    ];
+    });
 
-    deltas.push(...buildQuestRewardDeltas(quest.rewards));
+    deltas.push(...buildQuestRewardDeltas(step.rewards));
 
-    this.roster.applyActiveCharacterDeltas(deltas);
+    if (!nextStep) {
+      deltas.push(...buildQuestRewardDeltas(quest.rewards));
+    }
+
+    const applied = this.roster.applyActiveCharacterDeltas(deltas);
+
+    if (!applied) {
+      return false;
+    }
+
+    applyQuestRewards(this.roster, step.rewards);
+
+    if (nextStep) {
+      const message = `Quest updated: ${describeQuestInstruction(quest, nextStep.id)}.`;
+
+      this.latestQuestMessageState.set(message);
+      this.debugLog.logMessage("quest", "Quest advanced to the next step.", {
+        questId: quest.id,
+        completedStepId: step.id,
+        nextStepId: nextStep.id,
+        message
+      });
+      this.eventSubject.next({
+        type: "quest-progressed",
+        questId: quest.id,
+        message
+      });
+      this.refreshActiveQuests();
+      return true;
+    }
+
     applyQuestRewards(this.roster, quest.rewards);
     const message =
-      `Quest complete: ${describeQuestInstruction(quest)}${describeQuestRewards(quest.rewards)}.`;
+      `Quest complete: ${describeQuestInstruction(quest, step.id)}${describeQuestRewards([
+        ...(step.rewards ?? []),
+        ...(quest.rewards ?? [])
+      ])}.`;
 
     this.latestQuestMessageState.set(message);
     this.debugLog.logMessage("quest", "Quest completed.", {
-      questId,
+      questId: quest.id,
+      completedStepId: step.id,
       message
     });
     this.eventSubject.next({
       type: "quest-completed",
-      questId,
+      questId: quest.id,
       message
     });
     this.refreshActiveQuests();
+    return true;
+  }
+
+  private mergeRuntimeStatesWithManual(
+    trackedStates: readonly QuestRuntimeState[]
+  ): readonly QuestRuntimeState[] {
+    const player = this.roster.activeCharacter();
+
+    if (!player) {
+      return trackedStates;
+    }
+
+    const activeQuests = this.authoredQuestsState().filter(
+      (quest) => player.questLog?.quests[quest.id]?.status === "active"
+    );
+    const { manualStates } = collectActiveQuestStepStates(activeQuests, player.questLog);
+
+    return [...trackedStates, ...manualStates];
   }
 
   private handleAttributeDeltaMessage(delta: Delta): void {
@@ -557,12 +658,13 @@ export class GameQuestService {
 
   private describeQuestProgress(state: QuestRuntimeState): string | null {
     const quest = this.authoredQuestsState().find((entry) => entry.id === state.questId);
+    const step = quest ? getQuestStepByIdLocal(quest, state.stepId) : undefined;
 
-    if (!quest || quest.objectives.length === 0) {
+    if (!quest || !step || !step.objectives || step.objectives.length === 0) {
       return null;
     }
 
-    const objective = quest.objectives[0];
+    const objective = step.objectives[0];
     const progress = state.objectives[`${state.questId}:0`];
 
     if (!progress) {
@@ -573,7 +675,7 @@ export class GameQuestService {
       return `${prettyLabel(objective.attribute)} ${formatScore(progress.current)} / ${formatScore(progress.target)}`;
     }
 
-    return describeQuestInstruction(quest);
+    return describeQuestInstruction(quest, state.stepId);
   }
 
   private flushPendingQuestStarts(): void {
@@ -614,7 +716,7 @@ export class GameQuestService {
 function seedTrackerFromPlayer(
   tracker: QuestTracker,
   player: Player,
-  quests: readonly Quest[]
+  quests: readonly TrackedQuestStep[]
 ): void {
   const seededAttributes = new Set<string>();
   const seededItems = new Set<string>();
@@ -622,6 +724,49 @@ function seedTrackerFromPlayer(
   quests.forEach((quest) => {
     seedQuestObjectives(tracker, player, quest.objectives, seededAttributes, seededItems);
   });
+}
+
+function collectActiveQuestStepStates(
+  quests: readonly Quest[],
+  questLog: QuestLog | undefined
+): {
+  trackedSteps: TrackedQuestStep[];
+  manualStates: QuestRuntimeState[];
+} {
+  const trackedSteps: TrackedQuestStep[] = [];
+  const manualStates: QuestRuntimeState[] = [];
+
+  for (const quest of quests) {
+    const entry = questLog?.quests[quest.id];
+
+    if (!entry || entry.status !== "active") {
+      continue;
+    }
+
+    const step = getQuestStepByIdLocal(quest, entry.currentStep);
+
+    if (!step) {
+      continue;
+    }
+
+    if (resolveStepCompletionMode(step) === "manual") {
+      manualStates.push({
+        questId: quest.id,
+        stepId: step.id,
+        objectives: {},
+        completed: false
+      });
+      continue;
+    }
+
+    trackedSteps.push({
+      questId: quest.id,
+      stepId: step.id,
+      objectives: step.objectives ?? []
+    });
+  }
+
+  return { trackedSteps, manualStates };
 }
 
 function seedQuestObjectives(
@@ -699,6 +844,7 @@ function buildQuestRewardDeltas(rewards: readonly QuestReward[] | undefined): De
         ];
       }
       case "attribute_unlock":
+      case "skill_unlock":
         return [];
     }
   });
@@ -712,6 +858,9 @@ function applyQuestRewards(
     switch (reward.type) {
       case "attribute_unlock":
         roster.setActiveAttributeUnlocked(reward.attributeId, reward.unlocked ?? true);
+        break;
+      case "skill_unlock":
+        roster.setActiveSkillUnlocked(reward.skillId, reward.unlocked ?? true);
         break;
       case "activity_availability":
         break;
@@ -754,8 +903,14 @@ function buildActivityRewardDelta(
   };
 }
 
-function describeQuestInstruction(quest: Quest): string {
-  const objective = quest.objectives[0];
+function describeQuestInstruction(quest: Quest, stepId?: string): string {
+  const resolvedStep =
+    stepId !== undefined ? getQuestStepByIdLocal(quest, stepId) : getQuestStepsLocal(quest)[0];
+  const objective = resolvedStep?.objectives?.[0] ?? quest.objectives?.[0];
+
+  if (resolvedStep?.label) {
+    return resolvedStep.label;
+  }
 
   if (!objective) {
     return prettyLabel(quest.id);
@@ -777,6 +932,8 @@ function describeQuestRewards(rewards: readonly QuestReward[] | undefined): stri
     switch (reward.type) {
       case "attribute_unlock":
         return `${prettyLabel(reward.attributeId)} unlocked`;
+      case "skill_unlock":
+        return `${prettyLabel(reward.skillId)} unlocked`;
       case "activity_availability":
         return reward.status === "locked"
           ? `${prettyLabel(reward.activityId)} hidden`
@@ -787,6 +944,27 @@ function describeQuestRewards(rewards: readonly QuestReward[] | undefined): stri
   return ` Reward: ${labels.join(", ")}`;
 }
 
+function getQuestStepsLocal(quest: Quest): readonly QuestStep[] {
+  if (quest.steps && quest.steps.length > 0) {
+    return quest.steps;
+  }
+
+  return [
+    {
+      id: "runtime_objectives",
+      completion: "automatic",
+      objectives: [...(quest.objectives ?? [])]
+    }
+  ];
+}
+
+function getQuestStepByIdLocal(
+  quest: Quest,
+  stepId: string
+): QuestStep | undefined {
+  return getQuestStepsLocal(quest).find((step) => step.id === stepId);
+}
+
 function buildQuestSyncKey(
   activeSlotId: string | null,
   questLog: QuestLog | undefined,
@@ -794,7 +972,10 @@ function buildQuestSyncKey(
 ): string {
   const activeQuestEntries = Object.entries(questLog?.quests ?? {})
     .filter(([, entry]) => entry.status === "active" || entry.status === "completed")
-    .map(([questId, entry]) => `${questId}:${entry.status}`)
+    .map(
+      ([questId, entry]) =>
+        `${questId}:${entry.status}:${entry.currentStep}:${(entry.completedSteps ?? []).join(",")}`
+    )
     .sort();
 
   return JSON.stringify({
@@ -813,6 +994,14 @@ function prettyLabel(value: string): string {
 
 function formatScore(value: number): string {
   return value.toFixed(1);
+}
+
+function resolveStepCompletionMode(step: QuestStep): "automatic" | "manual" {
+  if (step.completion === "manual") {
+    return "manual";
+  }
+
+  return "automatic";
 }
 
 function toErrorMessage(error: unknown, fallback: string): string {

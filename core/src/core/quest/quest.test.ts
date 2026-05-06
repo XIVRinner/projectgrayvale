@@ -62,9 +62,48 @@ describe("quest objective validation", () => {
     });
   });
 
+  it("accepts authored quest steps including manual dialogue steps", () => {
+    const quest = parseQuest({
+      id: "quest_chief_labour",
+      startRewards: [
+        { type: "activity_availability", activityId: "village-labour", status: "enabled" }
+      ],
+      steps: [
+        {
+          id: "build_strength",
+          label: "Build your strength",
+          objectives: [
+            {
+              type: "attribute_reached",
+              attribute: "strength",
+              target: 10
+            }
+          ],
+          rewards: [
+            { type: "activity_availability", activityId: "village-labour", status: "locked" }
+          ]
+        },
+        {
+          id: "report_to_chief",
+          label: "Speak to the Chief",
+          completion: "manual",
+          rewards: [{ type: "skill_unlock", skillId: "short_blade" }]
+        }
+      ]
+    });
+
+    expect(() => assertValidQuest(quest)).not.toThrow();
+    expect(quest.steps?.[1]).toEqual({
+      id: "report_to_chief",
+      label: "Speak to the Chief",
+      completion: "manual",
+      rewards: [{ type: "skill_unlock", skillId: "short_blade" }]
+    });
+  });
+
   it("supports nested composite objectives", () => {
     const quest = parseQuest(loadFixture("quest.fixture.compound.json"));
-    const composite = quest.objectives[0] as CompositeObjective;
+    const composite = quest.objectives?.[0] as CompositeObjective;
 
     expect(() => assertValidQuest(quest)).not.toThrow();
     expect(composite.type).toBe("composite");
@@ -139,7 +178,8 @@ describe("quest objective validation", () => {
       ],
       rewards: [
         { type: "attribute_unlock", attributeId: "strength" },
-        { type: "activity_availability", activityId: "recover", status: "locked" }
+        { type: "activity_availability", activityId: "recover", status: "locked" },
+        { type: "skill_unlock", skillId: "short_blade" }
       ]
     };
 

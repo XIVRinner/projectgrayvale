@@ -174,12 +174,61 @@ describe("GameDialogService", () => {
       }
     });
   });
+
+  it("opens the chief's village follow-up using top-level location metadata", () => {
+    const { service, worldState } = createFixture();
+
+    worldState.currentSublocationMetadata.set(null);
+
+    service.startChiefBridgitteHandoff();
+
+    expect(service.session()?.title).toBe("A New Lead");
+    expect(service.session()?.eyebrow).toBe("Arkama Village");
+    expect(service.session()?.subtitle).toBe(
+      "The unofficial name the locals use for their nameless settlement."
+    );
+    expect(service.session()?.sceneImagePath).toBe(
+      "assets/images/location-backgrounds/village.png"
+    );
+    expect(service.session()?.currentEntry?.actor?.name).toBe("Village Chief");
+    expect(service.session()?.currentEntry?.text).toContain("hoping you would come by");
+  });
+
+  it("opens Bridgitte's house dialogue and presents her intro", () => {
+    const { service, worldState } = createFixture();
+
+    worldState.currentSublocationMetadata.set({
+      id: "bridgitte-house",
+      label: "Bridgitte's House",
+      subtitle: "A quiet house where an old adventurer keeps her past within arm's reach.",
+      sceneImagePath: "assets/images/location-backgrounds/bridgette-house.png",
+      availableNpcIds: ["bridgitte"],
+      isReturnable: true,
+      entryActionLabel: "Visit Bridgitte's house",
+      exitActionLabel: "Leave Bridgitte's house"
+    });
+
+    service.startBridgitteHouse();
+
+    expect(service.session()?.title).toBe("Bridgitte");
+    expect(service.session()?.eyebrow).toBe("Bridgitte's House");
+    expect(service.session()?.sceneImagePath).toBe(
+      "assets/images/location-backgrounds/bridgette-house.png"
+    );
+    expect(service.session()?.currentEntry?.actor?.name).toBe("Bridgitte");
+    expect(service.session()?.currentEntry?.text).toContain("chief finally sent you");
+  });
 });
 
 function createFixture(): {
   roster: CharacterRosterService;
   gameQuests: {
     startQuestById: jest.Mock;
+    resolveQuestStep: jest.Mock;
+  };
+  worldState: {
+    currentLocationMetadata: ReturnType<typeof signal>;
+    currentSublocationMetadata: ReturnType<typeof signal>;
   };
   service: GameDialogService;
 } {
@@ -208,6 +257,26 @@ function createFixture(): {
         );
       }
 
+      if (url === "assets/dialogue/arkama/chief-bridgitte-handoff.fsc") {
+        expect(options?.responseType).toBe("text");
+        return of(
+          readFileSync(
+            resolve(__dirname, "../../../assets/dialogue/arkama/chief-bridgitte-handoff.fsc"),
+            "utf8"
+          )
+        );
+      }
+
+      if (url === "assets/dialogue/arkama/bridgitte-house.fsc") {
+        expect(options?.responseType).toBe("text");
+        return of(
+          readFileSync(
+            resolve(__dirname, "../../../assets/dialogue/arkama/bridgitte-house.fsc"),
+            "utf8"
+          )
+        );
+      }
+
       throw new Error(`Unexpected HttpClient.get call for ${url}.`);
     })
   };
@@ -230,7 +299,24 @@ function createFixture(): {
     )
   };
   const worldState = {
-    currentSublocationMetadata: signal({
+    currentLocationMetadata: signal({
+      id: "village-arkama",
+      label: "Arkama Village",
+      subtitle: "The unofficial name the locals use for their nameless settlement.",
+      sceneImagePath: "assets/images/location-backgrounds/village.png",
+      availableNpcIds: ["village-chief"],
+      sublocations: []
+    }),
+    currentSublocationMetadata: signal<{
+      id: string;
+      label: string;
+      subtitle: string;
+      sceneImagePath: string;
+      availableNpcIds: string[];
+      isReturnable: boolean;
+      entryActionLabel: string;
+      exitActionLabel: string;
+    } | null>({
       id: "chief-house",
       label: "Chief House",
       subtitle: "A quiet recovery room under the village chief's roof.",
@@ -242,7 +328,8 @@ function createFixture(): {
     })
   };
   const gameQuests = {
-    startQuestById: jest.fn(() => true)
+    startQuestById: jest.fn(() => true),
+    resolveQuestStep: jest.fn(() => true)
   };
   const debugLog = {
     logMessage: jest.fn(),
@@ -265,6 +352,7 @@ function createFixture(): {
   return {
     roster,
     gameQuests,
+    worldState,
     service: runInInjectionContext(injector, () => new GameDialogService())
   };
 }

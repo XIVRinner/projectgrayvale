@@ -73,13 +73,13 @@ describe("GameQuestService", () => {
       status: "locked"
     });
     expect(service.latestQuestMessage()).toBe(
-      "Quest complete: reach 10.0 Vitality. Recover is now hidden."
+      "Quest complete: reach 10.0 Vitality Reward: Recover hidden, Strength unlocked."
     );
     expect(questEvents.filter((event) => event.type === "quest-completed")).toEqual([
       {
         type: "quest-completed",
         questId: "quest_recovery",
-        message: "Quest complete: reach 10.0 Vitality. Recover is now hidden."
+        message: "Quest complete: reach 10.0 Vitality Reward: Recover hidden, Strength unlocked."
       }
     ]);
   });
@@ -115,6 +115,13 @@ describe("GameQuestService", () => {
     questsSubject.next([
       {
         id: "quest_recovery",
+        startRewards: [
+          {
+            type: "activity_availability",
+            activityId: "recover",
+            status: "enabled"
+          }
+        ],
         objectives: [
           {
             type: "attribute_reached",
@@ -259,6 +266,56 @@ describe("GameQuestService", () => {
       }
     ]);
   });
+
+  it("reconciles imported post-prologue saves that are missing the scripted recovery quest", async () => {
+    const { roster, service } = createFixture();
+    const importedPlayer = buildPostPrologueRecoveryPlayer();
+    const importedEvents: GameQuestEvent[] = [];
+    const payload = buildRosterPayload(importedPlayer);
+
+    localStorage.clear();
+    service.events$.subscribe((event) => {
+      importedEvents.push(event);
+    });
+
+    expect(roster.importRoster(payload)).toBe(1);
+    await waitForTaskQueue();
+
+    expect(roster.activeCharacter()?.questLog?.quests["quest_recovery"]).toMatchObject({
+      currentStep: "runtime_objectives",
+      status: "active"
+    });
+    expect(roster.activeCharacter()?.activityState?.availability["recover"]).toEqual({
+      status: "enabled"
+    });
+    expect(service.latestQuestMessage()).toBe("Quest received: reach 10.0 Vitality.");
+    expect(importedEvents.filter((event) => event.type === "quest-started")).toEqual([
+      {
+        type: "quest-started",
+        questId: "quest_recovery",
+        message: "Quest received: reach 10.0 Vitality."
+      }
+    ]);
+  });
+
+  it("reconciles hydrated post-prologue saves that are missing the scripted recovery quest", async () => {
+    const payload = buildRosterPayload(buildPostPrologueRecoveryPlayer());
+
+    localStorage.setItem("grayvale:save-slots:v1", payload);
+
+    const { roster, service } = createFixture();
+
+    await waitForTaskQueue();
+
+    expect(roster.activeCharacter()?.questLog?.quests["quest_recovery"]).toMatchObject({
+      currentStep: "runtime_objectives",
+      status: "active"
+    });
+    expect(roster.activeCharacter()?.activityState?.availability["recover"]).toEqual({
+      status: "enabled"
+    });
+    expect(service.latestQuestMessage()).toBe("Quest received: reach 10.0 Vitality.");
+  });
 });
 
 function createFixture(): {
@@ -275,11 +332,29 @@ function createFixture(options?: {
   const quests: readonly Quest[] = [
     {
       id: "quest_recovery",
+      startRewards: [
+        {
+          type: "activity_availability",
+          activityId: "recover",
+          status: "enabled"
+        }
+      ],
       objectives: [
         {
           type: "attribute_reached",
           attribute: "vitality",
           target: 10
+        }
+      ],
+      rewards: [
+        {
+          type: "activity_availability",
+          activityId: "recover",
+          status: "locked"
+        },
+        {
+          type: "attribute_unlock",
+          attributeId: "strength"
         }
       ]
     }
@@ -329,6 +404,32 @@ function createFixture(options?: {
 
 function clonePlayer<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function buildPostPrologueRecoveryPlayer() {
+  const player = clonePlayer(samplePlayer);
+
+  player.attributes.vitality = 7;
+  player.story = {
+    currentArcId: "prologue",
+    currentChapter: 2
+  };
+  player.questLog = {
+    quests: {}
+  };
+  player.activityState = {
+    availability: {},
+    activeActivityId: null
+  };
+
+  return player;
+}
+
+function buildRosterPayload(player = buildPostPrologueRecoveryPlayer()): string {
+  const roster = new CharacterRosterService();
+
+  roster.createCharacter(player);
+  return roster.exportAll();
 }
 
 function waitForTaskQueue(): Promise<void> {

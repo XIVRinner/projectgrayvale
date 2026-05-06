@@ -1,0 +1,281 @@
+chapter BRIDGITTE_REPEATABLE_TALK:
+    if bridgitte_lore_unlocked == false:
+        bridgitte "Rest first."
+        bridgitte "Questions are easier to answer when you're not swaying on your feet."
+        return
+
+    narrator "Bridgitte is outside her house, checking the edge on a skinning knife."
+    narrator "She glances up as you approach."
+
+    bridgitte "Back again?"
+    bridgitte "If it's training, say so. If it's questions, ask."
+
+    choice:
+        "Ask about adventurer ranks." -> BRIDGITTE_LORE_RANKS
+        "Ask about her life as an adventurer." -> BRIDGITTE_LORE_ADVENTURER_LIFE
+        "Ask why she left adventuring behind." -> BRIDGITTE_LORE_LEFT_ADVENTURING
+        "Ask what her job is in the village." -> BRIDGITTE_LORE_VILLAGE_JOB
+        "Ask about the village." -> BRIDGITTE_LORE_VILLAGE
+        "Leave." -> BRIDGITTE_LORE_END
+
+
+chapter BRIDGITTE_LORE_RANKS:
+    player "Can you explain adventurer ranks?"
+
+    bridgitte "You start at G."
+    bridgitte "Then F, E, D, C, B, A, and S."
+    bridgitte "Most people who call themselves adventurers never climb past E or D."
+    bridgitte "C-rank is where people start treating you like a professional instead of a hopeful fool with boots."
+    bridgitte "B-rank means you've survived enough serious work that the guild trusts you with ugly problems."
+    bridgitte "A-rank means kingdoms notice when you cross a border."
+    bridgitte "S-rank means everyone notices."
+
+    player "Are there ranks above S?"
+
+    bridgitte "Technically."
+    bridgitte "Double-S exists."
+    bridgitte "Very, very rare. The kind of rare people argue about in taverns because most have never seen one."
+    bridgitte "Triple-S is different."
+    bridgitte "That's less an adventurer rank and more a warning label."
+
+    player "For monsters?"
+
+    bridgitte "Mostly."
+    bridgitte "Monsters use the same scale, more or less."
+    bridgitte "A G-rank monster should be manageable for a trained G-rank adventurer."
+    bridgitte "Should be."
+    bridgitte "Ranks weigh strength, danger to civilians, magical power, habits, terrain, all of it."
+    bridgitte "Numbers help. They don't replace judgment."
+
+    player "So even a low-rank monster can still be dangerous."
+
+    bridgitte "A kitchen knife can kill someone."
+    bridgitte "A ditch can kill someone."
+    bridgitte "Rank tells you what a thing is expected to be."
+    bridgitte "It doesn't promise you get to be stupid around it."
+
+    bridgitte "Remember that when you see the coyote."
+    bridgitte "Low rank doesn't mean harmless."
+    bridgitte "It means you're allowed to learn before the world gets crueler."
+
+    goto BRIDGITTE_REPEATABLE_TALK
+
+
+chapter BRIDGITTE_LORE_ADVENTURER_LIFE:
+    player "What was your life like as an adventurer?"
+
+    bridgitte "Loud."
+    bridgitte "Cold."
+    bridgitte "Hungry more often than the songs admit."
+
+    player "That sounds miserable."
+
+    bridgitte "It was wonderful."
+    bridgitte "Sometimes."
+
+    narrator "For a moment, Bridgitte's guarded expression softens."
+
+    bridgitte "I was part of a party called Bringadine."
+    bridgitte "Good people. Better fighters."
+    bridgitte "We took work across half the roads between here and places you probably haven't heard of yet."
+
+    player "What happened to them?"
+
+    bridgitte "Nothing bad, last I heard."
+    bridgitte "They didn't disband."
+    bridgitte "I left."
+
+    player "And they kept going without you?"
+
+    bridgitte "They did."
+    bridgitte "Last word I had, they were in the Omega Empire."
+    bridgitte "Promoted to A-rank, too."
+
+    player "Were you proud of them?"
+
+    bridgitte "Of course I was."
+    bridgitte "You don't stop caring about people just because you're no longer walking beside them."
+
+    player "What did you do in the party?"
+
+    bridgitte "I was the sub-tank."
+
+    player "What does that mean?"
+
+    bridgitte "A headache to explain before you even know how not to trip over your own guard."
+    bridgitte "For now, understand this."
+    bridgitte "Some people stand in front."
+    bridgitte "Some people strike from behind."
+    bridgitte "Some people watch the places where the formation is about to break."
+    bridgitte "That was me."
+
+    player "Do you miss it?"
+
+    bridgitte "Some days."
+    bridgitte "Some days I miss the road."
+    bridgitte "Some days I remember exactly why a roof, a warm bed, and villagers who bring too many turnips can feel like a blessing."
+
+    goto BRIDGITTE_REPEATABLE_TALK
+
+
+chapter BRIDGITTE_LORE_LEFT_ADVENTURING:
+    player "Why did you leave adventuring?"
+
+    narrator "Bridgitte's hands still."
+
+    bridgitte "Reasons."
+
+    player "You don't want to talk about it."
+
+    bridgitte "No."
+
+    player "Did something happen?"
+
+    bridgitte "Something always happens."
+    bridgitte "People don't leave a life like that because one morning the porridge tastes wrong."
+
+    player "Were you hurt?"
+
+    bridgitte "Not in a way you'll see."
+
+    narrator "She resumes working the blade across the whetstone."
+
+    bridgitte "Listen."
+    bridgitte "There are questions a person can answer."
+    bridgitte "There are questions a person can survive answering."
+    bridgitte "And there are questions that turn the past into a room with no door."
+
+    player "I'm sorry. I didn't mean to push."
+
+    bridgitte "You pushed a little."
+    bridgitte "But not cruelly."
+    bridgitte "That's why I'm not throwing this whetstone at you."
+
+    player "Will you tell me someday?"
+
+    bridgitte "Maybe."
+    bridgitte "If someday becomes the sort of day where it matters."
+
+    bridgitte "For now, take the answer I gave you."
+    bridgitte "Reasons."
+    bridgitte "And leave the rest where it is."
+
+    goto BRIDGITTE_REPEATABLE_TALK
+
+
+chapter BRIDGITTE_LORE_VILLAGE_JOB:
+    player "What exactly do you do here?"
+
+    bridgitte "I hunt."
+
+    player "And handle monsters."
+
+    bridgitte "Yes."
+
+    player "And people come to you when something dangerous gets close."
+
+    bridgitte "Also yes."
+
+    player "That sounds like a job."
+
+    bridgitte "It sounds like work."
+    bridgitte "A job has a title, a wage, and someone important pretending she invented the need for it."
+
+    player "Then what are you?"
+
+    bridgitte "Useful."
+
+    narrator "She says it plainly, without pride."
+
+    bridgitte "This village doesn't have a quest board."
+    bridgitte "No posted contracts. No guild clerk. No tidy slips of paper saying three coyotes are worth five copper and a bowl of stew."
+    bridgitte "But the work still exists."
+    bridgitte "Predators wander too close. Burrows spread. Monsters come down from the rough ground when weather, hunger, or whatever else drives them."
+
+    player "And you handle all of it?"
+
+    bridgitte "As much as I can."
+    bridgitte "Most of it is small."
+    bridgitte "G-rank and F-rank nuisances. E-rank if the day wants to be irritating."
+    bridgitte "D-rank outbreaks happen, but not often."
+
+    player "Can the villagers fight?"
+
+    bridgitte "Some can swing a tool hard enough to make a wolf reconsider."
+    bridgitte "That is not the same as fighting monsters."
+    bridgitte "Farmers should be farming. Children should be growing. Old people should be complaining in peace."
+    bridgitte "So yes."
+    bridgitte "When teeth come near the fences, I handle it."
+
+    player "And now I help."
+
+    bridgitte "Now you help."
+    bridgitte "Not because I want a servant."
+    bridgitte "Because you were given kindness, and kindness should teach your hands to become useful."
+
+    goto BRIDGITTE_REPEATABLE_TALK
+
+
+chapter BRIDGITTE_LORE_VILLAGE:
+    player "What's this village like?"
+
+    bridgitte "Quiet."
+    bridgitte "Harsh."
+    bridgitte "Mostly honest."
+    bridgitte "Not much to do unless you like mending, hauling, chopping, milking, smoking meat, counting hens, chasing hens, or apologizing to the woman whose garden your hens destroyed."
+
+    player "You make it sound boring."
+
+    bridgitte "It is boring."
+    bridgitte "That's part of why I like it."
+
+    player "Because adventuring was worse?"
+
+    bridgitte "Because adventuring was louder."
+    bridgitte "You learn to appreciate mornings where the worst thing waiting for you is a broken latch."
+    bridgitte "No ambush."
+    bridgitte "No blood trail."
+    bridgitte "No guild letter sealed in black wax."
+    bridgitte "Just a latch."
+
+    player "But it's still dangerous here."
+
+    bridgitte "Everywhere is dangerous."
+    bridgitte "Cities hide knives behind smiles."
+    bridgitte "Roads hide bandits behind trees."
+    bridgitte "Villages hide danger behind routine."
+    bridgitte "You get used to the same paths, the same fences, the same sounds at night."
+    bridgitte "Then one sound changes, and if nobody notices, something gets through."
+
+    player "Is that why the villagers love you?"
+
+    bridgitte "They love me because I fix things and don't ask too many questions."
+    bridgitte "And because I once punched a boar hard enough that the chief still tells the story wrong."
+
+    player "Did you really punch a boar?"
+
+    bridgitte "Yes."
+    bridgitte "Hard enough to do what the chief claims? No."
+    bridgitte "Let her have it. Chiefs need stories. It keeps people listening when there is real work to assign."
+
+    narrator "She looks toward the village lanes, where smoke rises from low chimneys."
+
+    bridgitte "It's not much."
+    bridgitte "But it is alive."
+    bridgitte "Places like this stay alive because people do small hard things every day."
+    bridgitte "You'll learn that if you stay long enough."
+
+    goto BRIDGITTE_REPEATABLE_TALK
+
+
+chapter BRIDGITTE_LORE_END:
+    player "That's all for now."
+
+    bridgitte "Good."
+    bridgitte "Too much talking dulls the edge."
+
+    player "Of the dagger?"
+
+    bridgitte "Of the person holding it."
+
+    return

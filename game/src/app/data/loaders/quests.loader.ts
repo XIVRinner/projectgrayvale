@@ -55,8 +55,11 @@ function parseQuestFallback(value: unknown): Quest {
     throw new Error("Quest entry id must be a non-empty string.");
   }
 
-  if (!Array.isArray(record["objectives"])) {
-    throw new Error(`Quest "${record["id"]}" objectives must be an array.`);
+  const hasObjectives = Array.isArray(record["objectives"]);
+  const hasSteps = Array.isArray(record["steps"]) && record["steps"].length > 0;
+
+  if (!hasObjectives && !hasSteps) {
+    throw new Error(`Quest "${record["id"]}" must define objectives or steps.`);
   }
 
   return value as Quest;

@@ -51,6 +51,12 @@ export type ActivityAvailabilityReward = {
   disabledReason?: string;
 };
 
+export type SkillUnlockReward = {
+  type: "skill_unlock";
+  skillId: string;
+  unlocked?: boolean;
+};
+
 export type QuestObjective =
   | AttributeObjective
   | ItemObjective
@@ -58,10 +64,23 @@ export type QuestObjective =
   | KillObjective
   | CompositeObjective;
 
-export type QuestReward = AttributeUnlockReward | ActivityAvailabilityReward;
+export type QuestReward =
+  | AttributeUnlockReward
+  | ActivityAvailabilityReward
+  | SkillUnlockReward;
+
+export interface QuestStep {
+  id: string;
+  label?: string;
+  completion?: "automatic" | "manual";
+  objectives?: QuestObjective[];
+  rewards?: QuestReward[];
+}
 
 export interface Quest {
   id: string;
-  objectives: QuestObjective[];
+  objectives?: QuestObjective[];
+  steps?: QuestStep[];
+  startRewards?: QuestReward[];
   rewards?: QuestReward[];
 }

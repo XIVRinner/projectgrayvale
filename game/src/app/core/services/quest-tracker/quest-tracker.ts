@@ -6,7 +6,6 @@ import type {
   Delta,
   ItemObjective,
   KillObjective,
-  Quest,
   QuestObjective
 } from "@rinner/grayvale-core";
 import { Observable, Subject } from "rxjs";
@@ -25,8 +24,15 @@ export type ObjectiveProgress = {
 
 export type QuestRuntimeState = {
   questId: string;
+  stepId: string;
   objectives: Record<string, ObjectiveProgress>;
   completed: boolean;
+};
+
+export type TrackedQuestStep = {
+  questId: string;
+  stepId: string;
+  objectives: readonly QuestObjective[];
 };
 
 type ObjectiveReference<TObjective extends QuestObjective = QuestObjective> = {
@@ -76,14 +82,14 @@ export class QuestTracker {
     });
   }
 
-  loadActiveQuests(quests: Quest[]): void {
+  loadActiveQuests(quests: readonly TrackedQuestStep[]): void {
     this.index = createEmptyIndex();
     this.questsById.clear();
 
     quests.forEach((quest) => {
       const indexedQuest = buildIndexedQuestState(quest);
 
-      this.questsById.set(quest.id, indexedQuest);
+      this.questsById.set(quest.questId, indexedQuest);
       registerIndexedQuest(this.index, indexedQuest);
       reevaluateQuest(indexedQuest);
     });
@@ -164,19 +170,20 @@ export class QuestTracker {
   }
 }
 
-function buildIndexedQuestState(quest: Quest): IndexedQuestState {
+function buildIndexedQuestState(quest: TrackedQuestStep): IndexedQuestState {
   const nodes: Record<string, ObjectiveNode> = {};
   const objectives: Record<string, ObjectiveProgress> = {};
   const roots = quest.objectives.map((objective, index) =>
-    registerObjectiveNode(objective, `${quest.id}:${index}`, nodes, objectives)
+    registerObjectiveNode(objective, `${quest.questId}:${index}`, nodes, objectives)
   );
 
   return {
-    questId: quest.id,
+    questId: quest.questId,
     roots,
     nodes,
     state: {
-      questId: quest.id,
+      questId: quest.questId,
+      stepId: quest.stepId,
       objectives,
       completed: false
     },
@@ -447,6 +454,7 @@ function isSameProgress(left: ObjectiveProgress, right: ObjectiveProgress): bool
 function cloneQuestRuntimeState(state: QuestRuntimeState): QuestRuntimeState {
   return {
     questId: state.questId,
+    stepId: state.stepId,
     objectives: Object.fromEntries(
       Object.entries(state.objectives).map(([objectiveId, progress]) => [
         objectiveId,

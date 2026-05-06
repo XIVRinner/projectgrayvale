@@ -1,0 +1,233 @@
+declare narrator = Actor("Narrator")
+declare player = Actor("Player")
+declare bridgitte = Actor("Bridgitte")
+declare global bridgitte_intro_done = false
+declare global bridgitte_lore_unlocked = false
+declare global quest_cull_coyote_started = false
+
+chapter BRIDGITTE_FIRST_MEETING:
+    narrator "The small house smells faintly of woodsmoke, dried herbs, and oiled leather."
+    narrator "A woman stands near the table, cleaning an old dagger with a practiced hand."
+    narrator "She looks up when you enter. Her eyes are calm, but guarded."
+
+    bridgitte "You're standing straighter than yesterday."
+    bridgitte "That's good."
+    bridgitte "Means the poultices worked, or you're too stubborn to admit they didn't."
+
+    player "You were one of the people who found me?"
+
+    bridgitte "One of them, yes."
+    bridgitte "You were half-buried in mud, bruised purple, and breathing like each breath had to be argued into you."
+    bridgitte "Not the sort of thing a decent person walks past."
+
+    player "I don't remember how I got here."
+
+    bridgitte "Figured as much."
+    bridgitte "People who know where they are don't usually wake up asking which country they're in."
+
+    player "The chief told me this is Kingdom Alpha."
+
+    bridgitte "Western edge of it."
+    bridgitte "Arkama province. Closest real city is Arkama, and even that feels far when the roads are bad."
+    bridgitte "Past the village, there's mountain, forest, and then ocean."
+    bridgitte "Not much farther west to go unless you plan on learning to breathe saltwater."
+
+    player "I need to go back to Beta."
+
+    bridgitte "The Duchy of Beta?"
+    bridgitte "That's not impossible."
+    bridgitte "But it's not a walk down the lane either. A month by carriage if the roads are kind, the tolls are paid, and nothing with teeth decides your horse looks edible."
+
+    player "Then I should leave as soon as I can."
+
+    bridgitte "No."
+    bridgitte "You should live long enough to leave."
+
+    player "What do you mean?"
+
+    bridgitte "I mean this village is quiet, not safe."
+    bridgitte "We've got game, livestock, clean wells, good soil. That draws people."
+    bridgitte "It also draws predators."
+    bridgitte "Wolves when winter runs lean. Boars when the mast is poor. Coyotes from the Arkama brush when their packs get bold."
+    bridgitte "And monsters, now and then."
+
+    player "I don't know how to fight."
+
+    bridgitte "I know."
+
+    player "Is it that obvious?"
+
+    bridgitte "To me, yes."
+    bridgitte "You hold yourself like someone who's never had to watch another person's shoulders."
+    bridgitte "And when the village chief dropped that pan behind you this morning, you froze instead of moving."
+    bridgitte "No shame in it."
+    bridgitte "But shame won't keep blood inside your body."
+
+    player "So you want to teach me?"
+
+    bridgitte "If you're willing to learn."
+
+    player "Why help me that much?"
+
+    bridgitte "Because we helped you once already."
+    bridgitte "And because kindness ought to move in circles, not stop at one person."
+    bridgitte "You want your strength back? Good. I can help with that."
+    bridgitte "In return, you help me with the culling work around the village."
+
+    player "Culling work?"
+
+    bridgitte "Predators that get too close. Burrows that spread too fast. Little things, mostly."
+    bridgitte "The sort of work a quest board would handle if this place had one."
+    bridgitte "It doesn't."
+    bridgitte "So it comes to me."
+
+    player "Are you an adventurer?"
+
+    bridgitte "Was."
+
+    player "You stopped?"
+
+    bridgitte "I stopped."
+    bridgitte "Now I hunt, mend fences, track prints, pull children out of places they were told not to climb, and keep monsters away from goats that seem determined to die creatively."
+
+    player "That sounds like an official job."
+
+    bridgitte "It isn't."
+    bridgitte "Official jobs come with official pay."
+    bridgitte "I get eggs, smoked meat, apologies, and the occasional loaf of bread left on my step by someone pretending they didn't leave it."
+
+    narrator "She sets the cleaned dagger on the table."
+
+    bridgitte "This was mine, years ago."
+    bridgitte "Not my best blade. Not my prettiest."
+    bridgitte "But it kept me alive when I knew less than I thought I did."
+
+    player "You're giving it to me?"
+
+    bridgitte "Lending."
+    bridgitte "If you die with it, I'll be cross."
+
+    player "I'll try not to."
+
+    bridgitte "Good."
+    bridgitte "Try harder than that."
+
+    narrator "Bridgitte picks the dagger up by the flat of the blade and offers you the handle."
+
+    bridgitte "Short blade arts."
+    bridgitte "Knives and daggers. Close work. Quick work."
+    bridgitte "Not heroic, not pretty, and not something bards sing about unless the bard owes somebody money."
+    bridgitte "But for someone starting from nothing, it teaches the right lessons."
+    bridgitte "Distance. Timing. Hands. Feet. When to move, when not to."
+
+    player "I don't feel ready."
+
+    bridgitte "You're not."
+    bridgitte "That's why we start with something that won't eat you if you make one mistake."
+
+    player "What do you need me to do?"
+
+    bridgitte "There's an Arkama coyote skulking near the lower path."
+    bridgitte "Thin thing. Mean. Probably pushed out of its pack."
+    bridgitte "It has been testing the chicken fences and following children at dusk."
+
+    player "You want me to kill it?"
+
+    bridgitte "I want you to learn why holding a blade is different from using one."
+    bridgitte "I'll show you the basics first."
+    bridgitte "After that, you go to the forest edge and deal with the coyote."
+    bridgitte "I'll be nearby."
+
+    player "Nearby enough to help?"
+
+    bridgitte "Nearby enough that you learn."
+    bridgitte "Not so near that you lean on me."
+
+    choice:
+        -> "I'll do it. Teach me.":
+            player "I'll do it."
+            player "Teach me."
+
+            bridgitte "Good."
+            bridgitte "First lesson."
+            bridgitte "A dagger is not a sword that lost ambition."
+            bridgitte "Keep it close. Keep your wrist alive. Never show the point unless you mean to use it."
+            bridgitte "And if you ever think a fight is fair, assume you missed something."
+
+            narrator "Bridgitte steps outside and gestures for you to follow."
+            narrator "The village air is cool. Somewhere nearby, livestock shift and mutter behind their fences."
+            narrator "Your hand closes around the old dagger."
+
+            call unlockCombatClass("ruffian")
+            call giveItem("old_dagger")
+            call startQuest("cull_arkama_coyote")
+            call unlockLocation("forest_edge")
+            call unlockActivity("coyote_culling")
+
+            set bridgitte_intro_done = true
+            set bridgitte_lore_unlocked = true
+            set quest_cull_coyote_started = true
+
+            bridgitte "Come on, then."
+            bridgitte "Before that coyote grows bold enough to think this village belongs to it."
+
+        -> "I don't have much choice, do I?":
+            player "I don't have much choice, do I?"
+
+            bridgitte "You always have a choice."
+            bridgitte "Some choices are just worse than others."
+
+            player "That's not very reassuring."
+
+            bridgitte "It wasn't meant to be."
+            bridgitte "Reassurance is for after you've survived the lesson."
+
+            bridgitte "First lesson."
+            bridgitte "A dagger is not a sword that lost ambition."
+            bridgitte "Keep it close. Keep your wrist alive. Never show the point unless you mean to use it."
+            bridgitte "And if you ever think a fight is fair, assume you missed something."
+
+            call unlockCombatClass("ruffian")
+            call giveItem("old_dagger")
+            call startQuest("cull_arkama_coyote")
+            call unlockLocation("forest_edge")
+            call unlockActivity("coyote_culling")
+
+            set bridgitte_intro_done = true
+            set bridgitte_lore_unlocked = true
+            set quest_cull_coyote_started = true
+
+            bridgitte "Come on."
+            bridgitte "We'll put some sense into your feet before we put you in front of teeth."
+
+        -> "What if I can't do it?":
+            player "What if I can't do it?"
+
+            bridgitte "Then you step back."
+            bridgitte "You breathe."
+            bridgitte "You try again."
+            bridgitte "And if trying again would get you killed, you run."
+
+            player "That doesn't sound very heroic."
+
+            bridgitte "Good."
+            bridgitte "Heroes die because they think running is beneath them."
+            bridgitte "Survivors get to decide what kind of person they become after."
+
+            bridgitte "First lesson."
+            bridgitte "A dagger is not a sword that lost ambition."
+            bridgitte "Keep it close. Keep your wrist alive. Never show the point unless you mean to use it."
+            bridgitte "And if you ever think a fight is fair, assume you missed something."
+
+            call unlockCombatClass("ruffian")
+            call giveItem("old_dagger")
+            call startQuest("cull_arkama_coyote")
+            call unlockLocation("forest_edge")
+            call unlockActivity("coyote_culling")
+
+            set bridgitte_intro_done = true
+            set bridgitte_lore_unlocked = true
+            set quest_cull_coyote_started = true
+
+            bridgitte "Come on."
+            bridgitte "We'll start slow. Slow is better than dead."

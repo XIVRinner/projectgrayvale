@@ -107,6 +107,12 @@ export class GameplayTriggerRunner {
       case "chief-labour":
         this.gameDialog.startChiefLabour();
         return { ok: true, actionId: action.id };
+      case "chief-bridgitte-handoff":
+        this.gameDialog.startChiefBridgitteHandoff();
+        return { ok: true, actionId: action.id };
+      case "bridgitte-house":
+        this.gameDialog.startBridgitteHouse();
+        return { ok: true, actionId: action.id };
       default:
         this.debugLog.logMessage(
           "execution-graph",

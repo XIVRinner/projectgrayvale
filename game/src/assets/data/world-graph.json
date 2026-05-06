@@ -2,7 +2,7 @@
   "locations": {
     "village-arkama": {
       "id": "village-arkama",
-      "sublocations": ["chief-house", "tavern"]
+      "sublocations": ["chief-house", "tavern", "bridgitte-house"]
     },
     "camp": {
       "id": "camp"

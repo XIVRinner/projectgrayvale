@@ -397,6 +397,12 @@ const STORY_WAKE_UP_CONTEXT_ID = "village-arkama:chief-house";
 const STORY_CHIEF_LABOUR_ACTION_ID = "story:chief-labour";
 const STORY_CHIEF_LABOUR_CONTEXT_ID = "village-arkama:chief-house";
 
+const STORY_CHIEF_BRIDGITTE_HANDOFF_ACTION_ID = "story:chief-bridgitte-handoff";
+const STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID = "village-arkama:default";
+
+const STORY_BRIDGITTE_HOUSE_ACTION_ID = "story:bridgitte-house";
+const STORY_BRIDGITTE_HOUSE_CONTEXT_ID = "village-arkama:bridgitte-house";
+
 function buildStoryActions(
   contextMap: Map<ContextId, ContextNode>,
   diagnostics: CompileDiagnostic[]
@@ -450,6 +456,57 @@ function buildStoryActions(
       execution: {
         kind: "dialogue",
         dialogueTarget: "chief-labour"
+      }
+    });
+  }
+
+  if (!contextMap.has(STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID)) {
+    diagnostics.push(
+      warningDiagnostic(
+        "GEG_W007",
+        `Story chief-bridgitte-handoff action context "${STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID}" does not exist. The chief follow-up action will not be compiled.`,
+        { id: STORY_CHIEF_BRIDGITTE_HANDOFF_ACTION_ID }
+      )
+    );
+  } else {
+    actions.push({
+      id: STORY_CHIEF_BRIDGITTE_HANDOFF_ACTION_ID,
+      contextId: STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID,
+      label: "Speak to the Chief",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [
+        {
+          type: "quest_step_active",
+          params: { questId: "quest_chief_labour", stepId: "report_to_chief" }
+        }
+      ],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "chief-bridgitte-handoff"
+      }
+    });
+  }
+
+  if (!contextMap.has(STORY_BRIDGITTE_HOUSE_CONTEXT_ID)) {
+    diagnostics.push(
+      warningDiagnostic(
+        "GEG_W008",
+        `Story bridgitte-house action context "${STORY_BRIDGITTE_HOUSE_CONTEXT_ID}" does not exist. The Bridgitte intro action will not be compiled.`,
+        { id: STORY_BRIDGITTE_HOUSE_ACTION_ID }
+      )
+    );
+  } else {
+    actions.push({
+      id: STORY_BRIDGITTE_HOUSE_ACTION_ID,
+      contextId: STORY_BRIDGITTE_HOUSE_CONTEXT_ID,
+      label: "Speak to Bridgitte",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [{ type: "quest_completed", params: { questId: "quest_chief_labour" } }],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "bridgitte-house"
       }
     });
   }

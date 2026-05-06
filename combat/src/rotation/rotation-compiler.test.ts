@@ -43,9 +43,15 @@ describe("compileShortBladeRotation — structure", () => {
     );
     expect(finisherRule).toBeDefined();
     expect(finisherRule!.condition).toBeDefined();
-    expect(finisherRule!.condition!.type).toBe("effect_stacks_gte");
-    expect(finisherRule!.condition!.effectId).toBe("effect_piercing_talon");
-    expect(finisherRule!.condition!.threshold).toBe(2);
+    const condition = finisherRule!.condition;
+    expect(condition!.type).toBe("effect_stacks_gte");
+
+    if (!condition || condition.type !== "effect_stacks_gte") {
+      throw new Error("Expected piercing finisher to use effect_stacks_gte.");
+    }
+
+    expect(condition.effectId).toBe("effect_piercing_talon");
+    expect(condition.threshold).toBe(2);
   });
 
   it("includes slashing cut as the unconditional default action", () => {

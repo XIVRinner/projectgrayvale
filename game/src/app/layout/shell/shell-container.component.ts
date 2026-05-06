@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
-import { type Player, type Race } from "@rinner/grayvale-core";
+import { type Player, type Quest, type QuestObjective, type QuestStep, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { ActivityService } from "../../core/services/activity.service";
@@ -607,13 +607,14 @@ function buildQuestTrackerEntry(
   attributesById: ReadonlyMap<string, { name: string }>
 ): ShellQuestTrackerEntry {
   const questTitle = prettyQuestTitle(quest?.id ?? state.questId);
+  const step = resolveQuestStep(quest, state.stepId);
   const rootObjectives = Object.entries(state.objectives)
     .filter(([objectiveId]) => isLeafObjectiveId(objectiveId, state))
     .map(([objectiveId, progress]) =>
       buildQuestTrackerObjective(
         objectiveId,
         progress,
-        quest,
+        step,
         attributesById
       )
     );
@@ -624,7 +625,7 @@ function buildQuestTrackerEntry(
     status: state.completed ? "completed" : "active",
     summary:
       rootObjectives[0]?.progressLabel ??
-      (state.completed ? "Completed." : "In progress."),
+      (step?.label ?? (state.completed ? "Completed." : "In progress.")),
     objectives: rootObjectives
   };
 }
@@ -632,10 +633,10 @@ function buildQuestTrackerEntry(
 function buildQuestTrackerObjective(
   objectiveId: string,
   progress: { current: number; target: number; completed: boolean },
-  quest: ReturnType<GameQuestService["authoredQuests"]>[number] | undefined,
+  step: QuestStepLike | null,
   attributesById: ReadonlyMap<string, { name: string }>
 ): ShellQuestTrackerObjective {
-  const objective = resolveObjectiveById(quest, objectiveId);
+  const objective = resolveObjectiveById(step, objectiveId);
 
   if (objective?.type === "attribute_reached") {
     const attributeName = attributesById.get(objective.attribute)?.name ?? prettyQuestTitle(objective.attribute);
@@ -657,10 +658,10 @@ function buildQuestTrackerObjective(
 }
 
 function resolveObjectiveById(
-  quest: ReturnType<GameQuestService["authoredQuests"]>[number] | undefined,
+  step: QuestStepLike | null,
   objectiveId: string
-): ReturnType<GameQuestService["authoredQuests"]>[number]["objectives"][number] | null {
-  if (!quest) {
+): QuestObjective | null {
+  if (!step?.objectives) {
     return null;
   }
 
@@ -670,7 +671,7 @@ function resolveObjectiveById(
     return null;
   }
 
-  let currentObjective = quest.objectives[Number(segments[0])];
+  let currentObjective = step.objectives[Number(segments[0])];
 
   for (const segment of segments.slice(1)) {
     if (!currentObjective || currentObjective.type !== "composite") {
@@ -682,6 +683,26 @@ function resolveObjectiveById(
 
   return currentObjective ?? null;
 }
+
+function resolveQuestStep(
+  quest: Quest | undefined,
+  stepId: string
+): QuestStepLike | null {
+  if (!quest) {
+    return null;
+  }
+
+  if (quest.steps && quest.steps.length > 0) {
+    return quest.steps.find((step) => step.id === stepId) ?? null;
+  }
+
+  return {
+    label: undefined,
+    objectives: quest.objectives
+  };
+}
+
+type QuestStepLike = Pick<QuestStep, "label" | "objectives">;
 
 function isLeafObjectiveId(
   objectiveId: string,

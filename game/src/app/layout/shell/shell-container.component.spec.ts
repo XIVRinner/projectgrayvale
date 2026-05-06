@@ -3,8 +3,10 @@ import { TestBed } from "@angular/core/testing";
 import { samplePlayer, type Quest } from "@rinner/grayvale-core";
 import { of, Subject } from "rxjs";
 
+import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import type { CharacterCreatorOptions } from "../../data/loaders/character-creator-options.loader";
 import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-creator-options.loader";
+import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { GameQuestService } from "../../core/services/game-quest.service";
@@ -115,7 +117,7 @@ describe("ShellContainerComponent", () => {
   });
 
   it("starts the recovery quest after prologue and forwards Wake up clicks to the dialog service", async () => {
-    const { component, roster, gameDialog, gameQuests } = await createFixture();
+    const { component, roster, gameDialog, gameQuests, setRuntimeActionGroups, fixture } = await createFixture();
 
     (component as any).handleActionSelected("story:wake-up");
     expect(gameDialog.startPrologue).toHaveBeenCalledTimes(1);
@@ -129,6 +131,36 @@ describe("ShellContainerComponent", () => {
       }
     ]);
     expect(gameQuests.startQuestById("quest_recovery")).toBe(true);
+
+    setRuntimeActionGroups([
+      {
+        kind: "movement",
+        label: "MOVEMENT",
+        themeKey: "movement",
+        choices: [
+          {
+            id: "leave-chief-house",
+            label: "Leave chief house",
+            disabled: undefined,
+            disabledReason: undefined
+          }
+        ]
+      },
+      {
+        kind: "activity",
+        label: "ACTIVITY",
+        themeKey: "activity",
+        choices: [
+          {
+            id: "activity:recover",
+            label: "Recover",
+            disabled: false,
+            disabledReason: undefined
+          }
+        ]
+      }
+    ]);
+    fixture.detectChanges();
 
     expect(component.actionGroups()).toEqual([
       {
@@ -340,11 +372,53 @@ async function createFixture(): Promise<{
   const quests: readonly Quest[] = [
     {
       id: "quest_recovery",
+      startRewards: [
+        {
+          type: "activity_availability",
+          activityId: "recover",
+          status: "enabled"
+        }
+      ],
       objectives: [
         {
           type: "attribute_reached",
           attribute: "vitality",
           target: 10
+        }
+      ],
+      rewards: [
+        {
+          type: "activity_availability",
+          activityId: "recover",
+          status: "locked"
+        },
+        {
+          type: "attribute_unlock",
+          attributeId: "strength"
+        }
+      ]
+    }
+  ];
+  const activities: readonly GameActivityDefinition[] = [
+    {
+      id: "recover",
+      name: "Recover",
+      description: "Steady your breathing and let the worst of the pain pass.",
+      location: { locationId: "village-arkama", sublocationId: "chief-house" },
+      tags: ["recovery", "rest"],
+      governingAttributes: ["vitality"],
+      difficulty: 5,
+      rewards: [
+        {
+          type: "attribute",
+          targetId: "vitality",
+          value: {
+            type: "flat",
+            amount: 1
+          },
+          distribution: {
+            type: "deterministic"
+          }
         }
       ]
     }
@@ -429,6 +503,7 @@ async function createFixture(): Promise<{
     providers: [
       { provide: CharacterRosterService, useValue: roster },
       { provide: QuestsLoader, useValue: { load: () => of(quests) } },
+      { provide: ActivitiesLoader, useValue: { load: () => of(activities) } },
       {
         provide: CharacterCreatorOptionsLoader,
         useValue: { load: () => of(creatorOptions) }
@@ -448,11 +523,16 @@ async function createFixture(): Promise<{
       },
       {
         provide: GameplayGraphRuntime,
-        useFactory: (gameQuests: GameQuestService) => ({
+        useFactory: (gameQuests: GameQuestService, gameDialog: typeof gameDialog) => ({
           isReady: signal(true),
           actionGroups: gameplayRuntimeActionGroups,
           debugSnapshot: signal(null),
           executeAction: (actionId: string) => {
+            if (actionId === "story:wake-up") {
+              gameDialog.startPrologue();
+              return { ok: true, actionId };
+            }
+
             if (actionId.startsWith("activity:")) {
               const activityId = actionId.slice("activity:".length);
               gameQuests.executeActivityById(activityId);
@@ -462,7 +542,7 @@ async function createFixture(): Promise<{
             return { ok: true, actionId };
           }
         }),
-        deps: [GameQuestService]
+        deps: [GameQuestService, GameDialogService]
       }
     ]
   }).compileComponents();

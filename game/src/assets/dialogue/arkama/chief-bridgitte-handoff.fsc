@@ -1,0 +1,21 @@
+declare chief = Actor("village-chief")
+declare player = Player()
+
+chapter START:
+    chief "There you are. I was hoping you would come by."
+    chief "You have done well for this village, ${player.name}. Better than I asked, if I am honest."
+    chief "There is someone I want you to meet."
+    goto BRIDGITTE
+
+chapter BRIDGITTE:
+    chief "Her name is Bridgitte."
+    chief "She used to be an adventurer before she decided she had given enough of herself to that life."
+    chief "These days she keeps to her own house and pretends the world no longer knocks."
+    chief "It still does."
+    goto REQUEST
+
+chapter REQUEST:
+    chief "She asked to speak with you."
+    chief "Go to Bridgitte's house when you are ready. If she opens the door, listen."
+    chief "If she offers to teach you, take it seriously. She never wastes effort."
+    call resolveQuestStep("quest_chief_labour", "report_to_chief")

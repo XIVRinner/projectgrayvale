@@ -82,6 +82,26 @@ export class GameDialogService {
     });
   }
 
+  startChiefBridgitteHandoff(): void {
+    this.startValeflowDialogue({
+      scriptPath: "assets/dialogue/arkama/chief-bridgitte-handoff.fsc",
+      title: "A New Lead",
+      eyebrowFallback: "Arkama Village",
+      subtitleFallback: "The chief has someone she wants you to meet.",
+      debugLabel: "chief-bridgitte-handoff"
+    });
+  }
+
+  startBridgitteHouse(): void {
+    this.startValeflowDialogue({
+      scriptPath: "assets/dialogue/arkama/bridgitte-house.fsc",
+      title: "Bridgitte",
+      eyebrowFallback: "Bridgitte's House",
+      subtitleFallback: "A retired adventurer finally opens her door to you.",
+      debugLabel: "bridgitte-house"
+    });
+  }
+
   private startValeflowDialogue(opts: {
     scriptPath: string;
     title: string;
@@ -106,11 +126,12 @@ export class GameDialogService {
       playerName: activePlayer.name
     });
 
-    const sublocation = this.worldState.currentSublocationMetadata();
-    this.sceneImagePath = sublocation?.sceneImagePath ?? null;
+    const sceneContext =
+      this.worldState.currentSublocationMetadata() ?? this.worldState.currentLocationMetadata();
+    this.sceneImagePath = sceneContext?.sceneImagePath ?? null;
     this.title = opts.title;
-    this.eyebrow = sublocation?.label ?? opts.eyebrowFallback;
-    this.subtitle = sublocation?.subtitle ?? opts.subtitleFallback;
+    this.eyebrow = sceneContext?.label ?? opts.eyebrowFallback;
+    this.subtitle = sceneContext?.subtitle ?? opts.subtitleFallback;
     this.errorState.set(null);
     this.transcript = [];
     this.transcriptCounter = 0;
@@ -257,6 +278,26 @@ export class GameDialogService {
 
       this.debugLog.logMessage("dialogue", "Dialogue requested quest start.", { questId });
       this.gameQuests.startQuestById(questId);
+      return null;
+    });
+
+    engine.registerFunction("resolveQuestStep", (_ctx, questIdValue, stepIdValue) => {
+      const questId = ensureNonEmptyString(questIdValue, "resolveQuestStep questId");
+      const stepId = ensureNonEmptyString(stepIdValue, "resolveQuestStep stepId");
+
+      this.debugLog.logMessage("dialogue", "Dialogue requested quest step resolution.", {
+        questId,
+        stepId
+      });
+      this.gameQuests.resolveQuestStep(questId, stepId);
+      return null;
+    });
+
+    engine.registerFunction("unlockSkillById", (_ctx, skillIdValue) => {
+      const skillId = ensureNonEmptyString(skillIdValue, "unlockSkillById skillId");
+
+      this.debugLog.logMessage("dialogue", "Dialogue requested skill unlock.", { skillId });
+      this.roster.setActiveSkillUnlocked(skillId, true);
       return null;
     });
   }
