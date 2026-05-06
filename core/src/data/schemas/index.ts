@@ -2,6 +2,7 @@ export * from "./activity.schema";
 export * from "./character-identity.schema";
 export * from "./equipment.schema";
 export * from "./inventory.schema";
+export * from "./item.schema";
 export * from "./loadout.schema";
 export * from "./modifier.schema";
 export * from "./player.schema";
