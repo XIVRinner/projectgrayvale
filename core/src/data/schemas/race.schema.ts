@@ -23,6 +23,7 @@ export const raceSchema = z
       })
       .strict()
       .optional(),
-    startingBonuses: z.array(modifierSchema).optional()
+    startingBonuses: z.array(modifierSchema).optional(),
+    tags: z.array(z.string()).optional()
   })
   .strict();

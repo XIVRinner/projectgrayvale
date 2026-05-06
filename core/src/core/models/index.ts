@@ -1,5 +1,6 @@
 export * from "./armor";
 export * from "./base";
+export * from "./character-identity";
 export * from "./equipment";
 export * from "./inventory";
 export * from "./player";
