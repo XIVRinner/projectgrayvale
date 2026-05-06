@@ -1,57 +1,66 @@
-Yes. Before I generate the GitHub issue-creation script, we should lock the scope so the issues are precise enough for an agent.
+# Grayvale Character Sheet MVP
 
-## Character Sheet Plan Scope
+## Purpose
 
-The character sheet should become the player-facing hub for:
+The Character Sheet MVP is a separate project from the Combat MVP.
 
-```text
-identity
-combat math
-equipment
-loadouts
-inventory
-materials
-quest items
-tooltips
-```
+It is the player-facing hub for:
 
-Even though character identity is not strictly combat, the sheet needs it because combat logic reads from the character model, equipment, skills, tags, stats, and effects.
+- character identity
+- combat-relevant math
+- equipment
+- loadouts
+- inventory
+- item actions
+- item tooltips
+- rarity presentation
 
----
+The page should be implemented in Angular 21.
 
-# Proposed GitHub Project
+The implementation should stay MVP-focused and data-driven.
 
-## Project Name
+## Goals
 
-```text
-Grayvale Character Sheet MVP
-```
+- Show character identity.
+- Show equipment slots.
+- Support loadouts.
+- Show inventory split by category.
+- Support inventory/equipment actions.
+- Show combat math with buffed/nerfed values.
+- Show stat breakdowns.
+- Show equipment, material, quest item, and junk tooltips.
+- Show rarity-specific visual treatment.
+- Support future non-combat stats without implementing them yet.
 
-## Short Description
+## Non-Goals
 
-Create the first Character Sheet MVP for Grayvale. The page should display character identity, equipment, inventory, loadouts, combat-relevant stats, stat math, item tooltips, and rarity-specific equipment presentation. The implementation should stay MVP-focused and data-driven.
+Do not implement these in the MVP:
 
----
+- full combat simulation
+- raid resolver
+- dungeon inventory logic
+- crafting UI
+- vendor UI
+- drag-and-drop polish
+- final animation implementation
+- full persistence
+- multiplayer
+- complete equipment balance
+- complete stat taxonomy
 
-# Proposed Issue Groups
+## Character Identity
 
-## 1. Character Identity Model
+The character sheet should display:
 
-Character sheet should show:
+- name
+- race
+- gender
+- level
+- class/archetype if available
+- adventurer rank when unlocked
+- character tags when relevant
 
-```text
-name
-race
-gender
-level
-class/archetype if available
-adventurer rank when unlocked
-current activity state if relevant
-```
-
-Combat does not need race/gender immediately, but boss mechanics and resolver logic may later reference actor tags like `elf`, `human`, `construct`, etc.
-
-So race should probably create tags.
+Race may eventually produce tags.
 
 Example:
 
@@ -60,6 +69,7 @@ Race: Elf
 Tags: elf, humanoid
 ```
 
+<<<<<<< HEAD
 Gender can remain display-only unless future systems use it.
 
 Adventurer rank should be optional/unlocked.
@@ -73,6 +83,17 @@ This is the most combat-important section.
 The sheet should show final calculated combat stats, including buffed and nerfed values.
 
 Example display:
+=======
+Gender is display-only for MVP unless future systems use it.
+
+Adventurer rank is optional/unlocked.
+
+## Combat Math
+
+The sheet should show final calculated combat stats.
+
+Examples:
+>>>>>>> 305a727d3ee42bb950de7f342467f5911071866c
 
 ```text
 Strength: 40 (+20)
@@ -85,6 +106,7 @@ Fire Resistance: -10
 
 Color rules:
 
+<<<<<<< HEAD
 ```text
 green = improved/buffed above base
 red = reduced/nerfed below base
@@ -94,17 +116,34 @@ gold/special = legendary or special effect source
 ```
 
 Each number should be explainable through a breakdown.
+=======
+- green = buffed/improved
+- red = nerfed/reduced
+- neutral = unchanged
+- muted = inactive/expired/locked
+- gold/special = legendary or special source
+
+Every final number should be explainable through a breakdown.
+>>>>>>> 305a727d3ee42bb950de7f342467f5911071866c
 
 Example:
 
 ```text
 Strength 40
 Base: 20
+<<<<<<< HEAD
 Iron Ring: +20
 Final: 40
 ```
 
 Example nerf:
+=======
+Brutal Ring: +20
+Final: 40
+```
+
+Example:
+>>>>>>> 305a727d3ee42bb950de7f342467f5911071866c
 
 ```text
 Mentality 10
@@ -113,6 +152,7 @@ Cursed Ring: -20
 Final: 10
 ```
 
+<<<<<<< HEAD
 ---
 
 ## 3. Stat Breakdown System
@@ -675,6 +715,320 @@ Must show whether galvanized is allowed in current activity.
 ---
 
 # Character Sheet Page Layout
+=======
+## Equipment
+
+MVP equipment slots:
+
+- head
+- chest
+- gloves
+- legs
+- boots
+- main_hand
+- off_hand
+- ring
+
+The equipment panel should show:
+
+- equipped item
+- empty slot state
+- rarity frame
+- item level
+- special rarity badges
+- power-window state if any
+- tooltip trigger
+- comparison when relevant
+
+## Loadouts
+
+MVP loadout model:
+
+- loadout id
+- display name
+- equipment slot map
+- active flag
+- optional notes
+
+MVP actions:
+
+- create loadout
+- rename loadout
+- select active loadout
+- equip item to active loadout
+- unequip item from active loadout
+- compare item against active loadout slot
+
+Future:
+
+- resolver profile attached to loadout
+- rotation profile attached to loadout
+- activity restrictions
+- galvanized validation
+- boss-specific warnings
+
+## Inventory
+
+Inventory categories:
+
+- equipment
+- materials
+- quest items
+- junk
+
+Inventory should support actions.
+
+MVP actions:
+
+- equip
+- unequip
+- compare
+- move item to loadout
+- inspect tooltip
+- mark favorite if easy
+- filter by category
+- search if easy
+
+Materials should show:
+
+- quantity
+- rarity
+- quality stars when applicable
+- crafting tags
+- source if known
+
+Quest items should show:
+
+- quest/use context
+- description
+- special rarity if any
+
+Junk should show:
+
+- sell value if known
+- description
+- flavor
+
+## Tooltip Families
+
+Tooltips share a visual family but differ by item type.
+
+Families:
+
+- equipment tooltip
+- material tooltip
+- quest item tooltip
+- junk tooltip
+
+Equipment tooltip is richest.
+
+Equipment tooltip sections:
+
+- header
+- rarity
+- slot
+- item level
+- requirements
+- combat stats
+- skill association
+- rotation impact
+- special effects
+- power window
+- tags
+- training impact
+- flavor
+
+Material tooltip sections:
+
+- rarity
+- quantity
+- quality stars if applicable
+- crafting use
+- source
+- tags
+- flavor
+
+Quest tooltip sections:
+
+- quest/use
+- special state
+- description
+- flavor
+
+Junk tooltip sections:
+
+- sell value
+- description
+- flavor
+
+## Rarity Visual Language
+
+Base rarities:
+
+- junk
+- common
+- uncommon
+- rare
+- epic
+- legendary
+- ephemeral
+- mythical
+- primal
+
+Special rarities:
+
+- cursed
+- divine
+- infernal
+- phantom
+- temporal
+- secret
+- galvanized
+
+Normal rarities can use static accents.
+
+Legendary+ and special rarities should have special visual treatment. Animation implementation is not required in MVP, but the intended animation language should be documented in the component styling comments or design notes.
+
+### Legendary
+
+Look:
+
+- gold/orange frame
+- distinct legendary effect block
+- subtle premium glow
+
+Animation direction:
+
+- slow breathing border glow
+- small shimmer across legendary effect title
+
+### Ephemeral
+
+Look:
+
+- pale gold / spectral-gold frame
+- legendary effect marked as maximized
+
+Animation direction:
+
+- soft fading shimmer
+- translucent aura
+
+### Mythical
+
+Look:
+
+- deep violet + gold frame
+- ornate structure
+- all rolls marked maxed
+
+Animation direction:
+
+- slow star-like sparkle on corners
+- subtle flowing border
+
+### Primal
+
+Look:
+
+- ancient red/gold/white frame
+- strongest visual identity
+- primal bonus has its own highlighted block
+
+Animation direction:
+
+- low-frequency pulsing aura
+- occasional rune flicker
+
+### Cursed
+
+Look:
+
+- dark red/black cracked overlay
+- warning treatment
+- curse section near top
+
+Animation direction:
+
+- faint red pulse
+- crack/glitch flicker
+
+### Divine
+
+Look:
+
+- white/gold clean glow
+- sacred frame overlay
+
+Animation direction:
+
+- gentle radiance
+- slow vertical light sweep
+
+### Infernal
+
+Look:
+
+- black/red/orange heat treatment
+- burning edge accent
+
+Animation direction:
+
+- ember particles
+- heat shimmer
+
+### Phantom
+
+Look:
+
+- blue/grey translucent ghosted frame
+- remaining uses displayed prominently
+
+Animation direction:
+
+- fading opacity shimmer
+- ghost trail flicker
+
+### Temporal
+
+Look:
+
+- blue/gold time motif
+- clock/rift accent
+- context restriction block
+
+Animation direction:
+
+- slow rotating glyph/ring
+- subtle time ripple
+
+### Secret
+
+Look:
+
+- dark frame with hidden glyphs
+- mystery accent
+- revealed/unrevealed state
+
+Animation direction:
+
+- glyphs appear and vanish faintly
+
+### Galvanized
+
+Look:
+
+- electric/charged overlay
+- metallic bright edge
+- temporary boost badge
+
+Animation direction:
+
+- short electric arc flicker
+- charged border pulse
+
+## MVP Page Layout
+>>>>>>> 305a727d3ee42bb950de7f342467f5911071866c
 
 Suggested layout:
 
@@ -689,13 +1043,18 @@ Left Column:
 Center Column:
   Combat stats summary
   Stat breakdown tabs
+<<<<<<< HEAD
   Rotation preview summary
+=======
+  Rotation preview summary placeholder
+>>>>>>> 305a727d3ee42bb950de7f342467f5911071866c
 
 Right Column:
   Inventory tabs
   Item details / compare panel
 ```
 
+<<<<<<< HEAD
 Sections:
 
 ```text
@@ -879,3 +1238,29 @@ loadout swaps stat result
 Explains how character sheet reads combat-related models.
 
 ---
+=======
+## Angular Notes
+
+Use Angular 21.
+
+The implementation should be componentized:
+
+- character-sheet-page
+- character-identity-header
+- equipment-panel
+- equipment-slot
+- loadout-selector
+- inventory-panel
+- inventory-item-row/card
+- stat-summary
+- stat-breakdown
+- item-tooltip
+- equipment-tooltip
+- material-tooltip
+- quest-item-tooltip
+- junk-tooltip
+
+Use static/mock data first.
+
+Keep the data model clean so it can connect to real game state later.
+>>>>>>> 305a727d3ee42bb950de7f342467f5911071866c
