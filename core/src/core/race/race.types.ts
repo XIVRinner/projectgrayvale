@@ -14,4 +14,5 @@ export interface Race {
     exotic?: string[];
   };
   startingBonuses?: Modifier[];
+  tags?: string[];
 }
