@@ -4,7 +4,6 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { catchError, map, of } from "rxjs";
 
 import {
-  RARITY_DEFINITIONS,
   type EquipmentSlot,
   type InventoryEquipmentItem,
   type Loadout,
@@ -90,9 +89,12 @@ export class EquipmentPanelContainerComponent {
 
   constructor() {
     this.http
-      .get<unknown[]>("assets/data/equipment-items.json")
+      .get<unknown>("assets/data/equipment-items.json")
       .pipe(
-        map((raw) => raw.map((entry) => inventoryEquipmentItemSchema.parse(entry))),
+        map((raw) => {
+          const entries = Array.isArray(raw) ? raw : [];
+          return entries.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry));
+        }),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load equipment items.";
           this.error.set(message);
@@ -132,6 +134,3 @@ export class EquipmentPanelContainerComponent {
     this.activeLoadout.set(loadout);
   }
 }
-
-// Re-export so parent page components can reference it without an extra import path.
-export { RARITY_DEFINITIONS };

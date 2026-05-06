@@ -52,7 +52,7 @@
 }
 
 .gv-equip-slot__ilevel {
-  font-size: 0.75rem;
+  font-size: var(--gv-font-size-xs);
   font-weight: 600;
   color: color-mix(in srgb, var(--slot-rarity-color) 80%, var(--gv-color-text-primary));
   background: color-mix(in srgb, var(--slot-rarity-color) 16%, transparent);
@@ -110,7 +110,7 @@
 }
 
 .gv-equip-slot__rarity-label {
-  font-size: 0.75rem;
+  font-size: var(--gv-font-size-xs);
   font-weight: 600;
   color: color-mix(in srgb, var(--slot-rarity-color) 90%, var(--gv-color-text-muted));
   line-height: 1.2;
@@ -129,7 +129,7 @@
   align-items: center;
   padding: 0 var(--gv-space-xs);
   border-radius: 999px;
-  font-size: 0.6875rem;
+  font-size: var(--gv-font-size-xxs);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -163,7 +163,7 @@
     background var(--gv-anim-fast),
     border-color var(--gv-anim-fast),
     color var(--gv-anim-fast);
-  font-size: 0.75rem;
+  font-size: var(--gv-font-size-xs);
 }
 
 .gv-equip-slot__action-btn:hover {
