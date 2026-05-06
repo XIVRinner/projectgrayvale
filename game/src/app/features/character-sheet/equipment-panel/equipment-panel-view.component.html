@@ -1,0 +1,25 @@
+<section class="gv-equip-panel" aria-label="Equipment">
+  <h2 class="gv-equip-panel__title">Equipment</h2>
+
+  @if (isLoading()) {
+    <div class="gv-equip-panel__state gv-equip-panel__state--loading" aria-live="polite">
+      <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+      <span>Loading equipment…</span>
+    </div>
+  } @else if (error()) {
+    <div class="gv-equip-panel__state gv-equip-panel__state--error" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ error() }}</span>
+    </div>
+  } @else {
+    <div class="gv-equip-panel__grid">
+      @for (slot of slots(); track slot.slotId) {
+        <gv-equipment-slot
+          [slot]="slot"
+          (tooltipRequested)="tooltipRequested.emit($event)"
+          (compareRequested)="compareRequested.emit($event)"
+        />
+      }
+    </div>
+  }
+</section>

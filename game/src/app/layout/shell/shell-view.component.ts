@@ -1,4 +1,5 @@
 import { Component, computed, input, output } from "@angular/core";
+import { RouterOutlet } from "@angular/router";
 
 import type { DebugLogEntry } from "../../core/services/game-log/debug-log.service";
 import type { GameLogEntry } from "../../core/services/game-log/log-mapper";
@@ -29,6 +30,7 @@ import {
 @Component({
   selector: "gv-shell-view",
   imports: [
+    RouterOutlet,
     GameDialogComponent,
     ShellCharacterPanelComponent,
     ShellCharacterCreationDialogComponent,

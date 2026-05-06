@@ -1,0 +1,66 @@
+<article
+  class="gv-equip-slot"
+  [class.gv-equip-slot--empty]="!slot().item"
+  [class.gv-equip-slot--equipped]="!!slot().item"
+  [class.gv-equip-slot--compare-target]="slot().isCompareTarget"
+  [style.--slot-rarity-color]="rarityColor()"
+  [pTooltip]="tooltipContent()"
+  tooltipPosition="right"
+  [escape]="false"
+>
+  <header class="gv-equip-slot__header">
+    <span class="gv-equip-slot__label">{{ slot().slotLabel }}</span>
+    @if (slot().item; as item) {
+      <span class="gv-equip-slot__ilevel">ilvl {{ item.itemLevel }}</span>
+    }
+  </header>
+
+  <div class="gv-equip-slot__body">
+    <div class="gv-equip-slot__icon-wrap">
+      @if (slot().item) {
+        <i class="pi pi-shield gv-equip-slot__icon-placeholder" aria-hidden="true"></i>
+      } @else {
+        <i class="pi pi-minus gv-equip-slot__icon-empty" aria-hidden="true"></i>
+      }
+    </div>
+
+    <div class="gv-equip-slot__info">
+      @if (slot().item; as item) {
+        <span class="gv-equip-slot__name">{{ item.name }}</span>
+        <span class="gv-equip-slot__rarity-label">{{ rarityName() }}</span>
+        @if (item.specialRarity) {
+          <span class="gv-equip-slot__special-badge" [attr.data-special]="item.specialRarity">
+            {{ item.specialRarity }}
+          </span>
+        }
+      } @else {
+        <span class="gv-equip-slot__empty-label">Empty</span>
+      }
+    </div>
+  </div>
+
+  @if (slot().item; as item) {
+    <footer class="gv-equip-slot__footer">
+      <button
+        type="button"
+        class="gv-equip-slot__action-btn"
+        (click)="onInspect()"
+        [attr.aria-label]="'Inspect ' + item.name"
+        pTooltip="Inspect"
+        tooltipPosition="bottom"
+      >
+        <i class="pi pi-eye" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="gv-equip-slot__action-btn"
+        (click)="onCompare()"
+        [attr.aria-label]="'Compare ' + item.name"
+        pTooltip="Compare"
+        tooltipPosition="bottom"
+      >
+        <i class="pi pi-arrows-h" aria-hidden="true"></i>
+      </button>
+    </footer>
+  }
+</article>
