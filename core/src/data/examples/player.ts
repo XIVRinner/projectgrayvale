@@ -1,4 +1,5 @@
 import type { Player } from "../../core/models";
+import { sampleLoadouts } from "./loadouts";
 
 export const samplePlayer: Player = {
   id: "player_lyra_dawnmere",
@@ -109,5 +110,7 @@ export const samplePlayer: Player = {
     mainHand: "weapon_longsword_graymark",
     head: "armor_hood_rainwoven",
     body: "armor_mail_graymark"
-  }
+  },
+  loadouts: sampleLoadouts,
+  activeLoadoutId: "loadout_default"
 };

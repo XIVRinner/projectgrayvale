@@ -1,5 +1,6 @@
 import type { Entity, Named } from "./base";
 import type { EquippedItems } from "./equipment";
+import type { Loadout } from "../equipment/loadout.types";
 import type { ExperienceProgression } from "./progression";
 import type { Inventory } from "./inventory";
 import type { QuestLog } from "../quest";
@@ -60,4 +61,8 @@ export interface Player extends Entity, Named {
   interactionState?: PlayerInteractionState;
   inventory: Inventory;
   equippedItems: EquippedItems;
+  /** Named loadout configurations. Key is the loadout id. */
+  loadouts?: Record<string, Loadout>;
+  /** Id of the currently active loadout. */
+  activeLoadoutId?: string;
 }

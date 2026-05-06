@@ -2,6 +2,8 @@ export * from "./armor";
 export * from "./equip";
 export * from "./equipment.types";
 export * from "./equip.types";
+export * from "./loadout";
+export * from "./loadout.types";
 export * from "./rarity.definitions";
 export * from "./rarity.helpers";
 export * from "./rarity.types";

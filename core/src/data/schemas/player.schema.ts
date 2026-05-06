@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { equippedItemsSchema } from "./equipment.schema";
 import { inventorySchema } from "./inventory.schema";
+import { loadoutSchema } from "./loadout.schema";
 import { experienceProgressionSchema } from "./progression.schema";
 import { descriptionSchema, idSchema, nameSchema, stringNumberRecordSchema } from "./shared";
 
@@ -104,6 +105,8 @@ export const playerSchema = z
     activityState: playerActivityStateSchema.optional(),
     interactionState: playerInteractionStateSchema.optional(),
     inventory: inventorySchema,
-    equippedItems: equippedItemsSchema
+    equippedItems: equippedItemsSchema,
+    loadouts: z.record(idSchema, loadoutSchema).optional(),
+    activeLoadoutId: idSchema.optional()
   })
   .strict();
