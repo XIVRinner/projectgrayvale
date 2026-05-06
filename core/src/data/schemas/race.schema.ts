@@ -1,12 +1,6 @@
 import { z } from "zod";
 
-export const modifierSchema = z
-  .object({
-    stat: z.string(),
-    type: z.enum(["add", "multiply"]),
-    value: z.number()
-  })
-  .strict();
+import { modifierSchema } from "./modifier.schema";
 
 export const raceSchema = z
   .object({

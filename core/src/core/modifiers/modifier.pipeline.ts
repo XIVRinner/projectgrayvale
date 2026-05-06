@@ -1,5 +1,12 @@
 import type { Player } from "../models";
-import type { Modifier, ModifierSourceItem, StatBlock } from "./modifier.types";
+import type {
+  LabeledModifier,
+  Modifier,
+  ModifierSourceItem,
+  StatBlock,
+  StatBreakdown,
+  StatDisplayState
+} from "./modifier.types";
 
 const mapRecordToAddModifiers = (values: Record<string, number>): Modifier[] =>
   Object.entries(values).map(([stat, value]) => ({
@@ -63,4 +70,79 @@ export const computeFinalStats = (
   }
 
   return finalStats;
+};
+
+const computeActiveValue = (
+  base: number,
+  activeModifiers: ReadonlyArray<Modifier>
+): number => {
+  let additiveTotal = 0;
+  let multiplicativeTotal = 1;
+
+  for (const modifier of activeModifiers) {
+    if (modifier.type === "add") {
+      additiveTotal += modifier.value;
+    } else {
+      multiplicativeTotal *= modifier.value;
+    }
+  }
+
+  return (base + additiveTotal) * multiplicativeTotal;
+};
+
+const resolveDisplayState = (
+  base: number,
+  activeFinal: number,
+  activeModifiers: ReadonlyArray<LabeledModifier>,
+  allModifiers: ReadonlyArray<LabeledModifier>
+): StatDisplayState => {
+  if (activeFinal > base) {
+    if (activeModifiers.some((m) => m.special)) {
+      return "special";
+    }
+
+    return "buffed";
+  }
+
+  if (activeFinal < base) {
+    return "nerfed";
+  }
+
+  if (allModifiers.some((m) => !m.active)) {
+    return "muted";
+  }
+
+  return "neutral";
+};
+
+export const computeStatBreakdown = (
+  stat: string,
+  base: number,
+  modifiers: ReadonlyArray<LabeledModifier>
+): StatBreakdown => {
+  const activeModifiers = modifiers.filter((m) => m.active);
+  const final = computeActiveValue(base, activeModifiers);
+  const displayState = resolveDisplayState(base, final, activeModifiers, modifiers);
+
+  return { stat, base, modifiers, final, displayState };
+};
+
+export const computeStatBreakdowns = (
+  baseStats: StatBlock,
+  modifiers: ReadonlyArray<LabeledModifier>
+): Record<string, StatBreakdown> => {
+  const statKeys = new Set<string>([
+    ...Object.keys(baseStats),
+    ...modifiers.map((m) => m.stat)
+  ]);
+
+  const result: Record<string, StatBreakdown> = {};
+
+  for (const stat of statKeys) {
+    const base = baseStats[stat] ?? 0;
+    const statModifiers = modifiers.filter((m) => m.stat === stat);
+    result[stat] = computeStatBreakdown(stat, base, statModifiers);
+  }
+
+  return result;
 };
