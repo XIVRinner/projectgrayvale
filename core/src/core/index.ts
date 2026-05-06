@@ -2,6 +2,7 @@ export * from "./activity";
 export * from "./balance";
 export * from "./delta";
 export * from "./equipment";
+export * from "./inventory";
 export * from "./modifiers";
 export * from "./models";
 export * from "./npc";
