@@ -92,8 +92,12 @@ export class EquipmentPanelContainerComponent {
       .get<unknown>("assets/data/equipment-items.json")
       .pipe(
         map((raw) => {
-          const entries = Array.isArray(raw) ? raw : [];
-          return entries.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry));
+          if (!Array.isArray(raw)) {
+            this.error.set("Invalid equipment data format: expected an array.");
+            this.isLoading.set(false);
+            return [] as InventoryEquipmentItem[];
+          }
+          return raw.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry));
         }),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load equipment items.";
