@@ -1,6 +1,7 @@
 export * from "./activity.schema";
 export * from "./equipment.schema";
 export * from "./inventory.schema";
+export * from "./modifier.schema";
 export * from "./player.schema";
 export * from "./progression.schema";
 export * from "./race.schema";

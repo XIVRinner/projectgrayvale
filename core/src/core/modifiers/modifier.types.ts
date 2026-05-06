@@ -17,3 +17,27 @@ export interface ModifierSourceItem {
 }
 
 export type ModifierProvider = (player: Player) => Modifier[];
+
+export type ModifierCategory = "equipment" | "buff" | "debuff" | "conditional";
+
+export interface LabeledModifier extends Modifier {
+  source: string;
+  category: ModifierCategory;
+  active: boolean;
+  special?: boolean;
+}
+
+export type StatDisplayState =
+  | "buffed"
+  | "nerfed"
+  | "neutral"
+  | "muted"
+  | "special";
+
+export interface StatBreakdown {
+  stat: Stat;
+  base: number;
+  modifiers: ReadonlyArray<LabeledModifier>;
+  final: number;
+  displayState: StatDisplayState;
+}
