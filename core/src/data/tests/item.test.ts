@@ -147,7 +147,7 @@ describe("inventoryQuestItemSchema", () => {
   });
 
   it("rejects missing usable field", () => {
-    const { usable: _, ...rest } = sampleQuestItem;
+    const { usable: _removedUsable, ...rest } = sampleQuestItem;
 
     expect(() => inventoryQuestItemSchema.parse(rest)).toThrow();
   });
