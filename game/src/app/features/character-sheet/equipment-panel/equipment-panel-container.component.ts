@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal
+} from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { catchError, map, of } from "rxjs";
@@ -66,20 +74,38 @@ export class EquipmentPanelContainerComponent {
 
   /** Active loadout provided by the parent character-sheet container. */
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
+  /** Selected inventory equipment item ID to compare against active slot. */
+  readonly comparedItemId = input<string | null>(null);
+  readonly compareItemChanged = output<string | null>();
 
   protected readonly slots = computed<readonly EquipmentSlotView[]>(() => {
     const registry = this.itemRegistry();
     const loadout = this.activeLoadout();
+    const comparedItemId = this.comparedItemId();
+    const comparedItem = comparedItemId ? (registry.get(comparedItemId) ?? null) : null;
 
     return PANEL_SLOTS.map((slotId) => {
       const itemId = loadout.slots[slotId];
       const item = itemId ? (registry.get(itemId) ?? null) : null;
+      const isCompareTarget = comparedItem?.slot === slotId;
+      let compareDeltaLabel: string | null = null;
+
+      if (isCompareTarget && comparedItem) {
+        if (!item) {
+          compareDeltaLabel = `Comparing to empty slot (ilvl ${comparedItem.itemLevel})`;
+        } else {
+          const delta = comparedItem.itemLevel - item.itemLevel;
+          const deltaPrefix = delta > 0 ? "+" : "";
+          compareDeltaLabel = `${comparedItem.name} ${deltaPrefix}${delta} ilvl`;
+        }
+      }
 
       return {
         slotId,
         slotLabel: SLOT_LABELS[slotId],
         item,
-        isCompareTarget: false
+        isCompareTarget,
+        compareDeltaLabel
       } satisfies EquipmentSlotView;
     });
   });
@@ -123,10 +149,7 @@ export class EquipmentPanelContainerComponent {
   }
 
   protected onCompareRequested(slotId: EquipmentSlot): void {
-    // GAP: Compare item against slot
-    // Blocked on: inventory panel (character-sheet MVP)
-    // Needs: selectedInventoryItem emitted by InventoryPanelComponent
-    // Do not implement until: InventoryPanelComponent provides a selected item signal
-    console.log(`[equipment-panel] compare requested: ${slotId}`);
+    const itemId = this.activeLoadout().slots[slotId] ?? null;
+    this.compareItemChanged.emit(itemId);
   }
 }

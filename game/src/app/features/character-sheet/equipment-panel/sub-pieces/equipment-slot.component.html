@@ -27,6 +27,9 @@
       @if (slot().item; as item) {
         <span class="gv-equip-slot__name">{{ item.name }}</span>
         <span class="gv-equip-slot__rarity-label">{{ rarityName() }}</span>
+        @if (slot().compareDeltaLabel; as compareDeltaLabel) {
+          <span class="gv-equip-slot__compare-label">{{ compareDeltaLabel }}</span>
+        }
         @if (item.specialRarity) {
           <span class="gv-equip-slot__special-badge" [attr.data-special]="item.specialRarity">
             {{ item.specialRarity }}

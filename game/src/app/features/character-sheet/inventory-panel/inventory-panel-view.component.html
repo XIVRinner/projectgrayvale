@@ -1,0 +1,53 @@
+<section class="gv-inventory-panel" aria-label="Inventory">
+  <header class="gv-inventory-panel__header">
+    <h2 class="gv-inventory-panel__title">Inventory</h2>
+    <input
+      type="search"
+      class="gv-inventory-panel__search"
+      placeholder="Search items"
+      aria-label="Search inventory items"
+      (input)="onSearchInput($event)"
+    />
+  </header>
+
+  <div class="gv-inventory-panel__tabs" role="tablist" aria-label="Inventory categories">
+    @for (category of categoryOrder; track category) {
+      <button
+        type="button"
+        class="gv-inventory-panel__tab"
+        role="tab"
+        [class.gv-inventory-panel__tab--active]="activeCategory() === category"
+        [attr.aria-selected]="activeCategory() === category"
+        (click)="onCategoryChanged(category)"
+      >
+        {{ categoryLabels[category] }} ({{ categoryCounts()[category] }})
+      </button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="gv-inventory-panel__state gv-inventory-panel__state--loading" aria-live="polite">
+      <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+      <span>Loading inventory…</span>
+    </div>
+  } @else if (error()) {
+    <div class="gv-inventory-panel__state gv-inventory-panel__state--error" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ error() }}</span>
+    </div>
+  } @else {
+    <div class="gv-inventory-panel__list">
+      @for (item of filteredItems(); track item.id) {
+        <gv-inventory-item
+          [item]="item"
+          [isCompared]="activeComparedItemId() === item.id"
+          (equipRequested)="itemEquipped.emit($event)"
+          (unequipRequested)="itemUnequipped.emit($event)"
+          (compareRequested)="compareItemChanged.emit($event)"
+        />
+      } @empty {
+        <div class="gv-inventory-panel__empty">No matching items.</div>
+      }
+    </div>
+  }
+</section>

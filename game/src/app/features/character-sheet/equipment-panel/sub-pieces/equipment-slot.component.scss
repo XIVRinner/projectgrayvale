@@ -124,6 +124,13 @@
   line-height: 1.2;
 }
 
+.gv-equip-slot__compare-label {
+  font-size: var(--gv-font-size-xxs);
+  line-height: 1.2;
+  color: var(--gv-color-accent-cool);
+  font-weight: 700;
+}
+
 .gv-equip-slot__special-badge {
   display: inline-flex;
   align-items: center;
