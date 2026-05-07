@@ -1,0 +1,14 @@
+<gv-dialog-shell
+  [open]="open()"
+  variant="character-system"
+  width="creator"
+  eyebrow="Field Profile"
+  title="Character Sheet"
+  [subtitle]="panel().name + ' | Loadouts, equipment, combat stats, and inventory.'"
+  ariaLabel="Character sheet"
+  (closed)="closed.emit()"
+>
+  <div class="gv-shell-character-sheet-dialog__sheet">
+    <gv-character-sheet-container />
+  </div>
+</gv-dialog-shell>

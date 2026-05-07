@@ -8,6 +8,7 @@ import { GameDialogComponent } from "../../shared/components/game-dialog/game-di
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
 import { ShellFooterComponent } from "./shell-footer.component";
 import { ShellCharacterPanelComponent } from "./sub-pieces/shell-character-panel.component";
+import { ShellCharacterSheetDialogComponent } from "./sub-pieces/shell-character-sheet-dialog.component";
 import { ShellCharacterCreationDialogComponent } from "./sub-pieces/shell-character-creation-dialog.component";
 import { ShellGegVisualizerDialogComponent } from "./sub-pieces/shell-geg-visualizer-dialog.component";
 import { ShellGameplayLogDialogComponent } from "./sub-pieces/shell-gameplay-log-dialog.component";
@@ -33,6 +34,7 @@ import {
     RouterOutlet,
     GameDialogComponent,
     ShellCharacterPanelComponent,
+    ShellCharacterSheetDialogComponent,
     ShellCharacterCreationDialogComponent,
     ShellFooterComponent,
     ShellGegVisualizerDialogComponent,
@@ -57,6 +59,7 @@ export class ShellViewComponent {
   readonly characterPanel = input.required<ShellCharacterPanel>();
   readonly questTrackerPanel = input.required<ShellQuestTrackerPanel>();
   readonly saveSlots = input.required<readonly ShellSaveSlotSummary[]>();
+  readonly isCharacterSheetOpen = input.required<boolean>();
   readonly isCharacterCreationOpen = input.required<boolean>();
   readonly isCharacterCreationRequired = input.required<boolean>();
   readonly isSaveManagerOpen = input.required<boolean>();
@@ -71,6 +74,7 @@ export class ShellViewComponent {
   readonly version = input.required<string>();
 
   readonly characterCreationOpenRequested = output<void>();
+  readonly characterSheetCloseRequested = output<void>();
   readonly characterCreationCloseRequested = output<void>();
   readonly characterCreated = output<void>();
   readonly saveManagerOpenRequested = output<void>();
@@ -87,6 +91,7 @@ export class ShellViewComponent {
   readonly saveResetRequested = output<void>();
   readonly saveTransferPayloadChanged = output<string>();
   readonly actionSelected = output<string>();
+  readonly characterPanelActionSelected = output<string>();
   readonly gameDialogAdvanceRequested = output<void>();
   readonly gameDialogChoiceSelected = output<number>();
   readonly gameDialogCloseRequested = output<void>();

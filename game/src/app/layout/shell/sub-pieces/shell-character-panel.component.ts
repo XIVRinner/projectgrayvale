@@ -1,4 +1,4 @@
-import { Component, input } from "@angular/core";
+import { Component, input, output } from "@angular/core";
 
 import { GapWarningComponent } from "../../../shared/components/gap-warning/gap-warning.component";
 import { ImagePreviewComponent } from "../../../shared/components/image-preview/image-preview.component";
@@ -15,4 +15,9 @@ import { ShellCharacterPanel } from "../shell.types";
 })
 export class ShellCharacterPanelComponent {
   readonly panel = input.required<ShellCharacterPanel>();
+  readonly actionSelected = output<string>();
+
+  protected requestAction(actionId: string): void {
+    this.actionSelected.emit(actionId);
+  }
 }

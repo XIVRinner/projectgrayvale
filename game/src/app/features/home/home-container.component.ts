@@ -86,13 +86,6 @@ export class HomeContainerComponent {
       disabled: true
     },
     {
-      label: "Character Sheet",
-      description: "Inspect equipment, loadouts, and combat stats.",
-      icon: "pi pi-id-card",
-      route: "/character-sheet",
-      disabled: false
-    },
-    {
       label: "Creator Lab",
       description: "Register a new adventurer.",
       icon: "pi pi-user-plus",

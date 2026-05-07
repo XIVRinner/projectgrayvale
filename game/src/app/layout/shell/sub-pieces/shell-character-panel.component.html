@@ -19,7 +19,15 @@
 
       <div class="gv-character-panel__header-actions" aria-label="Character actions">
         @for (action of panel().actions; track action.label) {
-          <button type="button" class="gv-character-panel__action" [attr.aria-label]="action.label" [attr.title]="action.label" disabled>
+          <button
+            type="button"
+            class="gv-character-panel__action"
+            [class.gv-character-panel__action--interactive]="!action.disabled"
+            [attr.aria-label]="action.label"
+            [attr.title]="action.label"
+            [disabled]="action.disabled ?? false"
+            (click)="requestAction(action.id)"
+          >
             @if (action.icon) {
               <i [class]="action.icon" aria-hidden="true"></i>
             } @else {

@@ -1,0 +1,14 @@
+:host {
+  display: contents;
+}
+
+.gv-shell-character-sheet-dialog__sheet {
+  block-size: 100%;
+  min-block-size: 42rem;
+}
+
+@media (max-width: 48rem) {
+  .gv-shell-character-sheet-dialog__sheet {
+    min-block-size: 32rem;
+  }
+}

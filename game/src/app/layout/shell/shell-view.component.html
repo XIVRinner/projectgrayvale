@@ -14,7 +14,10 @@
     [class.gv-shell__content-grid--command-center]="isCommandCenter()"
   >
     <aside class="gv-shell__panel gv-shell__sidebar">
-      <gv-shell-character-panel [panel]="characterPanel()" />
+      <gv-shell-character-panel
+        [panel]="characterPanel()"
+        (actionSelected)="characterPanelActionSelected.emit($event)"
+      />
     </aside>
 
     <section class="gv-shell__middle-stack">
@@ -61,6 +64,12 @@
     [entries]="gameplayLogEntries()"
     [debugEntries]="debugLogEntries()"
     (closed)="gameplayLogCloseRequested.emit()"
+  />
+
+  <gv-shell-character-sheet-dialog
+    [open]="isCharacterSheetOpen()"
+    [panel]="characterPanel()"
+    (closed)="characterSheetCloseRequested.emit()"
   />
 
   <gv-shell-geg-visualizer-dialog

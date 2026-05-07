@@ -82,9 +82,11 @@ export interface ShellCharacterRoleLine {
 }
 
 export interface ShellCharacterAction {
+  readonly id: string;
   readonly label: string;
   readonly shortLabel: string;
   readonly icon?: string;
+  readonly disabled?: boolean;
 }
 
 export interface ShellCharacterStatItem {

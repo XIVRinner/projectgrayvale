@@ -97,9 +97,9 @@ export function buildShellCharacterPanel(
       }
     ],
     actions: [
-      { label: "Character Sheet", shortLabel: "ID", icon: "pi pi-id-card" },
-      { label: "Statistics", shortLabel: "ST", icon: "pi pi-chart-bar" },
-      { label: "Inventory", shortLabel: "IN", icon: "pi pi-box" }
+      { id: "character-sheet", label: "Character Sheet", shortLabel: "ID", icon: "pi pi-id-card" },
+      { id: "statistics", label: "Statistics", shortLabel: "ST", icon: "pi pi-chart-bar", disabled: true },
+      { id: "inventory", label: "Inventory", shortLabel: "IN", icon: "pi pi-box", disabled: true }
     ],
     levelValue: activeCharacter.progression.level,
     levelTitle: `Level ${activeCharacter.progression.level}`,
@@ -126,9 +126,9 @@ function buildEmptyCharacterPanel(): ShellCharacterPanel {
       { label: "Difficulty", value: "Normal", meta: "Rank 0 | 0 XP banked" }
     ],
     actions: [
-      { label: "Character Sheet", shortLabel: "ID", icon: "pi pi-id-card" },
-      { label: "Statistics", shortLabel: "ST", icon: "pi pi-chart-bar" },
-      { label: "Inventory", shortLabel: "IN", icon: "pi pi-box" }
+      { id: "character-sheet", label: "Character Sheet", shortLabel: "ID", icon: "pi pi-id-card", disabled: true },
+      { id: "statistics", label: "Statistics", shortLabel: "ST", icon: "pi pi-chart-bar", disabled: true },
+      { id: "inventory", label: "Inventory", shortLabel: "IN", icon: "pi pi-box", disabled: true }
     ],
     levelValue: 1,
     levelTitle: "Level 1",

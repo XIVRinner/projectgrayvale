@@ -53,6 +53,7 @@ import {
       [characterPanel]="characterPanel()"
       [questTrackerPanel]="questTrackerPanel()"
       [saveSlots]="saveSlots()"
+      [isCharacterSheetOpen]="isCharacterSheetOpen()"
       [isCharacterCreationOpen]="isCharacterCreationOpen()"
       [isCharacterCreationRequired]="isCharacterCreationRequired()"
       [isSaveManagerOpen]="isSaveManagerOpen()"
@@ -66,10 +67,12 @@ import {
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
+      (characterPanelActionSelected)="handleCharacterPanelActionSelected($event)"
       (topbarActionSelected)="handleTopbarActionSelected($event)"
       (gameDialogAdvanceRequested)="advanceGameDialog()"
       (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
       (gameDialogCloseRequested)="stopActivityDialog()"
+      (characterSheetCloseRequested)="closeCharacterSheet()"
       (characterCreationOpenRequested)="openCharacterCreation()"
       (characterCreationCloseRequested)="closeCharacterCreation()"
       (characterCreated)="handleCharacterCreated()"
@@ -101,6 +104,7 @@ export class ShellContainerComponent {
   private readonly gameplayRuntime = inject(GameplayGraphRuntime);
 
   protected readonly isCharacterCreationOpenState = signal(false);
+  protected readonly isCharacterSheetOpen = signal(false);
   protected readonly isSaveManagerOpen = signal(false);
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
@@ -139,7 +143,6 @@ export class ShellContainerComponent {
 
   readonly navItems = signal<readonly ShellNavItem[]>([
     { label: "Home", route: "/" },
-    { label: "Character Sheet", route: "/character-sheet" },
     { label: "Creator Lab", route: "/creator" }
   ]);
 
@@ -194,6 +197,7 @@ export class ShellContainerComponent {
         return;
       }
 
+      this.isCharacterSheetOpen.set(false);
       this.isCharacterCreationOpenState.set(true);
       this.isSaveManagerOpen.set(false);
     });
@@ -346,10 +350,30 @@ export class ShellContainerComponent {
   protected openCharacterCreation(): void {
     this.logUi("Opening character creation dialog.");
     this.transferStatusMessage.set(null);
+    this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(true);
+  }
+
+  protected openCharacterSheet(): void {
+    if (!this.roster.activeCharacter()) {
+      this.logUi("Ignored character sheet open because there is no active character.");
+      return;
+    }
+
+    this.logUi("Opening character sheet dialog.");
+    this.isCharacterCreationOpenState.set(false);
+    this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
+    this.isCharacterSheetOpen.set(true);
+  }
+
+  protected closeCharacterSheet(): void {
+    this.logUi("Closing character sheet dialog.");
+    this.isCharacterSheetOpen.set(false);
   }
 
   protected closeCharacterCreation(): void {
@@ -370,6 +394,7 @@ export class ShellContainerComponent {
 
   protected openSaveManager(): void {
     this.logUi("Opening save manager.");
+    this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isGameplayLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
@@ -387,6 +412,7 @@ export class ShellContainerComponent {
       gameplayEntries: this.gameplayLogEntries().length,
       debugEntries: this.debugLogEntries().length
     });
+    this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGegVisualizerOpen.set(false);
@@ -400,6 +426,7 @@ export class ShellContainerComponent {
 
   protected openGegVisualizer(): void {
     this.logUi("Opening GEG visualizer dialog.");
+    this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
@@ -415,6 +442,7 @@ export class ShellContainerComponent {
     this.logUi("Loading save slot.", { slotId });
     this.roster.setActiveSlot(slotId);
     this.transferStatusMessage.set(`Loaded ${formatSlotLabel(slotId)}.`);
+    this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
@@ -521,6 +549,14 @@ export class ShellContainerComponent {
     }
   }
 
+  protected handleCharacterPanelActionSelected(actionId: string): void {
+    this.logUi("Character panel action selected.", { actionId });
+
+    if (actionId === CHARACTER_PANEL_CHARACTER_SHEET_ACTION_ID) {
+      this.openCharacterSheet();
+    }
+  }
+
   protected advanceGameDialog(): void {
     this.logUi("Dialogue advance requested from shell.");
     this.gameDialog.advance();
@@ -545,6 +581,7 @@ const TOPBAR_GAMEPLAY_LOG_ACTION_ID = "topbar:gameplay-log";
 const TOPBAR_ACHIEVEMENTS_ACTION_ID = "topbar:achievements";
 const TOPBAR_GALLERY_ACTION_ID = "topbar:gallery";
 const TOPBAR_SETTINGS_ACTION_ID = "topbar:settings";
+const CHARACTER_PANEL_CHARACTER_SHEET_ACTION_ID = "character-sheet";
 
 function formatSaveTimestamp(value: string): string {
   const parsedDate = new Date(value);

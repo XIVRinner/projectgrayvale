@@ -54,6 +54,25 @@
   color: var(--gv-color-accent-warm);
   font-size: var(--gv-font-size-sm);
   font-weight: 700;
+  transition:
+    transform var(--gv-anim-normal),
+    background var(--gv-anim-normal),
+    opacity var(--gv-anim-normal);
+}
+
+.gv-character-panel__action--interactive {
+  cursor: pointer;
+}
+
+.gv-character-panel__action--interactive:hover,
+.gv-character-panel__action--interactive:focus-visible {
+  transform: translateY(calc(var(--gv-space-xs) * -0.5));
+  background: color-mix(in srgb, var(--gv-color-accent) 34%, transparent);
+}
+
+.gv-character-panel__action:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .gv-character-panel__name,
