@@ -1,7 +1,7 @@
 [
   {
     "id": "weapon_dagger_rustleaf",
-    "name": "Rustleaf Dagger",
+    "name": "Old Dagger",
     "category": "equipment",
     "rarity": "uncommon",
     "tags": [
@@ -37,7 +37,7 @@
   },
   {
     "id": "armor_hood_rainwoven",
-    "name": "Rainwoven Hood",
+    "name": "Rags",
     "category": "equipment",
     "rarity": "common",
     "tags": [
@@ -63,7 +63,7 @@
   },
   {
     "id": "armor_mail_graymark",
-    "name": "Graymark Mail",
+    "name": "Worn Leather Chestpiece",
     "category": "equipment",
     "rarity": "uncommon",
     "tags": [
@@ -228,7 +228,7 @@
   },
   {
     "id": "ring_bone_carved",
-    "name": "Bone-Carved Ring",
+    "name": "Ring of Split Mind",
     "category": "equipment",
     "rarity": "uncommon",
     "tags": [
@@ -239,22 +239,22 @@
     "itemLevel": 9,
     "combatStats": [
       {
-        "stat": "physical_damage",
-        "value": 4,
+        "stat": "strength",
+        "value": 20,
         "operation": "add"
       },
       {
-        "stat": "max_hp",
-        "value": 15,
+        "stat": "mentality",
+        "value": -20,
         "operation": "add"
       }
     ],
     "tooltip": {
       "statLines": [
-        "+4 Physical Damage",
-        "+15 Max HP"
+        "+20 Strength",
+        "-20 Mentality"
       ],
-      "flavorText": "Worn smooth by years of nervous turning."
+      "flavorText": "Power at the cost of focus."
     }
   },
   {

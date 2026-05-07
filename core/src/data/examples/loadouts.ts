@@ -7,15 +7,16 @@ export const sampleLoadoutDefault: Loadout = {
   slots: {
     main_hand: "weapon_dagger_rustleaf",
     head: "armor_hood_rainwoven",
-    chest: "armor_mail_graymark"
+    chest: "armor_mail_graymark",
+    ring: "ring_bone_carved"
   }
 };
 
 export const sampleLoadoutUtility: Loadout = {
   id: "loadout_utility",
-  displayName: "Utility",
+  displayName: "Dodge Build",
   isActive: false,
-  notes: "Swap to this loadout for non-combat gathering activities.",
+  notes: "Placeholder build for high-avoidance encounters.",
   slots: {}
 };
 
