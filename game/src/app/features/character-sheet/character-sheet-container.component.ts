@@ -19,9 +19,24 @@ import type { LoadoutEquipEvent, LoadoutRenameEvent } from "./loadout-selector/l
 
 let _nextLoadoutIndex = 3;
 
+type CharacterSheetTab = "equipment" | "stats" | "inventory";
+
+interface TabDef {
+  id: CharacterSheetTab;
+  label: string;
+  icon: string;
+}
+
+const TABS: readonly TabDef[] = [
+  { id: "equipment", label: "Equipment", icon: "pi-shield" },
+  { id: "stats", label: "Stats", icon: "pi-chart-bar" },
+  { id: "inventory", label: "Inventory", icon: "pi-briefcase" }
+];
+
 /**
  * Top-level smart container for the Character Sheet feature.
  * Owns all loadout state and wires the equipment panel, combat stats, and loadout selector together.
+ * Uses a tabbed layout (Equipment / Stats / Inventory) inside the character sheet dialog.
  */
 @Component({
   selector: "gv-character-sheet-container",
@@ -35,30 +50,57 @@ let _nextLoadoutIndex = 3;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="gv-char-sheet">
-      <div class="gv-char-sheet__left">
-        <gv-loadout-selector-container
-          [loadoutsRecord]="loadoutsRecord()"
-          [activeLoadoutId]="activeLoadoutId()"
-          (loadoutSelected)="onLoadoutSelected($event)"
-          (loadoutCreated)="onLoadoutCreated()"
-          (loadoutRenamed)="onLoadoutRenamed($event)"
-          (itemEquipped)="onItemEquipped($event)"
-          (itemUnequipped)="onItemUnequipped($event)"
-        />
-        <gv-equipment-panel-container
-          [activeLoadout]="activeLoadout()"
-          [comparedItemId]="comparedItemId()"
-          (compareItemChanged)="onComparedItemChanged($event)"
-        />
+      <nav class="gv-char-sheet__tabs" role="tablist" aria-label="Character sheet sections">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            role="tab"
+            class="gv-char-sheet__tab"
+            [class.gv-char-sheet__tab--active]="activeTab() === tab.id"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [attr.aria-controls]="'gv-cs-pane-' + tab.id"
+            (click)="activeTab.set(tab.id)"
+          >
+            <i [class]="'pi ' + tab.icon" aria-hidden="true"></i>
+            {{ tab.label }}
+          </button>
+        }
+      </nav>
+
+      <div class="gv-char-sheet__pane" role="tabpanel" [id]="'gv-cs-pane-' + activeTab()">
+        @switch (activeTab()) {
+          @case ('equipment') {
+            <div class="gv-char-sheet__equipment-pane">
+              <gv-loadout-selector-container
+                [loadoutsRecord]="loadoutsRecord()"
+                [activeLoadoutId]="activeLoadoutId()"
+                (loadoutSelected)="onLoadoutSelected($event)"
+                (loadoutCreated)="onLoadoutCreated()"
+                (loadoutRenamed)="onLoadoutRenamed($event)"
+                (itemEquipped)="onItemEquipped($event)"
+                (itemUnequipped)="onItemUnequipped($event)"
+              />
+              <gv-equipment-panel-container
+                [activeLoadout]="activeLoadout()"
+                [comparedItemId]="comparedItemId()"
+                (compareItemChanged)="onComparedItemChanged($event)"
+              />
+            </div>
+          }
+          @case ('stats') {
+            <gv-combat-stats-container [activeLoadout]="activeLoadout()" />
+          }
+          @case ('inventory') {
+            <gv-inventory-panel-container
+              [activeLoadout]="activeLoadout()"
+              [comparedItemId]="comparedItemId()"
+              (itemEquipped)="onItemEquipped($event)"
+              (itemUnequipped)="onItemUnequipped($event)"
+              (compareItemChanged)="onComparedItemChanged($event)"
+            />
+          }
+        }
       </div>
-      <gv-combat-stats-container [activeLoadout]="activeLoadout()" />
-      <gv-inventory-panel-container
-        [activeLoadout]="activeLoadout()"
-        [comparedItemId]="comparedItemId()"
-        (itemEquipped)="onItemEquipped($event)"
-        (itemUnequipped)="onItemUnequipped($event)"
-        (compareItemChanged)="onComparedItemChanged($event)"
-      />
     </div>
   `,
   styleUrl: "./character-sheet-container.component.scss"
