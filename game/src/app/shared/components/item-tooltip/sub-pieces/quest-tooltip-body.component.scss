@@ -1,0 +1,30 @@
+:host {
+  display: contents;
+}
+
+.gv-quest-tooltip-body {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-tooltip-quest-context {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-tooltip-accent);
+  text-transform: capitalize;
+}
+
+.gv-tooltip-state {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-success);
+}
+
+.gv-tooltip-state[data-locked="true"] {
+  color: var(--gv-color-danger);
+}
+
+.gv-tooltip-designation {
+  font-size: var(--gv-font-size-xxs);
+  color: var(--gv-color-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

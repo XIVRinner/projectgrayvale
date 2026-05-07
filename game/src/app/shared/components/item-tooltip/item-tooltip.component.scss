@@ -1,0 +1,108 @@
+:host {
+  display: block;
+}
+
+.gv-item-tooltip {
+  display: grid;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-md);
+  border-radius: var(--gv-radius-md);
+  border: 1px solid var(--gv-tooltip-rarity-color, var(--gv-color-border-subtle));
+  background: var(--gv-tooltip-bg);
+  min-inline-size: 14rem;
+  max-inline-size: 22rem;
+}
+
+.gv-item-tooltip__header {
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 0.5);
+  padding-block-end: var(--gv-space-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--gv-tooltip-rarity-color, var(--gv-color-border-subtle)) 40%, transparent);
+}
+
+.gv-item-tooltip__name {
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+  color: var(--gv-color-text-primary);
+  line-height: 1.3;
+}
+
+.gv-item-tooltip__rarity {
+  font-size: var(--gv-font-size-xxs);
+  color: var(--gv-tooltip-rarity-color, var(--gv-color-text-muted));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gv-item-tooltip__special-rarity {
+  font-size: var(--gv-font-size-xxs);
+  color: var(--gv-tooltip-rarity-color, var(--gv-color-accent));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.gv-item-tooltip__body {
+  display: contents;
+}
+
+/* ── Shared section primitives ───────────────────────────────────────────── */
+
+:host ::ng-deep .gv-tooltip-section {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+:host ::ng-deep .gv-tooltip-section--meta {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: center;
+}
+
+:host ::ng-deep .gv-tooltip-section__label {
+  font-size: var(--gv-font-size-xxs);
+  color: var(--gv-color-text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .gv-tooltip-section--tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+:host ::ng-deep .gv-tooltip-tag {
+  font-size: var(--gv-font-size-xxs);
+  padding: 1px var(--gv-space-xs);
+  border-radius: var(--gv-radius-sm);
+  background: color-mix(in srgb, var(--gv-tooltip-accent) 12%, transparent);
+  color: var(--gv-color-text-muted);
+  border: 1px solid color-mix(in srgb, var(--gv-tooltip-accent) 20%, transparent);
+}
+
+:host ::ng-deep .gv-tooltip-section--flavor {
+  padding-block-start: var(--gv-space-xs);
+  border-top: var(--gv-border-subtle);
+}
+
+:host ::ng-deep .gv-tooltip-description {
+  margin: 0;
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-text-muted);
+  line-height: 1.5;
+}
+
+:host ::ng-deep .gv-tooltip-flavor {
+  margin: 0;
+  font-size: var(--gv-font-size-xs);
+  font-family: var(--gv-font-dialogue);
+  color: color-mix(in srgb, var(--gv-color-text-muted) 70%, white 30%);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+:host ::ng-deep .gv-tooltip-requirement {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-text-muted);
+}

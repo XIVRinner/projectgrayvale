@@ -1,0 +1,29 @@
+:host {
+  display: contents;
+}
+
+.gv-material-tooltip-body {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-tooltip-meta__quantity {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-tooltip-meta__quality-stars {
+  color: var(--gv-color-accent);
+  letter-spacing: 0.06em;
+}
+
+.gv-tooltip-source {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-tooltip-crafting-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}

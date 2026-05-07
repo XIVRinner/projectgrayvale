@@ -34,9 +34,9 @@
     <button
       type="button"
       class="gv-inventory-item__action-btn"
-      [pTooltip]="item().inspectTooltip"
-      tooltipPosition="left"
+      (click)="onInspectToggle()"
       [attr.aria-label]="'Inspect ' + item().name"
+      [attr.aria-expanded]="showTooltip()"
     >
       <i class="pi pi-eye" aria-hidden="true"></i>
     </button>
@@ -77,4 +77,10 @@
       }
     }
   </footer>
+
+  @if (showTooltip()) {
+    <div class="gv-inventory-item__tooltip-panel">
+      <gv-item-tooltip [item]="item().itemDef" />
+    </div>
+  }
 </article>

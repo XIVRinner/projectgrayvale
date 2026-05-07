@@ -1,0 +1,23 @@
+/* Equipment — structured, data-rich */
+[data-variant="equipment"] {
+  --gv-tooltip-bg: color-mix(in srgb, var(--gv-color-bg-surface) 96%, var(--gv-tooltip-rarity-color) 4%);
+  --gv-tooltip-accent: var(--gv-tooltip-rarity-color, var(--gv-color-accent));
+}
+
+/* Material — clean, compact */
+[data-variant="material"] {
+  --gv-tooltip-bg: var(--gv-color-bg-raised);
+  --gv-tooltip-accent: var(--gv-color-accent-cool);
+}
+
+/* Quest — narrative emphasis */
+[data-variant="quest"] {
+  --gv-tooltip-bg: color-mix(in srgb, var(--gv-color-bg-surface) 94%, var(--gv-color-action-quest) 6%);
+  --gv-tooltip-accent: var(--gv-color-action-quest);
+}
+
+/* Junk — muted, minimal */
+[data-variant="junk"] {
+  --gv-tooltip-bg: var(--gv-color-bg-primary);
+  --gv-tooltip-accent: var(--gv-color-text-muted);
+}

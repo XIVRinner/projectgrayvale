@@ -1,0 +1,47 @@
+<div class="gv-material-tooltip-body">
+
+  <div class="gv-tooltip-section gv-tooltip-section--meta">
+    <span class="gv-tooltip-meta__quantity">Qty {{ item().quantity }}</span>
+    @if (qualityStarsLabel()) {
+      <span class="gv-tooltip-meta__quality-stars">{{ qualityStarsLabel() }}</span>
+    }
+  </div>
+
+  @if (hasCraftingTags()) {
+    <div class="gv-tooltip-section gv-tooltip-section--crafting">
+      <span class="gv-tooltip-section__label">Crafting Use</span>
+      <div class="gv-tooltip-crafting-tags">
+        @for (tag of item().craftingTags; track tag) {
+          <span class="gv-tooltip-tag">{{ tag }}</span>
+        }
+      </div>
+    </div>
+  }
+
+  @if (item().source; as source) {
+    <div class="gv-tooltip-section gv-tooltip-section--source">
+      <span class="gv-tooltip-section__label">Source</span>
+      <span class="gv-tooltip-source">{{ source }}</span>
+    </div>
+  }
+
+  @if (hasTags()) {
+    <div class="gv-tooltip-section gv-tooltip-section--tags">
+      @for (tag of item().tags; track tag) {
+        <span class="gv-tooltip-tag">{{ tag }}</span>
+      }
+    </div>
+  }
+
+  @if (item().flavor || item().description) {
+    <div class="gv-tooltip-section gv-tooltip-section--flavor">
+      @if (item().description; as desc) {
+        <p class="gv-tooltip-description">{{ desc }}</p>
+      }
+      @if (item().flavor; as flavor) {
+        <p class="gv-tooltip-flavor">"{{ flavor }}"</p>
+      }
+    </div>
+  }
+
+</div>

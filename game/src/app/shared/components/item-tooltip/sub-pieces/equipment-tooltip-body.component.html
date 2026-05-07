@@ -1,0 +1,60 @@
+<div class="gv-equipment-tooltip-body">
+
+  <div class="gv-tooltip-section gv-tooltip-section--meta">
+    <span class="gv-tooltip-meta__slot">{{ slotLabel() }}</span>
+    <span class="gv-tooltip-meta__ilvl">ilvl {{ item().itemLevel }}</span>
+  </div>
+
+  @if (levelRequirement() || skillRequirement()) {
+    <div class="gv-tooltip-section gv-tooltip-section--requirements">
+      <span class="gv-tooltip-section__label">Requirements</span>
+      @if (levelRequirement(); as lvl) {
+        <span class="gv-tooltip-requirement">Level {{ lvl }}</span>
+      }
+      @if (skillRequirement(); as skill) {
+        <span class="gv-tooltip-requirement">{{ skill.skillId }} {{ skill.level }}</span>
+      }
+    </div>
+  }
+
+  @if (hasCombatStats()) {
+    <div class="gv-tooltip-section gv-tooltip-section--combat-stats">
+      <span class="gv-tooltip-section__label">Combat Stats</span>
+      @for (stat of item().combatStats; track stat.stat) {
+        <div class="gv-tooltip-stat-row">
+          <span class="gv-tooltip-stat-row__name">{{ stat.stat.replace(/_/g, " ") }}</span>
+          <span class="gv-tooltip-stat-row__value">{{ statLabel(stat.value, stat.operation) }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  @if (hasSpecialEffects()) {
+    <div class="gv-tooltip-section gv-tooltip-section--effects">
+      <span class="gv-tooltip-section__label">Special Effects</span>
+      @for (effectId of item().specialEffects; track effectId) {
+        <span class="gv-tooltip-effect">{{ effectId }}</span>
+      }
+    </div>
+  }
+
+  @if (hasTags()) {
+    <div class="gv-tooltip-section gv-tooltip-section--tags">
+      @for (tag of item().tags; track tag) {
+        <span class="gv-tooltip-tag">{{ tag }}</span>
+      }
+    </div>
+  }
+
+  @if (item().flavor || item().description) {
+    <div class="gv-tooltip-section gv-tooltip-section--flavor">
+      @if (item().description; as desc) {
+        <p class="gv-tooltip-description">{{ desc }}</p>
+      }
+      @if (item().flavor; as flavor) {
+        <p class="gv-tooltip-flavor">"{{ flavor }}"</p>
+      }
+    </div>
+  }
+
+</div>
