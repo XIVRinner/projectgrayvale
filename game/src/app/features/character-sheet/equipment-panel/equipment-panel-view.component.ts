@@ -18,6 +18,5 @@ export class EquipmentPanelViewComponent {
   readonly isLoading = input.required<boolean>();
   readonly error = input.required<string | null>();
 
-  readonly tooltipRequested = output<EquipmentSlot>();
   readonly compareRequested = output<EquipmentSlot>();
 }

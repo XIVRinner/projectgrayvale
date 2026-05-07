@@ -26,8 +26,8 @@ export class InventoryItemComponent {
   protected readonly qualityStarsLabel = computed(() => toQualityStars(this.item().qualityStars));
   protected readonly showTooltip = signal(false);
 
-  protected onInspectToggle(): void {
-    this.showTooltip.update((v) => !v);
+  protected onTooltipHover(visible: boolean): void {
+    this.showTooltip.set(visible);
   }
 
   protected onEquip(): void {

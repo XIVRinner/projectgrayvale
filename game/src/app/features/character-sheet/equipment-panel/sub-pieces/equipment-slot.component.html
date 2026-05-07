@@ -4,8 +4,8 @@
   [class.gv-equip-slot--equipped]="!!slot().item"
   [class.gv-equip-slot--compare-target]="slot().isCompareTarget"
   [style.--slot-rarity-color]="rarityColor()"
-  [pTooltip]="tooltipContent()"
-  tooltipPosition="right"
+  (mouseenter)="onTooltipHover(true)"
+  (mouseleave)="onTooltipHover(false)"
 >
   <header class="gv-equip-slot__header">
     <span class="gv-equip-slot__label">{{ slot().slotLabel }}</span>
@@ -46,23 +46,17 @@
       <button
         type="button"
         class="gv-equip-slot__action-btn"
-        (click)="onInspect()"
-        [attr.aria-label]="'Inspect ' + item.name"
-        pTooltip="Inspect"
-        tooltipPosition="bottom"
-      >
-        <i class="pi pi-eye" aria-hidden="true"></i>
-      </button>
-      <button
-        type="button"
-        class="gv-equip-slot__action-btn"
         (click)="onCompare()"
         [attr.aria-label]="'Compare ' + item.name"
-        pTooltip="Compare"
-        tooltipPosition="bottom"
       >
         <i class="pi pi-arrows-h" aria-hidden="true"></i>
       </button>
     </footer>
+
+    @if (showTooltip()) {
+      <div class="gv-equip-slot__tooltip-panel">
+        <gv-item-tooltip [item]="item" />
+      </div>
+    }
   }
 </article>

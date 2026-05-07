@@ -106,6 +106,9 @@ const TABS: readonly TabDef[] = [
   styleUrl: "./character-sheet-container.component.scss"
 })
 export class CharacterSheetContainerComponent {
+  protected readonly tabs = TABS;
+  protected readonly activeTab = signal<CharacterSheetTab>("equipment");
+
   protected readonly loadoutsRecord = signal<Record<string, Loadout>>({ ...sampleLoadouts });
   protected readonly activeLoadoutId = signal<string>("loadout_default");
   protected readonly comparedItemId = signal<string | null>(null);
