@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from "@angular/core";
+import { TooltipModule } from "primeng/tooltip";
 
 import { RARITY_DEFINITIONS, type EquipmentSlot } from "@rinner/grayvale-core";
 
@@ -8,7 +9,7 @@ import type { EquipmentSlotView } from "../equipment-panel.types";
 @Component({
   selector: "gv-equipment-slot",
   standalone: true,
-  imports: [ItemTooltipComponent],
+  imports: [ItemTooltipComponent, TooltipModule],
   templateUrl: "./equipment-slot.component.html",
   styleUrl: "./equipment-slot.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush

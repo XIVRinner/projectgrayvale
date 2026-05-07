@@ -33,7 +33,7 @@
 .gv-char-sheet__tab--active {
   color: var(--gv-color-text-primary);
   border-color: var(--gv-color-accent);
-  background: color-mix(in srgb, var(--gv-color-accent) 14%, var(--gv-color-bg-raised));
+  background: var(--gv-color-accent-tint-bg);
 }
 
 .gv-char-sheet__pane {

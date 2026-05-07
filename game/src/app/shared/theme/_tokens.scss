@@ -10,6 +10,7 @@
   --gv-color-border-strong: #ffc14566;
   --gv-color-overlay-soft: #ffffff08;
   --gv-color-overlay-strong: #ffffff14;
+  --gv-color-accent-tint-bg: color-mix(in srgb, var(--gv-color-accent) 14%, var(--gv-color-bg-raised));
   --gv-color-accent: #ffc145;
   --gv-color-accent-warm: #ffd88c;
   --gv-color-accent-cool: #5bc0be;
