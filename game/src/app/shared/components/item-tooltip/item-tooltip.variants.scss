@@ -21,3 +21,89 @@
   --gv-tooltip-bg: var(--gv-color-bg-primary);
   --gv-tooltip-accent: var(--gv-color-text-muted);
 }
+
+[data-base-rarity="junk"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-junk);
+}
+
+[data-base-rarity="common"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-common);
+}
+
+[data-base-rarity="uncommon"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-uncommon);
+}
+
+[data-base-rarity="rare"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-rare);
+}
+
+[data-base-rarity="epic"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-epic);
+}
+
+/* DESIGN NOTE: Legendary family animation direction is documented for future motion work.
+ * Legendary: slow breathing glow + shimmer.
+ * Ephemeral: soft shimmer.
+ * Mythical: star-like sparkle.
+ * Primal: rune flicker + pulsing aura.
+ */
+[data-base-rarity="legendary"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-legendary);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gv-rarity-legendary) 60%, transparent),
+    0 0 16px color-mix(in srgb, var(--gv-rarity-legendary) 28%, transparent);
+}
+
+[data-base-rarity="ephemeral"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-ephemeral);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gv-rarity-ephemeral) 22%, transparent);
+}
+
+[data-base-rarity="mythical"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-mythical);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gv-rarity-mythical) 60%, transparent);
+}
+
+[data-base-rarity="primal"] {
+  --gv-tooltip-rarity-color: var(--gv-rarity-primal);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gv-rarity-primal) 70%, transparent),
+    0 0 18px color-mix(in srgb, var(--gv-rarity-primal) 30%, transparent);
+}
+
+[data-special-rarity="cursed"] {
+  border-color: var(--gv-rarity-cursed);
+  background: color-mix(in srgb, var(--gv-rarity-cursed) 20%, transparent);
+}
+
+[data-special-rarity="divine"] {
+  border-color: var(--gv-rarity-divine);
+  background: color-mix(in srgb, var(--gv-rarity-divine) 18%, transparent);
+}
+
+[data-special-rarity="infernal"] {
+  border-color: var(--gv-rarity-infernal);
+  background: color-mix(in srgb, var(--gv-rarity-infernal) 24%, transparent);
+}
+
+[data-special-rarity="phantom"] {
+  border-color: var(--gv-rarity-phantom);
+  background: color-mix(in srgb, var(--gv-rarity-phantom) 22%, transparent);
+  opacity: 0.92;
+}
+
+[data-special-rarity="temporal"] {
+  border-color: var(--gv-rarity-temporal);
+  background: color-mix(in srgb, var(--gv-rarity-temporal) 22%, transparent);
+}
+
+[data-special-rarity="secret"] {
+  border-color: var(--gv-rarity-secret);
+  background: color-mix(in srgb, var(--gv-rarity-secret) 20%, transparent);
+}
+
+[data-special-rarity="galvanized"] {
+  border-color: var(--gv-rarity-galvanized);
+  background: color-mix(in srgb, var(--gv-rarity-galvanized) 24%, transparent);
+}

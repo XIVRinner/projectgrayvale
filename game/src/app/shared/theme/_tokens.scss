@@ -32,6 +32,23 @@
   --gv-color-action-crafting: #ffb36b;
   --gv-color-action-quest: var(--gv-color-success);
 
+  --gv-rarity-junk: var(--gv-color-text-muted);
+  --gv-rarity-common: var(--gv-color-text-primary);
+  --gv-rarity-uncommon: var(--gv-color-success);
+  --gv-rarity-rare: var(--gv-color-action-travel);
+  --gv-rarity-epic: var(--gv-color-accent-purple);
+  --gv-rarity-legendary: var(--gv-color-accent);
+  --gv-rarity-ephemeral: var(--gv-color-action-fast-travel);
+  --gv-rarity-mythical: color-mix(in srgb, var(--gv-color-accent-purple) 70%, var(--gv-color-accent) 30%);
+  --gv-rarity-primal: color-mix(in srgb, var(--gv-color-danger) 65%, var(--gv-color-accent) 35%);
+  --gv-rarity-cursed: color-mix(in srgb, var(--gv-color-danger) 70%, black 30%);
+  --gv-rarity-divine: color-mix(in srgb, var(--gv-color-text-primary) 70%, var(--gv-color-accent) 30%);
+  --gv-rarity-infernal: color-mix(in srgb, var(--gv-color-danger) 75%, var(--gv-color-accent-deep-orange) 25%);
+  --gv-rarity-phantom: color-mix(in srgb, var(--gv-color-action-fast-travel) 65%, var(--gv-color-text-primary) 35%);
+  --gv-rarity-temporal: color-mix(in srgb, var(--gv-color-action-travel) 68%, var(--gv-color-accent-cool) 32%);
+  --gv-rarity-secret: color-mix(in srgb, var(--gv-color-accent-purple) 80%, var(--gv-color-text-primary) 20%);
+  --gv-rarity-galvanized: color-mix(in srgb, var(--gv-color-accent-cool) 75%, var(--gv-color-action-travel) 25%);
+
   --gv-space-xs: 0.25rem;
   --gv-space-sm: 0.5rem;
   --gv-space-md: 1rem;
