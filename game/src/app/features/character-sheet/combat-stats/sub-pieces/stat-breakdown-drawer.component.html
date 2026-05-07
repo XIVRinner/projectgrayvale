@@ -1,0 +1,50 @@
+<aside class="gv-breakdown-drawer" aria-label="Stat breakdown">
+  <header class="gv-breakdown-drawer__header">
+    <span class="gv-breakdown-drawer__title">{{ statLabel() }}</span>
+    <button
+      type="button"
+      class="gv-breakdown-drawer__close"
+      aria-label="Close breakdown"
+      (click)="onClose()"
+    >
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <dl class="gv-breakdown-drawer__list">
+    <div class="gv-breakdown-drawer__row gv-breakdown-drawer__row--base">
+      <dt class="gv-breakdown-drawer__source">Base</dt>
+      <dd class="gv-breakdown-drawer__value">{{ breakdown().base }}</dd>
+    </div>
+
+    @for (mod of breakdown().modifiers; track mod.source + mod.stat) {
+      <div
+        class="gv-breakdown-drawer__row"
+        [class.gv-breakdown-drawer__row--inactive]="!mod.active"
+        [attr.data-category]="mod.category"
+      >
+        <dt class="gv-breakdown-drawer__source">
+          {{ mod.source }}
+          @if (!mod.active) {
+            <span class="gv-breakdown-drawer__inactive-badge">inactive</span>
+          }
+        </dt>
+        <dd
+          class="gv-breakdown-drawer__value"
+          [class.gv-breakdown-drawer__value--positive]="mod.active && mod.value > 0"
+          [class.gv-breakdown-drawer__value--negative]="mod.active && mod.value < 0"
+        >
+          {{ mod.value > 0 ? '+' : '' }}{{ mod.value }}
+        </dd>
+      </div>
+    }
+
+    <div class="gv-breakdown-drawer__row gv-breakdown-drawer__row--final">
+      <dt class="gv-breakdown-drawer__source">Final</dt>
+      <dd
+        class="gv-breakdown-drawer__value"
+        [attr.data-state]="breakdown().displayState"
+      >{{ breakdown().final }}</dd>
+    </div>
+  </dl>
+</aside>
