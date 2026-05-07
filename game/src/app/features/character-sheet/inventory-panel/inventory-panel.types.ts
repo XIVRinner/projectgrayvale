@@ -23,6 +23,8 @@ export interface InventoryPanelItemView {
   readonly compareSummary: string | null;
   readonly isEquipped: boolean;
   readonly searchTerms: readonly string[];
+  /** Full item definition passed through for rich tooltip rendering. */
+  readonly itemDef: InventoryItemDefinition;
 }
 
 export interface InventoryEquipEvent {

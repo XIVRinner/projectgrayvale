@@ -1,0 +1,43 @@
+:host {
+  display: contents;
+}
+
+.gv-equipment-tooltip-body {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-tooltip-meta__slot {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-tooltip-accent);
+  text-transform: capitalize;
+  letter-spacing: 0.06em;
+}
+
+.gv-tooltip-meta__ilvl {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-tooltip-stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+  font-size: var(--gv-font-size-xs);
+}
+
+.gv-tooltip-stat-row__name {
+  color: var(--gv-color-text-muted);
+  text-transform: capitalize;
+}
+
+.gv-tooltip-stat-row__value {
+  color: var(--gv-color-success);
+  font-variant-numeric: tabular-nums;
+}
+
+.gv-tooltip-effect {
+  font-size: var(--gv-font-size-xxs);
+  color: var(--gv-tooltip-accent);
+  display: block;
+}

@@ -82,7 +82,8 @@ export class InventoryPanelContainerComponent {
           inspectTooltip: `${item.name}\n${item.rarity}\nQuantity: ${item.quantity}`,
           compareSummary: null,
           isEquipped: false,
-          searchTerms
+          searchTerms,
+          itemDef: item
         } satisfies InventoryPanelItemView;
       }
 
@@ -101,7 +102,8 @@ export class InventoryPanelContainerComponent {
           inspectTooltip: `${item.name}\n${item.rarity}\nContext: ${item.questContext}`,
           compareSummary: null,
           isEquipped: false,
-          searchTerms
+          searchTerms,
+          itemDef: item
         } satisfies InventoryPanelItemView;
       }
 
@@ -120,7 +122,8 @@ export class InventoryPanelContainerComponent {
           inspectTooltip: `${item.name}\n${item.rarity}\nVendor trash`,
           compareSummary: null,
           isEquipped: false,
-          searchTerms
+          searchTerms,
+          itemDef: item
         } satisfies InventoryPanelItemView;
       }
 
@@ -155,7 +158,8 @@ export class InventoryPanelContainerComponent {
         ),
         compareSummary,
         isEquipped: comparison.currentItemId === item.id,
-        searchTerms
+        searchTerms,
+        itemDef: item
       } satisfies InventoryPanelItemView;
     });
   });

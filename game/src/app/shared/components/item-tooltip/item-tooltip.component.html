@@ -1,0 +1,26 @@
+<div
+  class="gv-item-tooltip"
+  [attr.data-variant]="variant()"
+  [style.--gv-tooltip-rarity-color]="rarityColor()"
+  role="tooltip"
+>
+  <header class="gv-item-tooltip__header">
+    <span class="gv-item-tooltip__name">{{ item().name }}</span>
+    <span class="gv-item-tooltip__rarity">{{ rarityName() }}</span>
+    @if (item().specialRarity; as specialRarity) {
+      <span class="gv-item-tooltip__special-rarity">{{ specialRarity }}</span>
+    }
+  </header>
+
+  <div class="gv-item-tooltip__body">
+    @if (equipmentItem(); as equip) {
+      <gv-equipment-tooltip-body [item]="equip" />
+    } @else if (materialItem(); as mat) {
+      <gv-material-tooltip-body [item]="mat" />
+    } @else if (questItem(); as quest) {
+      <gv-quest-tooltip-body [item]="quest" />
+    } @else if (junkItem(); as junk) {
+      <gv-junk-tooltip-body [item]="junk" />
+    }
+  </div>
+</div>

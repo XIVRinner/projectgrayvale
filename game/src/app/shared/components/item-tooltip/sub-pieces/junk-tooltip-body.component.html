@@ -1,0 +1,21 @@
+<div class="gv-junk-tooltip-body">
+
+  @if (hasSellValue()) {
+    <div class="gv-tooltip-section gv-tooltip-section--sell-value">
+      <span class="gv-tooltip-section__label">Sell Value</span>
+      <span class="gv-tooltip-sell-value">{{ item().sellValue }}</span>
+    </div>
+  }
+
+  @if (item().description || item().flavor) {
+    <div class="gv-tooltip-section gv-tooltip-section--flavor">
+      @if (item().description; as desc) {
+        <p class="gv-tooltip-description">{{ desc }}</p>
+      }
+      @if (item().flavor; as flavor) {
+        <p class="gv-tooltip-flavor">"{{ flavor }}"</p>
+      }
+    </div>
+  }
+
+</div>

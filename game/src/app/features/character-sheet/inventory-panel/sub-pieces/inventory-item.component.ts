@@ -1,15 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from "@angular/core";
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from "@angular/core";
 import { TooltipModule } from "primeng/tooltip";
 
 import type { EquipmentSlot } from "@rinner/grayvale-core";
 
+import { ItemTooltipComponent } from "../../../../shared/components/item-tooltip/item-tooltip.component";
 import { toQualityStars } from "../inventory-panel.utils";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "../inventory-panel.types";
 
 @Component({
   selector: "gv-inventory-item",
   standalone: true,
-  imports: [TooltipModule],
+  imports: [TooltipModule, ItemTooltipComponent],
   templateUrl: "./inventory-item.component.html",
   styleUrl: "./inventory-item.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -23,6 +24,11 @@ export class InventoryItemComponent {
   readonly compareRequested = output<string | null>();
 
   protected readonly qualityStarsLabel = computed(() => toQualityStars(this.item().qualityStars));
+  protected readonly showTooltip = signal(false);
+
+  protected onInspectToggle(): void {
+    this.showTooltip.update((v) => !v);
+  }
 
   protected onEquip(): void {
     const item = this.item();
