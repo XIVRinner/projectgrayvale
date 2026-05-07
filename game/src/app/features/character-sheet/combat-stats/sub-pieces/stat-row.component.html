@@ -1,0 +1,18 @@
+<button
+  type="button"
+  class="gv-stat-row"
+  [class.gv-stat-row--selected]="isSelected()"
+  [attr.data-state]="row().breakdown.displayState"
+  [attr.aria-pressed]="isSelected()"
+  [attr.aria-label]="'Show breakdown for ' + row().label"
+  (click)="onSelect()"
+>
+  <span class="gv-stat-row__label">{{ row().label }}</span>
+
+  <span class="gv-stat-row__values">
+    <span class="gv-stat-row__value">{{ row().formattedValue }}</span>
+    @if (row().formattedDelta; as delta) {
+      <span class="gv-stat-row__delta">{{ delta }}</span>
+    }
+  </span>
+</button>

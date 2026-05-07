@@ -11,6 +11,7 @@ import {
   type Loadout
 } from "@rinner/grayvale-core";
 
+import { CombatStatsContainerComponent } from "./combat-stats/combat-stats-container.component";
 import { EquipmentPanelContainerComponent } from "./equipment-panel/equipment-panel-container.component";
 import { InventoryPanelContainerComponent } from "./inventory-panel/inventory-panel-container.component";
 import { LoadoutSelectorContainerComponent } from "./loadout-selector/loadout-selector-container.component";
@@ -20,29 +21,37 @@ let _nextLoadoutIndex = 3;
 
 /**
  * Top-level smart container for the Character Sheet feature.
- * Owns all loadout state and wires the equipment panel and loadout selector together.
+ * Owns all loadout state and wires the equipment panel, combat stats, and loadout selector together.
  */
 @Component({
   selector: "gv-character-sheet-container",
   standalone: true,
-  imports: [EquipmentPanelContainerComponent, InventoryPanelContainerComponent, LoadoutSelectorContainerComponent],
+  imports: [
+    CombatStatsContainerComponent,
+    EquipmentPanelContainerComponent,
+    InventoryPanelContainerComponent,
+    LoadoutSelectorContainerComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="gv-char-sheet">
-      <gv-loadout-selector-container
-        [loadoutsRecord]="loadoutsRecord()"
-        [activeLoadoutId]="activeLoadoutId()"
-        (loadoutSelected)="onLoadoutSelected($event)"
-        (loadoutCreated)="onLoadoutCreated()"
-        (loadoutRenamed)="onLoadoutRenamed($event)"
-        (itemEquipped)="onItemEquipped($event)"
-        (itemUnequipped)="onItemUnequipped($event)"
-      />
-      <gv-equipment-panel-container
-        [activeLoadout]="activeLoadout()"
-        [comparedItemId]="comparedItemId()"
-        (compareItemChanged)="onComparedItemChanged($event)"
-      />
+      <div class="gv-char-sheet__left">
+        <gv-loadout-selector-container
+          [loadoutsRecord]="loadoutsRecord()"
+          [activeLoadoutId]="activeLoadoutId()"
+          (loadoutSelected)="onLoadoutSelected($event)"
+          (loadoutCreated)="onLoadoutCreated()"
+          (loadoutRenamed)="onLoadoutRenamed($event)"
+          (itemEquipped)="onItemEquipped($event)"
+          (itemUnequipped)="onItemUnequipped($event)"
+        />
+        <gv-equipment-panel-container
+          [activeLoadout]="activeLoadout()"
+          [comparedItemId]="comparedItemId()"
+          (compareItemChanged)="onComparedItemChanged($event)"
+        />
+      </div>
+      <gv-combat-stats-container [activeLoadout]="activeLoadout()" />
       <gv-inventory-panel-container
         [activeLoadout]="activeLoadout()"
         [comparedItemId]="comparedItemId()"

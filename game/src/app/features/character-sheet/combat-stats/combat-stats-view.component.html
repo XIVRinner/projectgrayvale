@@ -1,0 +1,42 @@
+<section class="gv-combat-stats" aria-label="Combat Stats">
+  <h2 class="gv-combat-stats__title">Combat Stats</h2>
+
+  @if (isLoading()) {
+    <div class="gv-combat-stats__state gv-combat-stats__state--loading" aria-live="polite">
+      <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+      <span>Calculating stats…</span>
+    </div>
+  } @else if (error()) {
+    <div class="gv-combat-stats__state gv-combat-stats__state--error" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ error() }}</span>
+    </div>
+  } @else {
+    <div class="gv-combat-stats__content">
+      @for (group of statGroups(); track group.label) {
+        <div class="gv-combat-stats__group">
+          <h3 class="gv-combat-stats__group-label">{{ group.label }}</h3>
+          <div class="gv-combat-stats__group-rows">
+            @for (row of group.stats; track row.key) {
+              <gv-stat-row
+                [row]="row"
+                [isSelected]="selectedKey() === row.key"
+                (selected)="statSelected.emit($event)"
+              />
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (selectedBreakdown(); as bd) {
+      <div class="gv-combat-stats__drawer">
+        <gv-stat-breakdown-drawer
+          [breakdown]="bd"
+          [statLabel]="selectedLabel() ?? ''"
+          (closed)="drawerClosed.emit()"
+        />
+      </div>
+    }
+  }
+</section>

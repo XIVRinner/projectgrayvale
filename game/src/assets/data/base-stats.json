@@ -1,0 +1,11 @@
+{
+  "strength": 20,
+  "mentality": 15,
+  "physical_damage": 8,
+  "dodge_chance": 0.06,
+  "block_chance": 0,
+  "armor": 0,
+  "fire_resistance": 0,
+  "max_hp": 80,
+  "mana": 50
+}

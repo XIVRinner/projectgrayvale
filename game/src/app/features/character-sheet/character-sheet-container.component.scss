@@ -11,6 +11,12 @@
   align-content: start;
 }
 
+.gv-char-sheet__left {
+  display: grid;
+  gap: var(--gv-space-md);
+  align-content: start;
+}
+
 @media (max-width: 68rem) {
   .gv-char-sheet {
     grid-template-columns: minmax(12rem, 1fr) minmax(0, 1.6fr);
