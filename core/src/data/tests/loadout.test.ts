@@ -82,4 +82,16 @@ describe("loadoutsRecordSchema", () => {
   it("accepts an empty record", () => {
     expect(loadoutsRecordSchema.parse({})).toEqual({});
   });
+
+  it("includes the required MVP loadout names", () => {
+    const names = Object.values(sampleLoadouts).map((loadout) => loadout.displayName);
+    expect(names).toEqual(expect.arrayContaining(["Default", "Dodge Build"]));
+  });
+
+  it("keeps the default loadout partially filled for filled/empty slot rendering", () => {
+    const filledSlotCount = Object.keys(sampleLoadoutDefault.slots).length;
+    const totalSlotCount = Object.keys(loadoutSlotMapSchema.shape).length;
+    expect(filledSlotCount).toBeGreaterThan(0);
+    expect(filledSlotCount).toBeLessThan(totalSlotCount);
+  });
 });
