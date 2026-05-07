@@ -142,14 +142,7 @@ export class LoadoutSelectorContainerComponent {
     this.http
       .get<unknown>("assets/data/equipment-items.json")
       .pipe(
-        map((raw) => {
-          if (!Array.isArray(raw)) {
-            this.error.set("Invalid equipment data format.");
-            this.isLoading.set(false);
-            return [] as InventoryEquipmentItem[];
-          }
-          return raw.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry));
-        }),
+        map((raw) => inventoryEquipmentItemSchema.array().parse(raw)),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load items.";
           this.error.set(message);
