@@ -1,0 +1,119 @@
+:host {
+  display: contents;
+}
+
+.gv-loadout-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gv-space-xs);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  border-radius: var(--gv-radius-sm);
+  border: 1px solid transparent;
+  transition:
+    background var(--gv-anim-fast),
+    border-color var(--gv-anim-fast);
+  list-style: none;
+}
+
+.gv-loadout-item:hover {
+  background: var(--gv-color-overlay-soft);
+}
+
+.gv-loadout-item--active {
+  background: color-mix(in srgb, var(--gv-color-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--gv-color-accent) 30%, transparent);
+}
+
+.gv-loadout-item__name-btn {
+  flex: 1;
+  min-inline-size: 0;
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: start;
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.gv-loadout-item--active .gv-loadout-item__name-btn {
+  color: var(--gv-color-accent);
+}
+
+.gv-loadout-item__name-btn:focus-visible {
+  outline: 2px solid var(--gv-color-accent);
+  outline-offset: 2px;
+  border-radius: var(--gv-radius-sm);
+}
+
+.gv-loadout-item__edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: var(--gv-radius-sm);
+  border: var(--gv-border-subtle);
+  background: transparent;
+  color: var(--gv-color-text-muted);
+  cursor: pointer;
+  font-size: var(--gv-font-size-xs);
+  flex-shrink: 0;
+  opacity: 0;
+  transition:
+    opacity var(--gv-anim-fast),
+    background var(--gv-anim-fast),
+    color var(--gv-anim-fast);
+}
+
+.gv-loadout-item:hover .gv-loadout-item__edit-btn,
+.gv-loadout-item--active .gv-loadout-item__edit-btn {
+  opacity: 1;
+}
+
+.gv-loadout-item__edit-btn:hover {
+  background: var(--gv-color-overlay-strong);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-loadout-item__edit-btn:focus-visible {
+  outline: 2px solid var(--gv-color-accent);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.gv-loadout-item__rename-input {
+  flex: 1;
+  min-inline-size: 0;
+  background: var(--gv-color-bg-shade);
+  border: 1px solid var(--gv-color-accent);
+  border-radius: var(--gv-radius-sm);
+  padding: calc(var(--gv-space-xs) * 0.5) var(--gv-space-xs);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-family: var(--gv-font-ui);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gv-color-accent) 25%, transparent);
+}
+
+.gv-loadout-item__active-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--gv-space-xs);
+  border-radius: 999px;
+  font-size: var(--gv-font-size-xxs);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  color: var(--gv-color-accent);
+  background: color-mix(in srgb, var(--gv-color-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gv-color-accent) 35%, transparent);
+  flex-shrink: 0;
+}

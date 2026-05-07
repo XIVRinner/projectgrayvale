@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.gv-char-sheet {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(0, 1.6fr);
+  gap: var(--gv-space-md);
+  height: 100%;
+  align-content: start;
+}
+
+@media (max-width: 42rem) {
+  .gv-char-sheet {
+    grid-template-columns: 1fr;
+  }
+}
