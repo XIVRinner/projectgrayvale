@@ -13,6 +13,10 @@
   max-inline-size: 22rem;
 }
 
+[data-critical-special="true"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gv-tooltip-rarity-color) 50%, transparent);
+}
+
 .gv-item-tooltip__header {
   display: grid;
   gap: calc(var(--gv-space-xs) * 0.5);
@@ -34,12 +38,59 @@
   text-transform: uppercase;
 }
 
+.gv-item-tooltip__special-rarity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
 .gv-item-tooltip__special-rarity {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--gv-space-xs);
+  border-radius: var(--gv-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--gv-tooltip-rarity-color) 45%, transparent);
+  background: color-mix(in srgb, var(--gv-tooltip-rarity-color) 18%, transparent);
   font-size: var(--gv-font-size-xxs);
-  color: var(--gv-tooltip-rarity-color, var(--gv-color-accent));
+  color: var(--gv-color-text-primary);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.85;
+}
+
+.gv-item-tooltip__special-sections {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-item-tooltip__focus-section {
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 0.5);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  border-radius: var(--gv-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--gv-tooltip-rarity-color) 45%, transparent);
+  background: color-mix(in srgb, var(--gv-tooltip-rarity-color) 12%, transparent);
+}
+
+.gv-item-tooltip__focus-title {
+  font-size: var(--gv-font-size-xxs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gv-color-text-primary);
+  font-weight: 700;
+}
+
+.gv-item-tooltip__focus-copy {
+  margin: 0;
+  font-size: var(--gv-font-size-xs);
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--gv-color-text-primary) 76%, var(--gv-color-text-muted) 24%);
+}
+
+.gv-item-tooltip__focus-section[data-special-rarity="cursed"],
+.gv-item-tooltip__focus-section[data-special-rarity="phantom"],
+.gv-item-tooltip__focus-section[data-special-rarity="temporal"],
+.gv-item-tooltip__focus-section[data-special-rarity="galvanized"] {
+  border-width: 2px;
 }
 
 .gv-item-tooltip__body {

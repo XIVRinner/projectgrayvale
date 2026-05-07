@@ -1,16 +1,43 @@
 <div
   class="gv-item-tooltip"
   [attr.data-variant]="variant()"
+  [attr.data-base-rarity]="resolvedBaseRarity()"
+  [attr.data-special-rarity]="primarySpecialRarity()"
+  [attr.data-critical-special]="hasCriticalSpecialSection() ? 'true' : null"
   [style.--gv-tooltip-rarity-color]="rarityColor()"
   role="tooltip"
 >
   <header class="gv-item-tooltip__header">
     <span class="gv-item-tooltip__name">{{ item().name }}</span>
     <span class="gv-item-tooltip__rarity">{{ rarityName() }}</span>
-    @if (item().specialRarity; as specialRarity) {
-      <span class="gv-item-tooltip__special-rarity">{{ specialRarity }}</span>
+    @if (resolvedSpecialRarities().length) {
+      <div class="gv-item-tooltip__special-rarity-list">
+        @for (specialRarity of resolvedSpecialRarities(); track specialRarity) {
+          <span class="gv-item-tooltip__special-rarity" [attr.data-special-rarity]="specialRarity">
+            {{ specialRarity }}
+          </span>
+        }
+      </div>
     }
   </header>
+
+  @if (legendarySection(); as legendarySection) {
+    <section class="gv-item-tooltip__focus-section gv-item-tooltip__focus-section--legendary">
+      <span class="gv-item-tooltip__focus-title">{{ legendarySection.title }}</span>
+      <p class="gv-item-tooltip__focus-copy">{{ legendarySection.detail }}</p>
+    </section>
+  }
+
+  @if (specialSections().length) {
+    <div class="gv-item-tooltip__special-sections">
+      @for (specialSection of specialSections(); track specialSection.id) {
+        <section class="gv-item-tooltip__focus-section" [attr.data-special-rarity]="specialSection.id">
+          <span class="gv-item-tooltip__focus-title">{{ specialSection.title }}</span>
+          <p class="gv-item-tooltip__focus-copy">{{ specialSection.detail }}</p>
+        </section>
+      }
+    </div>
+  }
 
   <div class="gv-item-tooltip__body">
     @if (equipmentItem(); as equip) {
