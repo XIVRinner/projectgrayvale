@@ -124,6 +124,8 @@ const BASE_RARITY_IDS: readonly ItemTooltipBaseRarity[] = [
   "primal"
 ];
 
+const LEGACY_SPECIAL_BASE_RARITIES = ["divine", "infernal", "cursed"] as const;
+
 @Component({
   selector: "gv-item-tooltip",
   standalone: true,
@@ -152,8 +154,6 @@ export class ItemTooltipComponent {
         return "quest";
       case "junk":
         return "junk";
-      default:
-        return "junk";
     }
   });
 
@@ -163,7 +163,9 @@ export class ItemTooltipComponent {
 
     const itemRarity = this.item().rarity;
     if (itemRarity === "trash") return "junk";
-    if (itemRarity === "divine" || itemRarity === "infernal" || itemRarity === "cursed") {
+    // Legacy core model can encode these as top-level rarity values instead of
+    // base rarity + special rarity; "epic" keeps them in a non-legendary base tier.
+    if ((LEGACY_SPECIAL_BASE_RARITIES as readonly string[]).includes(itemRarity)) {
       return "epic";
     }
     return this.isBaseRarity(itemRarity) ? itemRarity : "common";
@@ -186,7 +188,7 @@ export class ItemTooltipComponent {
   });
 
   protected readonly rarityColor = computed(
-    (): string => RARITY_DEFINITIONS[this.item().rarity]?.color ?? "var(--gv-rarity-common)"
+    (): string => RARITY_DEFINITIONS[this.item().rarity]?.color ?? RARITY_DEFINITIONS.common.color
   );
 
   protected readonly rarityName = computed((): string => BASE_RARITY_LABELS[this.resolvedBaseRarity()]);
@@ -194,6 +196,9 @@ export class ItemTooltipComponent {
   protected readonly specialSections = computed(
     (): readonly ItemTooltipSpecialSection[] =>
       this.resolvedSpecialRarities().map((special) => SPECIAL_SECTION_DETAILS[special])
+  );
+  protected readonly primarySpecialRarity = computed(
+    (): ItemTooltipSpecialRarity | null => this.resolvedSpecialRarities().at(0) ?? null
   );
   protected readonly hasCriticalSpecialSection = computed(() =>
     this.specialSections().some((section) => section.severity === "critical")

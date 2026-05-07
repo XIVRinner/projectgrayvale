@@ -32,6 +32,11 @@
   --gv-color-action-crafting: #ffb36b;
   --gv-color-action-quest: var(--gv-color-success);
 
+  /* Rarity hierarchy tokens:
+   * - Base tiers progress from muted neutrals into vivid accent/signal tones.
+   * - Legendary+ and special tiers intentionally blend accent, danger, and travel colors
+   *   to preserve a readable visual hierarchy inside compact tooltip layouts.
+   */
   --gv-rarity-junk: var(--gv-color-text-muted);
   --gv-rarity-common: var(--gv-color-text-primary);
   --gv-rarity-uncommon: var(--gv-color-success);

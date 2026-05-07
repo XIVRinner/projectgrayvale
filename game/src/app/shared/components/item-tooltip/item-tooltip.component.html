@@ -2,6 +2,7 @@
   class="gv-item-tooltip"
   [attr.data-variant]="variant()"
   [attr.data-base-rarity]="resolvedBaseRarity()"
+  [attr.data-special-rarity]="primarySpecialRarity()"
   [attr.data-critical-special]="hasCriticalSpecialSection() ? 'true' : null"
   [style.--gv-tooltip-rarity-color]="rarityColor()"
   role="tooltip"

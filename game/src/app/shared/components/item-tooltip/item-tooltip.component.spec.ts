@@ -4,6 +4,7 @@ jest.mock(
   "@rinner/grayvale-core",
   () => ({
     RARITY_DEFINITIONS: {
+      common: { color: "#9ca3af" },
       legendary: { color: "#f59e0b" }
     }
   }),
@@ -55,5 +56,13 @@ describe("ItemTooltipComponent", () => {
     expect(element.textContent).toContain("Temporal");
     expect(element.textContent).toContain("Galvanized");
     expect(element.querySelector(".gv-item-tooltip")?.getAttribute("data-critical-special")).toBe("true");
+  });
+
+  it("falls back to common rarity color when a definition is unavailable", () => {
+    fixture.componentRef.setInput("item", { ...BASE_ITEM, rarity: "primal" });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector(".gv-item-tooltip")?.getAttribute("style")).toContain("#9ca3af");
   });
 });
