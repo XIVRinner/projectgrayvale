@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { catchError, map, of } from "rxjs";
@@ -64,11 +64,8 @@ export class EquipmentPanelContainerComponent {
   protected readonly error = signal<string | null>(null);
   private readonly itemRegistry = signal<Map<string, InventoryEquipmentItem>>(new Map());
 
-  // GAP: Active loadout from store/service
-  // Blocked on: NgRx equipment slice (character-sheet store)
-  // Needs: selectActiveLoadout selector and equipment feature store
-  // Do not implement until: character-sheet store slice is defined
-  private readonly activeLoadout = signal<Loadout>(sampleLoadoutDefault);
+  /** Active loadout provided by the parent character-sheet container. */
+  readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
 
   protected readonly slots = computed<readonly EquipmentSlotView[]>(() => {
     const registry = this.itemRegistry();
@@ -131,10 +128,5 @@ export class EquipmentPanelContainerComponent {
     // Needs: selectedInventoryItem emitted by InventoryPanelComponent
     // Do not implement until: InventoryPanelComponent provides a selected item signal
     console.log(`[equipment-panel] compare requested: ${slotId}`);
-  }
-
-  /** Exposed for the loadout selector to push a new active loadout (MVP wiring point). */
-  setLoadout(loadout: Loadout): void {
-    this.activeLoadout.set(loadout);
   }
 }

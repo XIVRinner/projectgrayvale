@@ -1,0 +1,76 @@
+<section class="gv-loadout-sel" aria-label="Loadout Selector">
+
+  @if (isLoading()) {
+    <div class="gv-loadout-sel__state gv-loadout-sel__state--loading" aria-live="polite">
+      <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+      <span>Loading items…</span>
+    </div>
+  } @else if (error()) {
+    <div class="gv-loadout-sel__state gv-loadout-sel__state--error" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  <header class="gv-loadout-sel__header">
+    <h2 class="gv-loadout-sel__title">Loadouts</h2>
+    <button
+      type="button"
+      class="gv-loadout-sel__create-btn"
+      (click)="loadoutCreated.emit()"
+      aria-label="Create new loadout"
+    >
+      <i class="pi pi-plus" aria-hidden="true"></i>
+      <span>New</span>
+    </button>
+  </header>
+
+  <ul class="gv-loadout-sel__list" aria-label="Loadout list">
+    @for (loadout of loadouts(); track loadout.id) {
+      <gv-loadout-item
+        [loadout]="loadout"
+        (selected)="loadoutSelected.emit($event)"
+        (renamed)="loadoutRenamed.emit($event)"
+      />
+    }
+  </ul>
+
+  <div class="gv-loadout-sel__divider" role="separator" aria-hidden="true"></div>
+
+  <section class="gv-loadout-sel__slots" aria-label="Active loadout equipment slots">
+    <h3 class="gv-loadout-sel__subtitle">Equipped Items</h3>
+
+    @for (slot of activeSlots(); track slot.slotId) {
+      <div class="gv-loadout-sel__slot-row">
+        <span class="gv-loadout-sel__slot-label">{{ slot.slotLabel }}</span>
+
+        <div class="gv-loadout-sel__slot-control">
+          @if (slot.equippedItem; as item) {
+            <span class="gv-loadout-sel__slot-item-name" [title]="item.name">{{ item.name }}</span>
+            <button
+              type="button"
+              class="gv-loadout-sel__unequip-btn"
+              (click)="itemUnequipped.emit(slot.slotId)"
+              [attr.aria-label]="'Unequip ' + item.name + ' from ' + slot.slotLabel"
+              title="Unequip"
+            >
+              <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
+          } @else {
+            <select
+              class="gv-loadout-sel__equip-select"
+              [attr.aria-label]="'Equip item to ' + slot.slotLabel"
+              (change)="onEquipChange(slot.slotId, $event)"
+            >
+              <option value="">— empty —</option>
+              @for (item of itemsBySlot()[slot.slotId]; track item.id) {
+                <option [value]="item.id">{{ item.name }}</option>
+              }
+            </select>
+          }
+        </div>
+      </div>
+    }
+  </section>
+
+</section>

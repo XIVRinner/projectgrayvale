@@ -4,8 +4,8 @@ export const CHARACTER_SHEET_ROUTES: Routes = [
   {
     path: "",
     loadComponent: () =>
-      import("./equipment-panel/equipment-panel-container.component").then(
-        (m) => m.EquipmentPanelContainerComponent
+      import("./character-sheet-container.component").then(
+        (m) => m.CharacterSheetContainerComponent
       )
   }
 ];

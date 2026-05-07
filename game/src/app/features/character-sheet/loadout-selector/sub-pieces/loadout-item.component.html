@@ -1,0 +1,45 @@
+<li
+  class="gv-loadout-item"
+  [class.gv-loadout-item--active]="loadout().isActive"
+  [attr.aria-current]="loadout().isActive ? 'true' : null"
+>
+  @if (isEditing()) {
+    <input
+      #renameInput
+      class="gv-loadout-item__rename-input"
+      type="text"
+      [value]="editName()"
+      [attr.aria-label]="'Rename ' + loadout().displayName"
+      (input)="onInputChange($event)"
+      (keydown.enter)="commitRename()"
+      (keydown.escape)="cancelEdit()"
+      (blur)="commitRename()"
+    />
+  } @else {
+    <button
+      type="button"
+      class="gv-loadout-item__name-btn"
+      (click)="onSelect()"
+      [attr.aria-label]="'Select loadout ' + loadout().displayName"
+      [pTooltip]="notesTitle()"
+      tooltipPosition="right"
+    >
+      {{ loadout().displayName }}
+    </button>
+
+    <button
+      type="button"
+      class="gv-loadout-item__edit-btn"
+      (click)="startEdit($event)"
+      [attr.aria-label]="'Rename ' + loadout().displayName"
+      pTooltip="Rename"
+      tooltipPosition="right"
+    >
+      <i class="pi pi-pencil" aria-hidden="true"></i>
+    </button>
+  }
+
+  @if (loadout().isActive) {
+    <span class="gv-loadout-item__active-badge" aria-label="Active loadout">Active</span>
+  }
+</li>
