@@ -1,14 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from "@angular/core";
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from "@angular/core";
 import { TooltipModule } from "primeng/tooltip";
 
 import { RARITY_DEFINITIONS, type EquipmentSlot } from "@rinner/grayvale-core";
 
+import { ItemTooltipComponent } from "../../../../shared/components/item-tooltip/item-tooltip.component";
 import type { EquipmentSlotView } from "../equipment-panel.types";
 
 @Component({
   selector: "gv-equipment-slot",
   standalone: true,
-  imports: [TooltipModule],
+  imports: [ItemTooltipComponent, TooltipModule],
   templateUrl: "./equipment-slot.component.html",
   styleUrl: "./equipment-slot.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -16,8 +17,9 @@ import type { EquipmentSlotView } from "../equipment-panel.types";
 export class EquipmentSlotComponent {
   readonly slot = input.required<EquipmentSlotView>();
 
-  readonly tooltipRequested = output<EquipmentSlot>();
   readonly compareRequested = output<EquipmentSlot>();
+
+  protected readonly showTooltip = signal(false);
 
   protected readonly rarityColor = computed((): string | null => {
     const item = this.slot().item;
@@ -31,25 +33,8 @@ export class EquipmentSlotComponent {
     return RARITY_DEFINITIONS[item.rarity]?.name ?? null;
   });
 
-  protected readonly tooltipContent = computed((): string => {
-    const slot = this.slot();
-    const item = slot.item;
-    if (!item) return `${slot.slotLabel} — empty`;
-
-    const lines: string[] = [
-      `${item.name}  [ilvl ${item.itemLevel}]`,
-      RARITY_DEFINITIONS[item.rarity]?.name ?? item.rarity,
-      ...(item.specialRarity ? [`Special: ${item.specialRarity}`] : []),
-      ...(item.tooltip?.statLines ?? []),
-      ...(item.tooltip?.effectLines ?? []),
-      ...(item.tooltip?.flavorText ? [`"${item.tooltip.flavorText}"`] : [])
-    ];
-
-    return lines.join("\n");
-  });
-
-  protected onInspect(): void {
-    this.tooltipRequested.emit(this.slot().slotId);
+  protected onTooltipHover(visible: boolean): void {
+    this.showTooltip.set(visible);
   }
 
   protected onCompare(): void {

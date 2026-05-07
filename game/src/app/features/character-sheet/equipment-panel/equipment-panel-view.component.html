@@ -16,7 +16,6 @@
       @for (slot of slots(); track slot.slotId) {
         <gv-equipment-slot
           [slot]="slot"
-          (tooltipRequested)="tooltipRequested.emit($event)"
           (compareRequested)="compareRequested.emit($event)"
         />
       }

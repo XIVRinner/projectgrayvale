@@ -60,7 +60,6 @@ const SLOT_LABELS: Record<EquipmentSlot, string> = {
       [slots]="slots()"
       [isLoading]="isLoading()"
       [error]="error()"
-      (tooltipRequested)="onTooltipRequested($event)"
       (compareRequested)="onCompareRequested($event)"
     />
   `
@@ -138,14 +137,6 @@ export class EquipmentPanelContainerComponent {
         this.itemRegistry.set(registry);
         this.isLoading.set(false);
       });
-  }
-
-  protected onTooltipRequested(slotId: EquipmentSlot): void {
-    // GAP: Item tooltip overlay
-    // Blocked on: design
-    // Needs: a unified ItemTooltipComponent or overlay service
-    // Do not implement until: ItemTooltipComponent is defined in shared/components
-    console.log(`[equipment-panel] tooltip requested: ${slotId}`);
   }
 
   protected onCompareRequested(slotId: EquipmentSlot): void {

@@ -1,5 +1,6 @@
 :host {
   display: block;
+  position: relative;
 }
 
 .gv-equip-slot {
@@ -182,4 +183,12 @@
 .gv-equip-slot__action-btn:focus-visible {
   outline: 2px solid var(--gv-color-accent);
   outline-offset: 2px;
+}
+
+.gv-equip-slot__tooltip-panel {
+  position: absolute;
+  inset-inline-start: calc(100% + var(--gv-space-sm));
+  inset-block-start: 0;
+  z-index: 20;
+  pointer-events: none;
 }

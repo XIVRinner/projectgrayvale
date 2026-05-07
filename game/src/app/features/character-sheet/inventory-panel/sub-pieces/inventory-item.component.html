@@ -1,4 +1,10 @@
-<article class="gv-inventory-item" [attr.data-category]="item().category" [class.gv-inventory-item--compared]="isCompared()">
+<article
+  class="gv-inventory-item"
+  [attr.data-category]="item().category"
+  [class.gv-inventory-item--compared]="isCompared()"
+  (mouseenter)="onTooltipHover(true)"
+  (mouseleave)="onTooltipHover(false)"
+>
   <header class="gv-inventory-item__header">
     <div class="gv-inventory-item__title-wrap">
       <span class="gv-inventory-item__name">{{ item().name }}</span>
@@ -31,16 +37,6 @@
   </div>
 
   <footer class="gv-inventory-item__actions">
-    <button
-      type="button"
-      class="gv-inventory-item__action-btn"
-      (click)="onInspectToggle()"
-      [attr.aria-label]="'Inspect ' + item().name"
-      [attr.aria-expanded]="showTooltip()"
-    >
-      <i class="pi pi-eye" aria-hidden="true"></i>
-    </button>
-
     @if (item().category === "equipment") {
       <button
         type="button"
