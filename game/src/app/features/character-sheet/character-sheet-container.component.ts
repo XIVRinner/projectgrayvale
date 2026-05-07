@@ -12,6 +12,7 @@ import {
 } from "@rinner/grayvale-core";
 
 import { EquipmentPanelContainerComponent } from "./equipment-panel/equipment-panel-container.component";
+import { InventoryPanelContainerComponent } from "./inventory-panel/inventory-panel-container.component";
 import { LoadoutSelectorContainerComponent } from "./loadout-selector/loadout-selector-container.component";
 import type { LoadoutEquipEvent, LoadoutRenameEvent } from "./loadout-selector/loadout-selector.types";
 
@@ -24,7 +25,7 @@ let _nextLoadoutIndex = 3;
 @Component({
   selector: "gv-character-sheet-container",
   standalone: true,
-  imports: [EquipmentPanelContainerComponent, LoadoutSelectorContainerComponent],
+  imports: [EquipmentPanelContainerComponent, InventoryPanelContainerComponent, LoadoutSelectorContainerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="gv-char-sheet">
@@ -39,6 +40,15 @@ let _nextLoadoutIndex = 3;
       />
       <gv-equipment-panel-container
         [activeLoadout]="activeLoadout()"
+        [comparedItemId]="comparedItemId()"
+        (compareItemChanged)="onComparedItemChanged($event)"
+      />
+      <gv-inventory-panel-container
+        [activeLoadout]="activeLoadout()"
+        [comparedItemId]="comparedItemId()"
+        (itemEquipped)="onItemEquipped($event)"
+        (itemUnequipped)="onItemUnequipped($event)"
+        (compareItemChanged)="onComparedItemChanged($event)"
       />
     </div>
   `,
@@ -47,6 +57,7 @@ let _nextLoadoutIndex = 3;
 export class CharacterSheetContainerComponent {
   protected readonly loadoutsRecord = signal<Record<string, Loadout>>({ ...sampleLoadouts });
   protected readonly activeLoadoutId = signal<string>("loadout_default");
+  protected readonly comparedItemId = signal<string | null>(null);
 
   protected readonly activeLoadout = computed<Loadout>(() => {
     const record = this.loadoutsRecord();
@@ -58,6 +69,7 @@ export class CharacterSheetContainerComponent {
     const updated = selectActiveLoadout(this.loadoutsRecord(), id);
     this.loadoutsRecord.set(updated);
     this.activeLoadoutId.set(id);
+    this.comparedItemId.set(null);
   }
 
   protected onLoadoutCreated(): void {
@@ -103,5 +115,9 @@ export class CharacterSheetContainerComponent {
       ...record,
       [activeId]: unequipItem(target, slot)
     });
+  }
+
+  protected onComparedItemChanged(itemId: string | null): void {
+    this.comparedItemId.set(itemId);
   }
 }

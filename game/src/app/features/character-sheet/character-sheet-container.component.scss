@@ -5,13 +5,19 @@
 
 .gv-char-sheet {
   display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(0, 1.6fr);
+  grid-template-columns: minmax(12rem, 1fr) minmax(0, 1.4fr) minmax(0, 1.6fr);
   gap: var(--gv-space-md);
   height: 100%;
   align-content: start;
 }
 
-@media (max-width: 42rem) {
+@media (max-width: 68rem) {
+  .gv-char-sheet {
+    grid-template-columns: minmax(12rem, 1fr) minmax(0, 1.6fr);
+  }
+}
+
+@media (max-width: 44rem) {
   .gv-char-sheet {
     grid-template-columns: 1fr;
   }

@@ -8,6 +8,8 @@ export interface EquipmentSlotView {
   readonly item: InventoryEquipmentItem | null;
   /** True when this slot is the active comparison target (item hovered in inventory). */
   readonly isCompareTarget: boolean;
+  /** Optional comparison summary shown when an inventory item targets this slot. */
+  readonly compareDeltaLabel: string | null;
 }
 
 /** Full view state for the equipment panel. */

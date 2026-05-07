@@ -1,0 +1,98 @@
+:host {
+  display: block;
+}
+
+.gv-inventory-panel {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-inventory-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-inventory-panel__title {
+  margin: 0;
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gv-color-accent);
+}
+
+.gv-inventory-panel__search {
+  min-inline-size: 8rem;
+  inline-size: min(14rem, 100%);
+  background: var(--gv-color-bg-raised);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xs);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+}
+
+.gv-inventory-panel__search::placeholder {
+  color: color-mix(in srgb, var(--gv-color-text-muted) 70%, transparent);
+}
+
+.gv-inventory-panel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+.gv-inventory-panel__tab {
+  border-radius: var(--gv-radius-sm);
+  border: var(--gv-border-subtle);
+  background: transparent;
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  cursor: pointer;
+}
+
+.gv-inventory-panel__tab--active {
+  color: var(--gv-color-accent);
+  border-color: color-mix(in srgb, var(--gv-color-accent) 60%, var(--gv-color-border-subtle));
+  background: color-mix(in srgb, var(--gv-color-accent) 12%, transparent);
+}
+
+.gv-inventory-panel__list {
+  display: grid;
+  gap: var(--gv-space-xs);
+  max-block-size: 32rem;
+  overflow: auto;
+  padding-inline-end: var(--gv-space-xs);
+}
+
+.gv-inventory-panel__state {
+  display: flex;
+  align-items: center;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-sm);
+  border-radius: var(--gv-radius-md);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-inventory-panel__state--loading {
+  color: var(--gv-color-text-muted);
+  background: var(--gv-color-overlay-soft);
+}
+
+.gv-inventory-panel__state--error {
+  color: var(--gv-color-danger);
+  background: color-mix(in srgb, var(--gv-color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gv-color-danger) 30%, transparent);
+}
+
+.gv-inventory-panel__empty {
+  font-size: var(--gv-font-size-sm);
+  color: var(--gv-color-text-muted);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  padding: var(--gv-space-sm);
+}
