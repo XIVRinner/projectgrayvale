@@ -1,0 +1,8 @@
+declare global narrator = Actor("narrator")
+declare global chief = Actor("village-chief")
+declare global bridgitte = Actor("bridgitte")
+declare global player = Player()
+
+declare global bridgitte_intro_done = false
+declare global bridgitte_lore_unlocked = false
+declare global quest_cull_coyote_started = false

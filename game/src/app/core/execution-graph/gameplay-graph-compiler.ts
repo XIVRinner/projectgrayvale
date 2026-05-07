@@ -30,11 +30,25 @@ export type CompileInput = {
 // and gameplay log entries remain consistent.
 // ---------------------------------------------------------------------------
 
-export function buildEnterSublocationActionId(sublocationId: string): string {
+export function buildEnterSublocationActionId(
+  sublocationId: string,
+  locationId?: string
+): string {
+  if (locationId) {
+    return `enter-${locationId}-${sublocationId}`;
+  }
+
   return `enter-${sublocationId}`;
 }
 
-export function buildExitSublocationActionId(sublocationId: string): string {
+export function buildExitSublocationActionId(
+  sublocationId: string,
+  locationId?: string
+): string {
+  if (locationId) {
+    return `leave-${locationId}-${sublocationId}`;
+  }
+
   return `leave-${sublocationId}`;
 }
 
@@ -128,7 +142,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       const subContextId = buildContextId(location.id, sublocation.id);
 
       // Sublocation enter — visible at the parent location context
-      const enterId = buildEnterSublocationActionId(sublocation.id);
+      const enterId = buildEnterSublocationActionId(sublocation.id, location.id);
 
       // Validate entry guard references
       for (const guard of sublocation.entryGuards ?? []) {
@@ -159,7 +173,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       });
 
       // Sublocation exit — visible only while inside the sublocation
-      const exitId = buildExitSublocationActionId(sublocation.id);
+      const exitId = buildExitSublocationActionId(sublocation.id, location.id);
 
       // Validate exit guard references
       for (const guard of sublocation.exitGuards ?? []) {
@@ -356,7 +370,15 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   const actionsById = new Map<ActionId, ActionNode>();
   const actionsByContextId = new Map<ContextId, ActionId[]>();
 
+  const seenActionIds = new Set<ActionId>();
+
   for (const action of allActions) {
+    if (seenActionIds.has(action.id)) {
+      // Keep the first compiled action for a duplicate id to avoid payload mismatch at runtime.
+      continue;
+    }
+
+    seenActionIds.add(action.id);
     actionsById.set(action.id, action);
 
     const existing = actionsByContextId.get(action.contextId) ?? [];

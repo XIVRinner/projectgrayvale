@@ -309,6 +309,28 @@ const engine = new Engine(project);
 
 ---
 
+If you prefer to stay on the `compile(...)` entry point, the same project can be built like this:
+
+```ts
+import { compile, Engine } from "@rinner/valeflow";
+
+const project = compile([
+  { filename: "globals.fsc", source: globalsSrc },
+  { filename: "intro.fsc", source: introSrc },
+  { filename: "shop.fsc", source: shopSrc },
+], {
+  entryFile: "intro.fsc",
+});
+
+const engine = new Engine(project);
+```
+
+- `compile(source)` still returns a single-file `Program`
+- `compile(files, { entryFile })` returns a linked `Project`
+- See `examples/angular-demo/public/demo-scripts/project-*.fsc` for a concrete shared-project example
+
+---
+
 ## Project Structure
 
 ```

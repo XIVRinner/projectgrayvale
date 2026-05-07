@@ -252,7 +252,7 @@ export interface Project {
   globalDeclarations: DeclarationNode[];
   /** Set of variable names that are globally scoped — used by the runtime. */
   globalVarNames: ReadonlySet<string>;
-  /** Filename where execution begins (first non-globals file). */
+  /** Filename where execution begins. Defaults to the first non-globals file unless overridden. */
   entryFile: string;
 }
 

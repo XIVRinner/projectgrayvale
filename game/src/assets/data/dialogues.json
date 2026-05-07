@@ -1,0 +1,30 @@
+[
+  {
+    "id": "prologue",
+    "entryFile": "prologue/valeflow-prologue.fsc",
+    "title": "Wake Up",
+    "eyebrowFallback": "Prologue",
+    "subtitleFallback": "A hard-won return to consciousness."
+  },
+  {
+    "id": "chief-labour",
+    "entryFile": "prologue/chief-labour.fsc",
+    "title": "The Chief's Request",
+    "eyebrowFallback": "Chief House",
+    "subtitleFallback": "He has work for you."
+  },
+  {
+    "id": "chief-bridgitte-handoff",
+    "entryFile": "arkama/chief-bridgitte-handoff.fsc",
+    "title": "A New Lead",
+    "eyebrowFallback": "Arkama Village",
+    "subtitleFallback": "The chief has someone she wants you to meet."
+  },
+  {
+    "id": "bridgitte-house",
+    "entryFile": "arkama/bridgitte-house.fsc",
+    "title": "Bridgitte",
+    "eyebrowFallback": "Bridgitte's House",
+    "subtitleFallback": "A retired adventurer finally opens her door to you."
+  }
+]

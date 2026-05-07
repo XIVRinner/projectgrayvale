@@ -18,6 +18,31 @@ const program = compile(`
 
 ---
 
+## `compile(files: LoadInput[], options?: LoadProjectOptions): Project`
+
+Builds a linked multi-file project in one call.
+
+```ts
+import { compile } from "@rinner/valeflow";
+
+const project = compile([
+  { filename: "globals.fsc", source: `declare global hero = Actor("Lyra")` },
+  { filename: "intro.fsc", source: `chapter START:\n    hero "Hello!"` },
+], {
+  entryFile: "intro.fsc",
+});
+```
+
+`entryFile` is optional. When omitted, ValeFlow starts from the first non-`globals*` file. When provided, the selected file becomes the execution entry file while still sharing one linked project with every other loaded `.fsc`.
+
+---
+
+## `loadProject(inputs: LoadInput[], options?: LoadProjectOptions): Project`
+
+Explicit project linker for callers that prefer a dedicated multi-file API instead of the `compile(...)` overload.
+
+---
+
 ## `tokenize(source: string): Token[]`
 
 Converts raw source text into a flat list of tokens. You rarely need this directly — use `compile()` instead.
@@ -51,15 +76,15 @@ Parse a single expression from a token list. Used internally for string interpol
 
 ## `class Engine`
 
-The runtime that executes a parsed `Program`.
+The runtime that executes a parsed `Program` or linked `Project`.
 
 ### Constructor
 
 ```ts
-new Engine(program: Program, options?: EngineOptions)
+new Engine(input: Program | Project, options?: EngineOptions)
 ```
 
-Accepts the `Program` AST returned by `compile()` or `parse()`. Prepares the execution stack and pre-indexes all chapters for `goto` resolution.
+Accepts the `Program` AST returned by `compile(source)` / `parse()` or the linked `Project` returned by `compile(files)` / `loadProject()`. Prepares the execution stack and pre-indexes all chapters for `goto` resolution.
 
 `options.persistent` can be either a plain object or a `Map<string, unknown>`. It gives the outer shell a host-owned store for values that should survive across playthroughs.
 

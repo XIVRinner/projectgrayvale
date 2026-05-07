@@ -208,6 +208,8 @@ export class GameplayGraphRuntime {
           guardContext && guardCatalog
             ? evaluateExecutionGuards(action.enabledWhen, guardContext, guardCatalog)
             : { passes: false, failureReason: "No active guard context." };
+        const isVisible = visibleResult.passes;
+        const isEnabled = isVisible && enabledResult.passes;
 
         contextActions.push({
           id: action.id,
@@ -216,9 +218,13 @@ export class GameplayGraphRuntime {
           executionKind: action.execution.kind,
           visibleGuards: (action.visibleWhen ?? []).map((guard) => guard.type),
           enabledGuards: (action.enabledWhen ?? []).map((guard) => guard.type),
-          isVisible: visibleResult.passes,
-          isEnabled: enabledResult.passes,
-          disabledReason: enabledResult.passes ? undefined : enabledResult.failureReason
+          isVisible,
+          isEnabled,
+          disabledReason: isVisible
+            ? isEnabled
+              ? undefined
+              : enabledResult.failureReason
+            : visibleResult.failureReason
         });
       }
 

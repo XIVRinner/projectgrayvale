@@ -16,3 +16,4 @@
 - Add new demo use cases when a feature is introduced.
 - Expand the current demo scripts and tabs to showcase the feature in practice.
 - Prefer concrete, runnable `.fsc` examples over prose-only mentions.
+- Keep multi-file examples aligned with the public API. If project loading changes, update the demo `.fsc` set that exercises shared globals and cross-file goto targets.

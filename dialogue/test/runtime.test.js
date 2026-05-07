@@ -153,6 +153,28 @@ chapter END:
   assert.deepEqual(engine.getCompletedChapters(), ["__main__::MID"]);
 });
 
+test("engine does not fall through into later top-level chapters after the entry chapter ends", () => {
+  const engine = new Engine(compile(`
+declare hero = Actor("Lyra")
+
+chapter START:
+    hero "Intro."
+
+chapter NEXT:
+    hero "Should not auto-run."
+`));
+
+  engine.registerFunction("Actor", (_ctx, name) => ({ name }));
+
+  assert.deepEqual(engine.next(), {
+    type: "say",
+    actor: { name: "Lyra" },
+    text: "Intro.",
+  });
+  assert.deepEqual(engine.next(), { type: "end" });
+  assert.deepEqual(engine.getVisitedChapters(), ["__main__::START"]);
+});
+
 test("persistent state survives new playthroughs when the host reuses the store", () => {
   const sharedPersistent = {};
 
@@ -174,4 +196,26 @@ chapter START:
 
   assert.deepEqual(second.next(), { type: "narration", text: "Second run." });
   assert.deepEqual(second.getState(), { seenIntro: true });
+});
+
+test("single-file declare global variables initialize before chapter execution", () => {
+  const engine = new Engine(compile(`
+declare global hero = Actor("Lyra")
+declare global coins = 5
+
+chapter START:
+    hero "I have \${coins} coins."
+`));
+
+  engine.registerFunction("Actor", (_ctx, name) => ({ name }));
+
+  assert.deepEqual(engine.next(), {
+    type: "say",
+    actor: { name: "Lyra" },
+    text: "I have 5 coins.",
+  });
+  assert.deepEqual(engine.getState(), {
+    hero: { name: "Lyra" },
+    coins: 5,
+  });
 });

@@ -1,7 +1,3 @@
-declare narrator = Actor("narrator")
-declare chief = Actor("village-chief")
-declare player = Player()
-
 chapter START:
     narrator "Pain drags you back to the world one pulse at a time."
     choice:

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadProject, Engine } from "../dist/index.js";
+import { compile, loadProject, Engine } from "../dist/index.js";
 
 test("loadProject links globals and cross-file gotos", () => {
   const project = loadProject([
@@ -45,4 +45,43 @@ chapter SHOP:
 
   assert.deepEqual(engine.next(), { type: "end" });
   assert.equal(engine.getCurrentFile(), "shop.fsc");
+});
+
+test("compile can build a multi-file project with an explicit entry file", () => {
+  const project = compile([
+    {
+      filename: "globals.fsc",
+      source: `
+declare hero = Actor("Lyra")
+declare global coins = 12
+`,
+    },
+    {
+      filename: "intro.fsc",
+      source: `
+chapter START:
+    hero "Intro."
+`,
+    },
+    {
+      filename: "shop.fsc",
+      source: `
+chapter START:
+    hero "Shop has \${coins} coins."
+`,
+    },
+  ], {
+    entryFile: "shop.fsc",
+  });
+
+  const engine = new Engine(project);
+  engine.registerFunction("Actor", (_ctx, name) => ({ name }));
+
+  assert.equal(engine.getCurrentFile(), "shop.fsc");
+  assert.deepEqual(engine.next(), {
+    type: "say",
+    actor: { name: "Lyra" },
+    text: "Shop has 12 coins.",
+  });
+  assert.deepEqual(engine.next(), { type: "end" });
 });

@@ -1,6 +1,3 @@
-declare chief = Actor("village-chief")
-declare player = Player()
-
 chapter START:
     chief "There you are. I was hoping you would come by."
     chief "You have done well for this village, ${player.name}. Better than I asked, if I am honest."

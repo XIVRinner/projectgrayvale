@@ -1,11 +1,12 @@
 import { Injector, runInInjectionContext, signal } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
 import { samplePlayer, type Player } from "@rinner/grayvale-core";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { of } from "rxjs";
 
 import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-creator-options.loader";
+import { DialogueDefinitionsLoader } from "../../data/loaders/dialogue-definitions.loader";
+import { DialogueProjectLoader } from "../../data/loaders/dialogue-project.loader";
 import { DialogueActorsLoader } from "../../data/loaders/dialogue-actors.loader";
 import { CharacterRosterService } from "./character-roster.service";
 import { GameDialogService } from "./game-dialog.service";
@@ -26,12 +27,21 @@ describe("GameDialogService", () => {
   it("opens the prologue and shows the first narration beat", () => {
     const { service } = createFixture();
 
-    service.startPrologue();
+    service.startDialogueById("prologue");
 
     expect(service.session()?.mode).toBe("valeflow");
     expect(service.session()?.currentEntry?.kind).toBe("say");
     expect(service.session()?.currentEntry?.actor?.name).toBe("Narrator");
     expect(service.session()?.currentEntry?.text).toContain("Pain drags you back");
+  });
+
+  it("reports an error when a dialogue id is not defined", () => {
+    const { service } = createFixture();
+
+    service.startDialogueById("missing-dialogue");
+
+    expect(service.session()).toBeNull();
+    expect(service.error()).toBe('Unknown dialogue id "missing-dialogue".');
   });
 
   it("interpolates player name and race, loops flavor questions, and queues no deltas before the ending branch", () => {
@@ -194,6 +204,16 @@ describe("GameDialogService", () => {
     expect(service.session()?.currentEntry?.text).toContain("hoping you would come by");
   });
 
+  it("opens chief-labour at the chief-labour START line", () => {
+    const { service } = createFixture();
+
+    service.startChiefLabour();
+
+    expect(service.session()?.title).toBe("The Chief's Request");
+    expect(service.session()?.currentEntry?.actor?.name).toBe("Village Chief");
+    expect(service.session()?.currentEntry?.text).toContain("You're on your feet. Good.");
+  });
+
   it("opens Bridgitte's house dialogue and presents her intro", () => {
     const { service, worldState } = createFixture();
 
@@ -215,12 +235,56 @@ describe("GameDialogService", () => {
     expect(service.session()?.sceneImagePath).toBe(
       "assets/images/location-backgrounds/bridgette-house.png"
     );
-    expect(service.session()?.currentEntry?.actor?.name).toBe("Bridgitte");
-    expect(service.session()?.currentEntry?.text).toContain("chief finally sent you");
+    expect(service.session()?.currentEntry?.actor?.name).toBe("Narrator");
+    expect(service.session()?.currentEntry?.text).toContain("smells faintly of woodsmoke");
+  });
+
+  it("replaces an open activity session when a story dialogue starts", () => {
+    const { service } = createFixture();
+
+    service.startActivity("recover", "Recover");
+    expect(service.session()?.mode).toBe("activity");
+
+    service.startChiefLabour();
+
+    expect(service.session()?.mode).toBe("valeflow");
+    expect(service.session()?.currentEntry?.actor?.name).toBe("Village Chief");
+    expect(service.session()?.currentEntry?.text).toContain("You're on your feet");
+  });
+
+  it("surfaces dialogue compilation failures as error state instead of throwing", () => {
+    const { service } = createFixture({
+      dialogueProjectFiles: [
+        {
+          filename: "prologue/valeflow-prologue.fsc",
+          source: { broken: true } as unknown as string
+        }
+      ]
+    });
+
+    service.startPrologue();
+
+    expect(service.session()).toBeNull();
+    expect(service.error()).toContain("split");
   });
 });
 
 function createFixture(): {
+  roster: CharacterRosterService;
+  gameQuests: {
+    startQuestById: jest.Mock;
+    resolveQuestStep: jest.Mock;
+  };
+  worldState: {
+    currentLocationMetadata: ReturnType<typeof signal>;
+    currentSublocationMetadata: ReturnType<typeof signal>;
+  };
+  service: GameDialogService;
+}
+
+function createFixture(options?: {
+  dialogueProjectFiles?: readonly { filename: string; source: string }[];
+}): {
   roster: CharacterRosterService;
   gameQuests: {
     startQuestById: jest.Mock;
@@ -245,40 +309,53 @@ function createFixture(): {
   };
   roster.createCharacter(player);
 
-  const http = {
-    get: jest.fn((url: string, options?: { responseType?: string }) => {
-      if (url === "assets/dialogue/prologue/valeflow-prologue.fsc") {
-        expect(options?.responseType).toBe("text");
-        return of(
-          readFileSync(
-            resolve(__dirname, "../../../assets/dialogue/prologue/valeflow-prologue.fsc"),
-            "utf8"
-          )
-        );
-      }
-
-      if (url === "assets/dialogue/arkama/chief-bridgitte-handoff.fsc") {
-        expect(options?.responseType).toBe("text");
-        return of(
-          readFileSync(
-            resolve(__dirname, "../../../assets/dialogue/arkama/chief-bridgitte-handoff.fsc"),
-            "utf8"
-          )
-        );
-      }
-
-      if (url === "assets/dialogue/arkama/bridgitte-house.fsc") {
-        expect(options?.responseType).toBe("text");
-        return of(
-          readFileSync(
-            resolve(__dirname, "../../../assets/dialogue/arkama/bridgitte-house.fsc"),
-            "utf8"
-          )
-        );
-      }
-
-      throw new Error(`Unexpected HttpClient.get call for ${url}.`);
-    })
+  const dialogueProjectLoader = {
+    load: jest.fn(() =>
+      of([
+        ...(options?.dialogueProjectFiles ?? [
+          loadDialogueFile("assets/dialogue/globals.fsc"),
+          loadDialogueFile("assets/dialogue/prologue/valeflow-prologue.fsc"),
+          loadDialogueFile("assets/dialogue/prologue/chief-labour.fsc"),
+          loadDialogueFile("assets/dialogue/arkama/chief-bridgitte-handoff.fsc"),
+          loadDialogueFile("assets/dialogue/arkama/bridgitte-house.fsc"),
+          loadDialogueFile("assets/dialogue/arkama/bridgitte-repetables.fsc")
+        ])
+      ])
+    )
+  };
+  const dialogueDefinitionsLoader = {
+    load: jest.fn(() =>
+      of([
+        {
+          id: "prologue",
+          entryFile: "prologue/valeflow-prologue.fsc",
+          title: "Wake Up",
+          eyebrowFallback: "Prologue",
+          subtitleFallback: "A hard-won return to consciousness."
+        },
+        {
+          id: "chief-labour",
+          entryFile: "prologue/chief-labour.fsc",
+          title: "The Chief's Request",
+          eyebrowFallback: "Chief House",
+          subtitleFallback: "He has work for you."
+        },
+        {
+          id: "chief-bridgitte-handoff",
+          entryFile: "arkama/chief-bridgitte-handoff.fsc",
+          title: "A New Lead",
+          eyebrowFallback: "Arkama Village",
+          subtitleFallback: "The chief has someone she wants you to meet."
+        },
+        {
+          id: "bridgitte-house",
+          entryFile: "arkama/bridgitte-house.fsc",
+          title: "Bridgitte",
+          eyebrowFallback: "Bridgitte's House",
+          subtitleFallback: "A retired adventurer finally opens her door to you."
+        }
+      ])
+    )
   };
   const dialogueActorsLoader = {
     load: jest.fn(() =>
@@ -339,9 +416,10 @@ function createFixture(): {
   };
   const injector = Injector.create({
     providers: [
-      { provide: HttpClient, useValue: http },
       { provide: CharacterRosterService, useValue: roster },
       { provide: CharacterCreatorOptionsLoader, useValue: creatorOptionsLoader },
+      { provide: DialogueDefinitionsLoader, useValue: dialogueDefinitionsLoader },
+      { provide: DialogueProjectLoader, useValue: dialogueProjectLoader },
       { provide: DialogueActorsLoader, useValue: dialogueActorsLoader },
       { provide: DebugLogService, useValue: debugLog },
       { provide: GameQuestService, useValue: gameQuests },
@@ -369,4 +447,13 @@ function advanceUntilSessionEnds(service: GameDialogService, maxSteps = 20): voi
 
     service.advance();
   }
+}
+
+function loadDialogueFile(assetPath: string): { filename: string; source: string } {
+  const prefix = "assets/dialogue/";
+
+  return {
+    filename: assetPath.startsWith(prefix) ? assetPath.slice(prefix.length) : assetPath,
+    source: readFileSync(resolve(__dirname, "../../../", assetPath), "utf8")
+  };
 }

@@ -31,7 +31,7 @@ export { parse, parseExpressionTokens } from "./parser/index.js";
 
 // ── Project loader ────────────────────────────────────────
 export { loadProject, resolveLabel }    from "./project/index.js";
-export type { LoadInput }               from "./project/index.js";
+export type { LoadInput, LoadProjectOptions } from "./project/index.js";
 
 // ── Runtime ───────────────────────────────────────────────
 export { Engine }                       from "./runtime/index.js";
@@ -99,7 +99,9 @@ export type {
 
 import { tokenize as _tokenize } from "./lexer/index.js";
 import { parse    as _parse    } from "./parser/index.js";
-import type { Program }           from "./types.js";
+import { loadProject as _loadProject } from "./project/index.js";
+import type { LoadInput, LoadProjectOptions } from "./project/index.js";
+import type { Program, Project }           from "./types.js";
 
 /**
  * Tokenise + parse a ValeFlow source string in one call.
@@ -107,6 +109,18 @@ import type { Program }           from "./types.js";
  * @param source  Raw .fsc source text
  * @returns       Parsed Program AST
  */
-export function compile(source: string): Program {
-  return _parse(_tokenize(source));
+export function compile(source: string): Program;
+export function compile(
+  inputs: readonly LoadInput[],
+  options?: LoadProjectOptions
+): Project;
+export function compile(
+  input: string | readonly LoadInput[],
+  options: LoadProjectOptions = {}
+): Program | Project {
+  if (typeof input === "string") {
+    return _parse(_tokenize(input));
+  }
+
+  return _loadProject(input, options);
 }

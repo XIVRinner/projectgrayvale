@@ -1,4 +1,3 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject, signal } from "@angular/core";
 import {
   type Delta,
@@ -7,13 +6,18 @@ import {
   type Race
 } from "@rinner/grayvale-core";
 import {
-  compile,
+  loadProject,
   Engine,
   type StepResult
 } from "@rinner/grayvale-dialogue";
 import { forkJoin } from "rxjs";
 
 import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-creator-options.loader";
+import {
+  DialogueDefinitionsLoader,
+  type DialogueDefinition
+} from "../../data/loaders/dialogue-definitions.loader";
+import { DialogueProjectLoader } from "../../data/loaders/dialogue-project.loader";
 import {
   DialogueActorsLoader,
   type DialogueActorDefinition
@@ -34,9 +38,10 @@ import { Subject } from "rxjs";
 
 @Injectable({ providedIn: "root" })
 export class GameDialogService {
-  private readonly http = inject(HttpClient);
   private readonly roster = inject(CharacterRosterService);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
+  private readonly dialogueDefinitionsLoader = inject(DialogueDefinitionsLoader);
+  private readonly dialogueProjectLoader = inject(DialogueProjectLoader);
   private readonly dialogueActorsLoader = inject(DialogueActorsLoader);
   private readonly worldState = inject(WorldStateService);
   private readonly debugLog = inject(DebugLogService);
@@ -62,66 +67,78 @@ export class GameDialogService {
   readonly error = this.errorState.asReadonly();
   readonly events$ = this.eventSubject.asObservable();
 
-  startPrologue(): void {
-    this.startValeflowDialogue({
-      scriptPath: "assets/dialogue/prologue/valeflow-prologue.fsc",
-      title: "Wake Up",
-      eyebrowFallback: "Prologue",
-      subtitleFallback: "A hard-won return to consciousness.",
-      debugLabel: "prologue"
+  startDialogueById(dialogueId: string): void {
+    this.dialogueDefinitionsLoader.load().subscribe({
+      next: (definitions) => {
+        const definition = definitions.find((entry) => entry.id === dialogueId);
+
+        if (!definition) {
+          this.debugLog.logMessage("dialogue", `Unknown dialogue id "${dialogueId}".`);
+          this.errorState.set(`Unknown dialogue id "${dialogueId}".`);
+          return;
+        }
+
+        this.startValeflowDialogue(definition);
+      },
+      error: (error: unknown) => {
+        this.debugLog.logMessage(
+          "dialogue",
+          `Failed to load dialogue definitions for "${dialogueId}".`,
+          toErrorMessage(error, "Unknown dialogue definition load error.")
+        );
+        this.errorState.set(
+          toErrorMessage(error, `Failed to load dialogue definition "${dialogueId}".`)
+        );
+      }
     });
+  }
+
+  startPrologue(): void {
+    this.startDialogueById("prologue");
   }
 
   startChiefLabour(): void {
-    this.startValeflowDialogue({
-      scriptPath: "assets/dialogue/prologue/chief-labour.fsc",
-      title: "The Chief's Request",
-      eyebrowFallback: "Chief House",
-      subtitleFallback: "He has work for you.",
-      debugLabel: "chief-labour"
-    });
+    this.startDialogueById("chief-labour");
   }
 
   startChiefBridgitteHandoff(): void {
-    this.startValeflowDialogue({
-      scriptPath: "assets/dialogue/arkama/chief-bridgitte-handoff.fsc",
-      title: "A New Lead",
-      eyebrowFallback: "Arkama Village",
-      subtitleFallback: "The chief has someone she wants you to meet.",
-      debugLabel: "chief-bridgitte-handoff"
-    });
+    this.startDialogueById("chief-bridgitte-handoff");
   }
 
   startBridgitteHouse(): void {
-    this.startValeflowDialogue({
-      scriptPath: "assets/dialogue/arkama/bridgitte-house.fsc",
-      title: "Bridgitte",
-      eyebrowFallback: "Bridgitte's House",
-      subtitleFallback: "A retired adventurer finally opens her door to you.",
-      debugLabel: "bridgitte-house"
-    });
+    this.startDialogueById("bridgitte-house");
   }
 
-  private startValeflowDialogue(opts: {
-    scriptPath: string;
-    title: string;
-    eyebrowFallback: string;
-    subtitleFallback: string;
-    debugLabel: string;
-  }): void {
+  private startValeflowDialogue(definition: DialogueDefinition): void {
+    const existingSession = this.sessionState();
+
+    if (existingSession?.mode === "activity") {
+      this.debugLog.logMessage(
+        "dialogue",
+        `Closing active activity session before starting ${definition.id} dialogue.`
+      );
+      this.sessionState.set(null);
+    }
+
     if (this.engine !== null || this.sessionState() !== null) {
-      this.debugLog.logMessage("dialogue", `Ignored ${opts.debugLabel} start because a dialogue session is already open.`);
+      this.debugLog.logMessage(
+        "dialogue",
+        `Ignored ${definition.id} start because a dialogue session is already open.`
+      );
       return;
     }
 
     const activePlayer = this.roster.activeCharacter();
 
     if (!activePlayer) {
-      this.debugLog.logMessage("dialogue", `Ignored ${opts.debugLabel} start because there is no active player.`);
+      this.debugLog.logMessage(
+        "dialogue",
+        `Ignored ${definition.id} start because there is no active player.`
+      );
       return;
     }
 
-    this.debugLog.logMessage("dialogue", `Starting ${opts.debugLabel} dialogue.`, {
+    this.debugLog.logMessage("dialogue", `Starting ${definition.id} dialogue.`, {
       playerId: activePlayer.id,
       playerName: activePlayer.name
     });
@@ -129,43 +146,66 @@ export class GameDialogService {
     const sceneContext =
       this.worldState.currentSublocationMetadata() ?? this.worldState.currentLocationMetadata();
     this.sceneImagePath = sceneContext?.sceneImagePath ?? null;
-    this.title = opts.title;
-    this.eyebrow = sceneContext?.label ?? opts.eyebrowFallback;
-    this.subtitle = sceneContext?.subtitle ?? opts.subtitleFallback;
+    this.title = definition.title;
+    this.eyebrow = sceneContext?.label ?? definition.eyebrowFallback;
+    this.subtitle = sceneContext?.subtitle ?? definition.subtitleFallback;
     this.errorState.set(null);
     this.transcript = [];
     this.transcriptCounter = 0;
     this.queuedDeltasState.set([]);
 
     forkJoin({
-      source: this.http.get(opts.scriptPath, { responseType: "text" }),
+      projectFiles: this.dialogueProjectLoader.load(),
       actors: this.dialogueActorsLoader.load(),
       options: this.creatorOptionsLoader.load()
     }).subscribe({
-      next: ({ source, actors, options }) => {
-        this.actorsById = new Map(actors.map((actor) => [actor.id, actor]));
+      next: ({ projectFiles, actors, options }) => {
+        try {
+          this.actorsById = new Map(actors.map((actor) => [actor.id, actor]));
 
-        const raceById = new Map(options.races.map((race) => [race.id, race]));
-        const engine = new Engine(compile(source));
+          const raceById = new Map(options.races.map((race) => [race.id, race]));
+          const entryFile = definition.entryFile;
+          const orderedProjectFiles = prioritizeDialogueEntryFile(projectFiles, entryFile);
+          const project = loadProject(orderedProjectFiles, { entryFile });
 
-        this.registerHooks(engine, activePlayer, raceById);
-        this.engine = engine;
-        this.debugLog.logMessage("dialogue", `${opts.debugLabel} dialogue compiled and initialized.`, {
-          actorCount: actors.length
-        });
-        this.eventSubject.next({
-          type: "session-started",
-          mode: "valeflow",
-          title: this.title,
-          eyebrow: this.eyebrow,
-          subtitle: this.subtitle
-        });
-        this.consumeNextStep();
+          if (project.entryFile !== entryFile) {
+            this.debugLog.logMessage(
+              "dialogue",
+              "Dialogue entry file mismatch detected. Forcing requested entry file.",
+              {
+                requestedEntryFile: entryFile,
+                resolvedEntryFile: project.entryFile
+              }
+            );
+
+            (project as { entryFile: string }).entryFile = entryFile;
+          }
+
+          const engine = new Engine(project);
+
+          this.registerHooks(engine, activePlayer, raceById);
+          this.engine = engine;
+          this.debugLog.logMessage("dialogue", `${definition.id} dialogue compiled and initialized.`, {
+            actorCount: actors.length,
+            scriptCount: projectFiles.length,
+            entryFile,
+            resolvedEntryFile: project.entryFile,
+            runtimeCurrentFile: engine.getCurrentFile()
+          });
+          this.eventSubject.next({
+            type: "session-started",
+            mode: "valeflow",
+            title: this.title,
+            eyebrow: this.eyebrow,
+            subtitle: this.subtitle
+          });
+          this.consumeNextStep();
+        } catch (error) {
+          this.handleDialogueStartFailure(definition, error);
+        }
       },
       error: (error: unknown) => {
-        this.resetRuntime();
-        this.debugLog.logMessage("dialogue", `Failed to start ${opts.debugLabel} dialogue.`, toErrorMessage(error, "Unknown dialogue load error."));
-        this.errorState.set(toErrorMessage(error, `Failed to load ${opts.debugLabel} dialogue.`));
+        this.handleDialogueStartFailure(definition, error);
       }
     });
   }
@@ -393,6 +433,21 @@ export class GameDialogService {
     this.resetRuntime();
   }
 
+  private handleDialogueStartFailure(
+    definition: DialogueDefinition,
+    error: unknown
+  ): void {
+    this.resetRuntime();
+    this.debugLog.logMessage(
+      "dialogue",
+      `Failed to start ${definition.id} dialogue.`,
+      toErrorMessage(error, "Unknown dialogue load error.")
+    );
+    this.errorState.set(
+      toErrorMessage(error, `Failed to load ${definition.id} dialogue.`)
+    );
+  }
+
   private resetRuntime(): void {
     this.debugLog.logMessage("dialogue", "Resetting dialogue runtime state.");
     this.engine = null;
@@ -519,6 +574,19 @@ function resolvePlayerPortraitPath(
   }
 
   return `${race.imageBasePath}/${player.selectedAppearance.variant}/${portraitName}`;
+}
+
+function prioritizeDialogueEntryFile<T extends { filename: string }>(
+  files: readonly T[],
+  entryFile: string
+): readonly T[] {
+  const entry = files.find((file) => file.filename === entryFile);
+
+  if (!entry) {
+    return files;
+  }
+
+  return [entry, ...files.filter((file) => file.filename !== entryFile)];
 }
 
 function ensureNonEmptyString(value: unknown, label: string): string {

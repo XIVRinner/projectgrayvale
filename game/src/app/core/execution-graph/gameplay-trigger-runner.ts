@@ -100,27 +100,8 @@ export class GameplayTriggerRunner {
       return blocked(action.id, "EXECUTION_KIND_MISMATCH");
     }
 
-    switch (execution.dialogueTarget) {
-      case "prologue":
-        this.gameDialog.startPrologue();
-        return { ok: true, actionId: action.id };
-      case "chief-labour":
-        this.gameDialog.startChiefLabour();
-        return { ok: true, actionId: action.id };
-      case "chief-bridgitte-handoff":
-        this.gameDialog.startChiefBridgitteHandoff();
-        return { ok: true, actionId: action.id };
-      case "bridgitte-house":
-        this.gameDialog.startBridgitteHouse();
-        return { ok: true, actionId: action.id };
-      default:
-        this.debugLog.logMessage(
-          "execution-graph",
-          `Unknown dialogue target "${execution.dialogueTarget}".`,
-          { actionId: action.id }
-        );
-        return blocked(action.id, "UNKNOWN_DIALOGUE_TARGET");
-    }
+    this.gameDialog.startDialogueById(execution.dialogueTarget);
+    return { ok: true, actionId: action.id };
   }
 
   private runSystem(action: ActionNode): ExecutionResult {

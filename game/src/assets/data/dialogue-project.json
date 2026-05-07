@@ -1,0 +1,10 @@
+{
+  "files": [
+    "assets/dialogue/globals.fsc",
+    "assets/dialogue/prologue/valeflow-prologue.fsc",
+    "assets/dialogue/prologue/chief-labour.fsc",
+    "assets/dialogue/arkama/chief-bridgitte-handoff.fsc",
+    "assets/dialogue/arkama/bridgitte-house.fsc",
+    "assets/dialogue/arkama/bridgitte-repetables.fsc"
+  ]
+}

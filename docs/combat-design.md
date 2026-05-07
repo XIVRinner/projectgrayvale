@@ -7678,3 +7678,1273 @@ one hidden or partially known mechanic if desired
 ```
 
 That would let the resolver design become concrete without creating a week-long boss encyclopedia.
+
+I mostly agree with the structure, but I would split the concept into **base rarity** and **special rarity modifiers**. That avoids confusion and makes the model easier to use.
+
+An item should have:
+
+```text
+base_rarity:
+  junk | common | uncommon | rare | epic | legendary | mythical | ephemeral | primal
+
+special_rarities:
+  cursed | divine | infernal | phantom | temporal | secret | galvanized
+```
+
+So an item can be:
+
+```text
+legendary + cursed
+epic + galvanized
+mythical + secret
+rare + temporal
+common + divine
+```
+
+This is better than treating all rarities as one flat list.
+
+---
+
+## 245. Rarity Philosophy
+
+Rarity should describe two different things:
+
+```text
+Base Rarity = item tier / power / progression position
+Special Rarity = special origin, rule, restriction, or modifier
+```
+
+Base rarity tells the player:
+
+```text
+How strong or important is this item normally?
+```
+
+Special rarity tells the player:
+
+```text
+What strange rule does this item have?
+```
+
+Examples:
+
+```text
+Common Sword
+Epic Leather Chestpiece
+Legendary Dagger
+Legendary Cursed Dagger
+Epic Galvanized Shield
+Temporal God-Killer Blade
+Secret Grim Harvester Class
+```
+
+This supports both normal item progression and unusual special cases.
+
+---
+
+# 246. Base Rarities
+
+Base rarities:
+
+```text
+junk
+common
+uncommon
+rare
+epic
+legendary
+mythical
+ephemeral
+primal
+```
+
+These are the normal rarity progression steps for items.
+
+---
+
+## 247. Junk
+
+```text
+junk
+```
+
+Junk means the item is mostly useless to the player.
+
+It may still have value.
+
+Examples:
+
+```text
+bloody rag
+cracked fang
+bent spoon
+ruined charm
+```
+
+Junk can mean:
+
+* cannot be used in crafting
+* not useful in combat
+* weak equipment
+* sellable for money
+* flavor object
+* joke object
+* “trash but valuable” item
+
+Important: junk does **not** always mean worthless.
+
+It means:
+
+```text
+not useful for build progression
+```
+
+It can still sell well.
+
+---
+
+## 248. Common
+
+```text
+common
+```
+
+Common items have real use but are weak.
+
+Examples:
+
+```text
+old dagger
+worn leather chestpiece
+wooden shield
+simple focus
+```
+
+Common items are usually:
+
+* starter gear
+* basic materials
+* low-tier usable items
+* tutorial gear
+* simple equipment without special bonuses
+
+Common items can support core systems, but usually do not have meaningful extra bonuses.
+
+---
+
+## 249. Uncommon
+
+```text
+uncommon
+```
+
+Uncommon is where minor bonuses start appearing.
+
+Examples:
+
+```text
+balanced dagger
+stitched leather chestpiece
+apprentice focus
+```
+
+Uncommon items may have:
+
+* slightly better stat intervals
+* small stat bonus
+* minor resistance
+* small resource modifier
+* simple conditional effect
+
+Example:
+
+```text
++2% bleed damage
++1 mana
++1% dodge
+```
+
+---
+
+## 250. Rare
+
+```text
+rare
+```
+
+Rare items continue the bonus pattern but are still not the main high-end identity tier.
+
+Rare items may have:
+
+* better stat intervals
+* one or more minor bonuses
+* stronger conditional effect
+* early build identity support
+
+Example:
+
+```text
+Serrated Dagger
+Rare
+Bleeding effects dealt by this weapon are 10% stronger.
+```
+
+Rare is where the player starts recognizing build direction.
+
+---
+
+## 251. Epic
+
+```text
+epic
+```
+
+Epic is the main combat gear tier.
+
+This is probably the “normal best gear” tier for most progression before special chase items.
+
+Epic items should be:
+
+* strong
+* build-defining in normal content
+* reliable
+* not as exotic as legendary+
+* the main target for regular combat builds
+
+Epic items may have:
+
+* high stat intervals
+* multiple bonuses
+* strong but non-legendary effects
+* important role support
+* skill synergy
+
+Example:
+
+```text
+Epic Short Blade
++bleed damage
++dodge synergy
++better piercing interval
+```
+
+Epic should be common enough that players can build around it.
+
+---
+
+# Legendary / Ephemeral / Mythical / Primal Tier
+
+You described legendary, ephemeral, mythical, and primal as the same broad top tier with different perfection states. I agree with that, but I would slightly reorder the meaning to make it intuitive:
+
+```text
+legendary = has legendary effect, rolls can vary
+ephemeral = legendary effect is maxed
+mythical = legendary effect and all normal bonuses are maxed
+primal = mythical + tiny extra primal bonus
+```
+
+This is clear and very usable.
+
+---
+
+## 252. Legendary
+
+```text
+legendary
+```
+
+Legendary means the item has a legendary effect.
+
+The legendary effect can roll within a range.
+
+Example:
+
+```text
+Needle Choir
+Legendary Effect:
+Barrage of Stabs deals 10–90% extra piercing damage.
+```
+
+A legendary version may roll:
+
+```text
++10%
++12%
++24%
++68%
+```
+
+Legendary does not mean perfect.
+
+It means:
+
+```text
+has the special legendary behavior
+```
+
+This is ideal for chase gear because players can find better versions of the same legendary.
+
+---
+
+## 253. Ephemeral
+
+```text
+ephemeral
+```
+
+Ephemeral means the legendary effect is maximized.
+
+Example:
+
+```text
+Legendary version:
+Barrage of Stabs deals +10–90% piercing damage.
+
+Ephemeral version:
+Barrage of Stabs deals +90% piercing damage.
+```
+
+Other item bonuses may still not be perfect.
+
+So:
+
+```text
+ephemeral = perfect legendary effect
+```
+
+This gives a strong upgrade identity without making everything perfect.
+
+---
+
+## 254. Mythical
+
+```text
+mythical
+```
+
+Mythical means:
+
+```text
+legendary effect is maximized
+and all other bonuses/substats are maximized
+```
+
+Example:
+
+```text
+Needle Choir - Mythical
+
+Legendary Effect:
+Barrage of Stabs +90% piercing damage.
+
+Substats:
++12% bleed damage, max roll
++8% dodge reaction chance, max roll
++5 piercing damage, max roll
+```
+
+Mythical is the “perfect version” of the item.
+
+---
+
+## 255. Primal
+
+```text
+primal
+```
+
+Primal means:
+
+```text
+mythical + one small extra primal bonus
+```
+
+The extra primal bonus should be much weaker than the main legendary effect, but still meaningful.
+
+Example:
+
+```text
+Needle Choir - Primal
+
+Everything from Mythical
++
+Primal Bonus:
+Bleeding is 2% stronger.
+```
+
+Important rule:
+
+```text
+The primal bonus stacks with the main legendary effect.
+```
+
+Primal should be extremely rare and exciting, but not so strong that it invalidates all balance.
+
+It is the “beyond perfect” chase tier.
+
+---
+
+# 256. Special Rarities
+
+Special rarities are modifiers or designations.
+
+They can exist alongside base rarity.
+
+Special rarities:
+
+```text
+cursed
+divine
+infernal
+phantom
+temporal
+secret
+galvanized
+```
+
+An item can have multiple special rarities if allowed, but I would be careful with stacking too many.
+
+Examples:
+
+```text
+Cursed Legendary Dagger
+Divine Epic Shield
+Temporal Rare Blade
+Secret Legendary Class
+Galvanized Epic Spear
+```
+
+---
+
+## 257. Cursed
+
+```text
+cursed
+```
+
+Cursed items are pro/con items.
+
+They should offer extreme benefits and extreme drawbacks.
+
+Example:
+
+```text
+Cursed Focus
+
+Downside:
+You take 200% more fire damage.
+
+Upside:
+You are immune to ice and water.
+Lightning spells cost no mana.
+```
+
+Cursed items should be dangerous but tempting.
+
+They are good for:
+
+* weird builds
+* glass cannon builds
+* puzzle builds
+* boss-specific counters
+* risky power spikes
+
+Cursed should be visible and obvious in tooltip.
+
+The player should never accidentally equip a cursed item without knowing.
+
+---
+
+## 258. Divine and Infernal
+
+```text
+divine
+infernal
+```
+
+Divine and infernal should probably be opposing special rarities.
+
+You do not need to finalize them yet, but I would suggest this design direction:
+
+### Divine
+
+Divine items lean toward:
+
+* protection
+* healing
+* barriers
+* cleansing
+* anti-infernal effects
+* holy damage
+* stability
+* sacrifice for allies
+
+Example:
+
+```text
+Divine Shield
++barrier strength
++healing received
+cleanses infernal burn every 10 ticks
+```
+
+### Infernal
+
+Infernal items lean toward:
+
+* sacrifice
+* self-damage
+* fire/dark power
+* corruption
+* burst
+* risk/reward
+* anti-divine effects
+
+Example:
+
+```text
+Infernal Blade
+spend HP to add fire damage
+increases damage taken from divine enemies
+```
+
+The important part:
+
+```text
+Divine and infernal should have mechanical identity,
+not just flavor identity.
+```
+
+They can oppose each other later.
+
+---
+
+## 259. Phantom
+
+```text
+phantom
+```
+
+Phantom items are extremely strong but have limited uses.
+
+Examples:
+
+```text
+Phantom Blade
+Uses: 3 fights
+Effect: attacks ignore armor
+```
+
+```text
+Phantom Cloak
+Uses: 5 dodges
+Effect: dodge chance +50%
+```
+
+Phantom is good for:
+
+* emergency power
+* temporary boss counters
+* limited-use dungeon tools
+* event items
+* high-risk consumable equipment
+
+Phantom should be tracked with:
+
+```text
+remaining_uses
+expires_on_use
+expires_after_fights
+expires_after_ticks
+```
+
+Phantom is not just rarity. It is a durability/expiration rule.
+
+---
+
+## 260. Temporal
+
+```text
+temporal
+```
+
+Temporal items are tied to specific time, dungeon, boss, or encounter context.
+
+Your example:
+
+```text
+John God boss drops John God Killer Blade.
+John God can only be killed with that blade.
+```
+
+This is a temporal/special-purpose item.
+
+Temporal items can be:
+
+* boss-specific
+* dungeon-specific
+* phase-specific
+* time-limited
+* encounter-unlocking
+* required to resolve a mechanic
+
+Examples:
+
+```text
+John God Killer Blade
+Temporal
+Only deals true damage to John God.
+Expires after John God is defeated.
+```
+
+```text
+Ashen Keystone
+Temporal
+Allows entry into Fire Chasm final room.
+```
+
+Temporal items are excellent for encounter design, but should be used carefully so they do not feel like arbitrary keys unless the story/design supports it.
+
+---
+
+## 261. Secret
+
+```text
+secret
+```
+
+Secret is a special designation for things hidden behind puzzles, discoveries, or unusual unlocks.
+
+Examples:
+
+```text
+Grim Harvester class
+Secret
+
+Hidden dagger technique
+Secret
+
+Puzzle-only item
+Secret
+```
+
+Secret can apply to:
+
+* classes
+* skills
+* items
+* abilities
+* companions
+* encounters
+* dungeon paths
+
+Secret does not necessarily mean stronger.
+
+It means:
+
+```text
+discovered through hidden or special conditions
+```
+
+Secret should be used for delight, discovery, and mystery.
+
+---
+
+## 262. Galvanized
+
+```text
+galvanized
+```
+
+Galvanized is a temporary or conditional enhancement state.
+
+Any item up to legendary can become galvanized.
+
+Rule:
+
+```text
+junk/common/uncommon/rare/epic/legendary can be galvanized
+ephemeral/mythical/primal cannot be galvanized
+```
+
+Galvanization makes an item stronger, but not all fights allow galvanized items.
+
+This creates an interesting layer:
+
+```text
+strong temporary gear
+but activity may restrict it
+```
+
+Examples:
+
+```text
+Galvanized Epic Sword
++15% damage during Storm Chasm
+
+Galvanized Legendary Shield
+barrier effects +20%
+cannot be used in purity-restricted raids
+```
+
+Galvanized is like a conditional power boost.
+
+Important rules:
+
+* not permanent by default, unless specified
+* not allowed in every activity
+* cannot apply to ephemeral+
+* should be visible in tooltip
+* activity can block galvanized effects or items
+
+---
+
+# 263. Rarity by Content Type
+
+Different content types support different rarity ranges.
+
+## Equipment
+
+Equipment can use:
+
+```text
+junk
+common
+uncommon
+rare
+epic
+legendary
+ephemeral
+mythical
+primal
+```
+
+Equipment can also have special rarities:
+
+```text
+cursed
+divine
+infernal
+phantom
+temporal
+secret
+galvanized
+```
+
+---
+
+## 264. Classes
+
+Classes can have:
+
+```text
+common
+uncommon
+rare
+epic
+legendary
+secret
+divine
+infernal
+```
+
+Classes probably should not use:
+
+```text
+junk
+mythical
+ephemeral
+primal
+phantom
+temporal
+galvanized
+```
+
+unless you later want very strange class mechanics.
+
+Recommended class rarity meaning:
+
+```text
+common class = normal archetype
+rare class = specialized archetype
+epic class = powerful/specific archetype
+legendary class = major iconic class
+secret class = hidden unlock
+divine/infernal class = special alignment class
+```
+
+Example:
+
+```text
+Warrior - Common
+Grim Harvester - Secret
+Solar Saint - Divine
+Hellbound Duelist - Infernal
+```
+
+---
+
+## 265. Crafting Materials
+
+Crafting materials normally use:
+
+```text
+common
+uncommon
+rare
+epic
+```
+
+Crafting materials can have special cases:
+
+```text
+legendary
+divine
+infernal
+```
+
+But without quality stars.
+
+Your rule:
+
+```text
+crafting materials can use common -> epic
+they can have divine, infernal, legendary
+but without quality stars
+```
+
+This makes sense.
+
+Example:
+
+```text
+Common Hide
+Rare Beast Fang
+Epic Dragon Scale
+Legendary Phoenix Ash
+Divine Thread
+Infernal Ore
+```
+
+Materials should not normally use:
+
+```text
+ephemeral
+mythical
+primal
+```
+
+unless there is a very specific reason.
+
+---
+
+# 266. Quality Stars vs. Rarity
+
+Rarity and quality should be separate.
+
+```text
+rarity = item tier / special identity
+quality = crafting/material quality
+```
+
+For crafting materials:
+
+* common to epic can have quality stars
+* legendary/divine/infernal special materials do not use quality stars
+
+Possible model:
+
+```text
+rarity: rare
+qualityStars: 3
+```
+
+Example:
+
+```text
+Rare Hide ★★★
+```
+
+Special material:
+
+```text
+Legendary Phoenix Ash
+```
+
+No stars.
+
+This prevents too many overlapping progression systems.
+
+---
+
+# 267. Rarity and Item Level
+
+Rarity and item level are separate.
+
+```text
+item_level = stat baseline
+rarity = item tier / special behavior
+```
+
+Example:
+
+```text
+Item Level 10 Common Sword
+Item Level 10 Epic Sword
+Item Level 10 Legendary Sword
+```
+
+They can exist at the same item level but differ in bonuses.
+
+Possible distinction:
+
+```text
+Common iLv10 Sword:
+  solid base damage
+
+Epic iLv10 Sword:
+  better modifiers and build bonuses
+
+Legendary iLv10 Sword:
+  legendary effect with roll range
+```
+
+Item level should not automatically imply rarity.
+
+Rarity should not automatically imply required level.
+
+---
+
+# 268. Rarity and Requirements
+
+Higher rarity may often have higher requirements, but it should not be automatic.
+
+Items can separately define:
+
+```text
+level_requirement
+skill_requirement
+class_requirement
+activity_requirement
+```
+
+Example:
+
+```text
+Legendary Dagger
+item_level: 12
+required_level: 10
+required_short_blade: 8
+```
+
+Example temporal:
+
+```text
+John God Killer Blade
+required: active John God encounter
+```
+
+Example cursed:
+
+```text
+Cursed Ring
+no requirement
+but dangerous drawback
+```
+
+This keeps rarity flexible.
+
+---
+
+# 269. Rarity and Tooltip Design
+
+Tooltip should show base rarity and special rarities separately.
+
+Example:
+
+```text
+Needle Choir
+Legendary • Cursed • Main Hand • Dagger
+Item Level 12
+```
+
+Or:
+
+```text
+Ring of Dodge
+Rare • Galvanized • Accessory
+Item Level 3
+```
+
+If too many tags exist, display:
+
+```text
+Legendary • Cursed • Secret
+```
+
+then show details in special sections.
+
+Special sections:
+
+```text
+Legendary Effect
+Curse
+Secret
+Power Window
+Galvanized
+Temporal Rule
+Phantom Uses
+```
+
+Do not hide dangerous special rarities.
+
+Cursed/infernal/temporal/phantom should be obvious.
+
+---
+
+# 270. Rarity Data Model
+
+I would model rarity like this:
+
+```ts
+export type BaseRarity =
+  | "junk"
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "epic"
+  | "legendary"
+  | "ephemeral"
+  | "mythical"
+  | "primal";
+
+export type SpecialRarity =
+  | "cursed"
+  | "divine"
+  | "infernal"
+  | "phantom"
+  | "temporal"
+  | "secret"
+  | "galvanized";
+
+export interface RarityProfile {
+  base: BaseRarity;
+  specials?: SpecialRarity[];
+}
+```
+
+Then item definition gets:
+
+```ts
+rarity: RarityProfile;
+```
+
+For classes, either reuse the same type with validation rules or define class-specific rarity.
+
+Example:
+
+```ts
+export type ClassRarity =
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "epic"
+  | "legendary"
+  | "secret"
+  | "divine"
+  | "infernal";
+```
+
+For materials:
+
+```ts
+export type MaterialBaseRarity =
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "epic"
+  | "legendary";
+
+export type MaterialSpecialRarity =
+  | "divine"
+  | "infernal";
+```
+
+But for MVP, it is probably enough to add `RarityProfile` to `ItemDefinition`.
+
+---
+
+# 271. Rarity Rules for MVP
+
+For MVP, do not implement rarity mechanics.
+
+But the model should include rarity.
+
+MVP implementation:
+
+```ts
+rarity: RarityProfile;
+```
+
+Old Dagger:
+
+```ts
+rarity: {
+  base: "common"
+}
+```
+
+Rags:
+
+```ts
+rarity: {
+  base: "junk"
+}
+```
+
+Worn Leather Chestpiece:
+
+```ts
+rarity: {
+  base: "common"
+}
+```
+
+Coyote drops can ignore rarity for now unless placeholder items exist.
+
+The important thing is:
+
+```text
+Issue 2 should include rarity in item definitions now.
+```
+
+No legendary, galvanized, cursed, phantom logic is required for MVP.
+
+---
+
+# 272. Updated Issue 2 Additions
+
+Add this section to Issue 2.
+
+````md
+### Rarity
+
+Items need rarity data even in MVP.
+
+Rarity is split into base rarity and optional special rarities.
+
+```ts
+export type BaseRarity =
+  | "junk"
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "epic"
+  | "legendary"
+  | "ephemeral"
+  | "mythical"
+  | "primal";
+
+export type SpecialRarity =
+  | "cursed"
+  | "divine"
+  | "infernal"
+  | "phantom"
+  | "temporal"
+  | "secret"
+  | "galvanized";
+
+export interface RarityProfile {
+  base: BaseRarity;
+  specials?: SpecialRarity[];
+}
+````
+
+Rules:
+
+* Every item definition must have rarity.
+* `base` is required.
+* `specials` is optional.
+* MVP does not implement rarity mechanics.
+* Rarity is metadata for now.
+* Future systems can validate which rarity combinations are allowed for equipment, classes, materials, and other entities.
+
+Examples:
+
+```ts
+rarity: { base: "common" }
+rarity: { base: "legendary", specials: ["cursed"] }
+rarity: { base: "epic", specials: ["galvanized"] }
+```
+
+Acceptance:
+
+* `ItemDefinition` includes `rarity: RarityProfile`.
+* Old Dagger can be `common`.
+* Rags can be `junk`.
+* Worn Leather Chestpiece can be `common`.
+
+````
+
+Then update `ItemDefinition`:
+
+```ts
+export interface ItemDefinition {
+  id: ItemId;
+  displayName: string;
+  itemType: "equipment" | "material" | "quest" | "junk";
+  rarity: RarityProfile;
+  tags: TagId[];
+}
+````
+
+---
+
+## My One Disagreement
+
+I would be careful saying:
+
+```text
+legendary, ephemeral, mythical, primal are the same tier
+```
+
+They are the same **family**, but not the same **power state**.
+
+Better wording:
+
+```text
+legendary, ephemeral, mythical, and primal belong to the legendary item family.
+They represent increasingly perfected versions of a legendary item.
+```
+
+That is clearer for players and balance.
+
+---
+
+## Summary
+
+```text
+Base rarity:
+  junk -> common -> uncommon -> rare -> epic -> legendary -> ephemeral -> mythical -> primal
+
+Special rarity:
+  cursed, divine, infernal, phantom, temporal, secret, galvanized
+
+Legendary family:
+  legendary = has legendary effect with variable rolls
+  ephemeral = legendary effect maxed
+  mythical = legendary effect and all bonuses maxed
+  primal = mythical + tiny extra primal bonus
+
+Special modifiers:
+  cursed = strong pro/con
+  divine/infernal = opposing special alignments
+  phantom = extremely strong, limited uses
+  temporal = encounter/time/context item
+  secret = hidden discovery designation
+  galvanized = temporary/conditional enhancement up to legendary only
+
+MVP:
+  add rarity to item model only
+  no rarity mechanics required yet
+```

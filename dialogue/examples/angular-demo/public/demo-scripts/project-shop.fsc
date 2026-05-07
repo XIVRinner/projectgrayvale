@@ -1,0 +1,2 @@
+chapter SHOP:
+    hero "The shop ledger says ${coins} coins remain."

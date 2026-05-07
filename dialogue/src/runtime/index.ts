@@ -94,7 +94,7 @@ export class Engine {
       );
     }
 
-    this.stack.push({ nodes: entryFile.ast.body, index: 0, chapterKey: null });
+    this.stack.push({ nodes: this.buildEntryNodes(entryFile.ast.body), index: 0, chapterKey: null });
   }
 
   // ── public API ──────────────────────────────────────────
@@ -696,6 +696,16 @@ export class Engine {
       getVar: (name) => this.getVar(name),
       setVar: (name, value) => this.setVar(name, value),
     };
+  }
+
+  private buildEntryNodes(nodes: Node[]): Node[] {
+    const firstBlockIndex = nodes.findIndex(node => node.type === "block");
+
+    if (firstBlockIndex < 0) {
+      return nodes;
+    }
+
+    return nodes.slice(0, firstBlockIndex + 1);
   }
 
   private cloneFrames(frames: Array<{ nodes: Node[]; index: number; chapterKey?: string | null }>): Frame[] {

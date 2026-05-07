@@ -1,0 +1,3 @@
+chapter START:
+    hero "Welcome to the shared project."
+    goto project-shop.fsc::SHOP

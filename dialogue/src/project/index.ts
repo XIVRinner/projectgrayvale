@@ -16,6 +16,14 @@ export interface LoadInput {
   source: string;
 }
 
+export interface LoadProjectOptions {
+  /**
+   * Filename whose top-level declarations and first chapter should be used as
+   * the execution entry point.
+   */
+  entryFile?: string;
+}
+
 // ─────────────────────────────────────────────────────────────
 // loadProject
 // ─────────────────────────────────────────────────────────────
@@ -33,7 +41,10 @@ export interface LoadInput {
  * - Duplicate global variable names across files → error.
  * - The entry point is the first non-globals file.
  */
-export function loadProject(inputs: LoadInput[]): Project {
+export function loadProject(
+  inputs: readonly LoadInput[],
+  options: LoadProjectOptions = {}
+): Project {
   if (inputs.length === 0) {
     throw new Error("loadProject: at least one file is required");
   }
@@ -104,6 +115,15 @@ export function loadProject(inputs: LoadInput[]): Project {
     if (!isGlobalsFile && entryFile === null) {
       entryFile = filename;
     }
+  }
+
+  if (options.entryFile !== undefined) {
+    if (!files[options.entryFile]) {
+      throw new Error(
+        `loadProject: entry file "${options.entryFile}" was not provided in inputs`
+      );
+    }
+    entryFile = options.entryFile;
   }
 
   // Fallback: if everything is a globals file use the first file
@@ -204,10 +224,18 @@ export function wrapSingleProgram(program: Program): Project {
   const filename = "__main__";
   const labels: Record<string, BlockNode> = {};
   const declarations: DeclarationNode[]   = [];
+  const globalDeclarations: DeclarationNode[] = [];
+  const globalVarNames = new Set<string>();
 
   for (const node of program.body) {
     if (node.type === "block") labels[node.name] = node;
-    if (node.type === "declare") declarations.push(node);
+    if (node.type === "declare") {
+      declarations.push(node);
+      if (node.isGlobal) {
+        globalDeclarations.push(node);
+        globalVarNames.add(node.name);
+      }
+    }
   }
 
   const file: ScriptFile = { filename, ast: program, labels, declarations };
@@ -221,8 +249,8 @@ export function wrapSingleProgram(program: Program): Project {
     type: "project",
     files:               { [filename]: file },
     globalLabels,
-    globalDeclarations:  [],   // single-file: no globals (all decls run inline)
-    globalVarNames:      new Set<string>(),
+    globalDeclarations,
+    globalVarNames,
     entryFile:           filename,
   };
 }
