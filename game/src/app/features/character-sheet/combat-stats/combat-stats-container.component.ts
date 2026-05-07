@@ -10,6 +10,8 @@ import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { catchError, combineLatest, map, of } from "rxjs";
 
+import { z } from "zod";
+
 import {
   computeStatBreakdowns,
   inventoryEquipmentItemSchema,
@@ -20,6 +22,12 @@ import {
   type StatBlock,
   type StatBreakdown
 } from "@rinner/grayvale-core";
+
+// GAP: statBlockSchema
+// Blocked on: @rinner/grayvale-core
+// Needs: a Zod schema for StatBlock (Record<string, number>) exported from modifier.types
+// Do not implement until: StatBlock schema is added to @rinner/grayvale-core
+const statBlockSchema = z.record(z.string(), z.number());
 
 import type { CombatStatGroupView, CombatStatRowView } from "./combat-stats.types";
 import { CombatStatsViewComponent } from "./combat-stats-view.component";
@@ -200,7 +208,7 @@ export class CombatStatsContainerComponent {
     ])
       .pipe(
         map(([rawBase, rawItems]) => {
-          const baseStats = rawBase as StatBlock;
+          const baseStats: StatBlock = statBlockSchema.parse(rawBase);
 
           const items = Array.isArray(rawItems)
             ? rawItems.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry))
