@@ -25,8 +25,8 @@
 }
 
 .gv-inventory-panel__search {
-  min-inline-size: 8rem;
-  inline-size: min(14rem, 100%);
+  min-width: 8rem;
+  width: min(14rem, 100%);
   background: var(--gv-color-bg-raised);
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-sm);

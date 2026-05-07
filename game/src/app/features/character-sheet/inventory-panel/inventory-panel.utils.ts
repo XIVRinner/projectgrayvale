@@ -1,5 +1,3 @@
-import type { ItemCategory } from "@rinner/grayvale-core";
-
 import type { InventoryPanelCategory, InventoryPanelItemView } from "./inventory-panel.types";
 
 export const filterInventoryItems = (
@@ -30,7 +28,7 @@ export const buildCategoryCounts = (
   };
 
   for (const item of items) {
-    counts[item.category as ItemCategory]++;
+    counts[item.category]++;
   }
 
   return counts;

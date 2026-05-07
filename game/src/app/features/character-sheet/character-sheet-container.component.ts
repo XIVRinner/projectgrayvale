@@ -102,6 +102,7 @@ export class CharacterSheetContainerComponent {
       ...record,
       [activeId]: equipItem(target, event.slot, event.itemId)
     });
+    this.comparedItemId.set(null);
   }
 
   protected onItemUnequipped(slot: EquipmentSlot): void {
@@ -115,6 +116,7 @@ export class CharacterSheetContainerComponent {
       ...record,
       [activeId]: unequipItem(target, slot)
     });
+    this.comparedItemId.set(null);
   }
 
   protected onComparedItemChanged(itemId: string | null): void {
