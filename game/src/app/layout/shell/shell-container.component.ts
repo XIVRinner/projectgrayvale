@@ -129,6 +129,9 @@ export class ShellContainerComponent {
   protected readonly debugLogEntries = toSignal(this.debugLog.entries$, {
     initialValue: []
   });
+  private readonly debugErrorCount = toSignal(this.debugLog.errorCount$, {
+    initialValue: 0
+  });
 
   readonly version = "0.0.1";
 
@@ -290,15 +293,14 @@ export class ShellContainerComponent {
   });
 
   readonly topbarActions = computed<readonly ShellTopbarAction[]>(() => {
-    const logEntryCount = this.gameplayLogEntries().length;
+    const errorCount = this.debugErrorCount();
 
     return [
-    // GAP: MessageLogModalService not yet available — button is a placeholder
     {
       id: TOPBAR_GAMEPLAY_LOG_ACTION_ID,
       label: "Gameplay Log",
       icon: "pi pi-list",
-      badge: logEntryCount > 0 ? logEntryCount : undefined,
+      badge: errorCount > 0 ? errorCount : undefined,
       tone: "default"
     },
     // GAP: AchievementModalService not yet available
@@ -511,7 +513,7 @@ export class ShellContainerComponent {
     const deleted = this.roster.deleteSlot(slotId);
 
     if (!deleted) {
-      this.logUi("Save slot delete failed.", { slotId });
+      this.logUi("Save slot delete failed.", { slotId }, "error");
       this.transferStatusMessage.set(`Could not delete ${formatSlotLabel(slotId)}.`);
       return;
     }
@@ -525,7 +527,7 @@ export class ShellContainerComponent {
     const payload = this.roster.exportSlot(slotId);
 
     if (!payload) {
-      this.logUi("Save slot export failed.", { slotId });
+      this.logUi("Save slot export failed.", { slotId }, "error");
       this.transferStatusMessage.set(`Could not export ${formatSlotLabel(slotId)}.`);
       return;
     }
@@ -566,7 +568,7 @@ export class ShellContainerComponent {
       });
       this.transferStatusMessage.set(`Imported ${importedCount} save slot(s).`);
     } catch (error) {
-      this.logUi("Save import failed.", errorToMessage(error));
+      this.logUi("Save import failed.", errorToMessage(error), "error");
       this.transferStatusMessage.set(errorToMessage(error));
     }
   }
@@ -595,7 +597,7 @@ export class ShellContainerComponent {
       this.logUi("Action execution returned a failure.", {
         actionId,
         reason: result.reason
-      });
+      }, "error");
     }
   }
 
@@ -629,8 +631,8 @@ export class ShellContainerComponent {
     this.activityService.stopActivity();
   }
 
-  private logUi(message: string, details?: unknown): void {
-    this.debugLog.logMessage("shell", message, details);
+  private logUi(message: string, details?: unknown, level: "info" | "error" = "info"): void {
+    this.debugLog.logMessage("shell", message, details, level);
   }
 }
 

@@ -1,0 +1,34 @@
+<section class="gv-gameplay-log__section" aria-label="Player-facing gameplay entries">
+  <div class="gv-gameplay-log__section-header">
+    <h3 class="gv-gameplay-log__section-title">Gameplay Feed</h3>
+  </div>
+
+  @if (entries().length === 0) {
+    <p class="gv-gameplay-log__no-results">No entries match the current filter.</p>
+  } @else {
+    <ol class="gv-gameplay-log__list">
+      @for (entry of entries(); track trackEntry($index, entry)) {
+        <li class="gv-gameplay-log__item" [attr.data-type]="entry.type">
+          <span class="gv-gameplay-log__chip">{{ entry.type }}</span>
+          @if (entry.type === "choice") {
+            <div class="gv-gameplay-log__choice-block">
+              <p class="gv-gameplay-log__choice-title">Choice options recorded</p>
+              <ul class="gv-gameplay-log__choice-list">
+                @for (option of entry.options; track option.index) {
+                  <li class="gv-gameplay-log__choice-item">
+                    <span>{{ option.label }}</span>
+                    @if (option.seen) {
+                      <span class="gv-gameplay-log__choice-seen">Seen</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          } @else {
+            <p class="gv-gameplay-log__text">{{ entry.text }}</p>
+          }
+        </li>
+      }
+    </ol>
+  }
+</section>

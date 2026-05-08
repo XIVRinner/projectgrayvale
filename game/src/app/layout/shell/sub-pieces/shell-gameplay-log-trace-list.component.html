@@ -1,0 +1,24 @@
+<section class="gv-gameplay-log__section" aria-label="Runtime trace entries">
+  <div class="gv-gameplay-log__section-header">
+    <h3 class="gv-gameplay-log__section-title">Runtime Trace</h3>
+  </div>
+
+  @if (entries().length === 0) {
+    <p class="gv-gameplay-log__no-results">No trace messages for the selected scope.</p>
+  } @else {
+    <ol class="gv-gameplay-log__debug-list">
+      @for (entry of entries(); track trackEntry($index, entry)) {
+        <li class="gv-gameplay-log__debug-item" [attr.data-level]="entry.level">
+          <div class="gv-gameplay-log__debug-meta">
+            <span class="gv-gameplay-log__chip gv-gameplay-log__chip--debug">{{ entry.scope }}</span>
+            <time class="gv-gameplay-log__debug-time">{{ entry.timestamp }}</time>
+          </div>
+          <p class="gv-gameplay-log__text">{{ entry.message }}</p>
+          @if (entry.details) {
+            <pre class="gv-gameplay-log__debug-details">{{ entry.details }}</pre>
+          }
+        </li>
+      }
+    </ol>
+  }
+</section>
