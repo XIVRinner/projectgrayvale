@@ -27,6 +27,10 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@rinner/grayvale-core$": "<rootDir>/../core/src/index.ts",
+      "^tslib$": "<rootDir>/node_modules/tslib/tslib.js"
+    },
     "roots": [
       "<rootDir>/src"
     ]
