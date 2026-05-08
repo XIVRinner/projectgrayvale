@@ -1,475 +1,319 @@
 # Grayvale Character Sheet MVP
 
-## Purpose
+This document describes the Character Sheet MVP **as it is currently implemented** in the Angular 21 game client.
 
-The Character Sheet MVP is a separate project from the Combat MVP.
+## Scope and Target
 
-It is the player-facing hub for:
+- Target framework: **Angular 21**
+- Current top-level UI: a tabbed character sheet with **Equipment**, **Stats**, and **Inventory** tabs
+- Current data sources: static JSON in `game/src/assets/data/`
+- Current state ownership: local signal state inside `CharacterSheetContainerComponent`
 
-- character identity
-- combat-relevant math
-- equipment
-- loadouts
-- inventory
-- item actions
-- item tooltips
-- rarity presentation
+The current MVP is intentionally focused on loadouts, equipment, combat-stat math, inventory browsing, and item tooltips. It does **not** ship the broader long-term character-sheet vision yet.
 
-The page should be implemented in Angular 21.
+## Character Identity Fields
 
-The implementation should stay MVP-focused and data-driven.
+The shared model shape for character identity lives in `@rinner/grayvale-core` and currently supports these fields:
 
-## Goals
+- `id`
+- `name`
+- `raceId`
+- `genderId?` — display-only for MVP
+- `level`
+- `classId?`
+- `adventurerRank?`
+- `tags: string[]`
+- `activeLoadoutId`
+- `inventory`
 
-- Show character identity.
-- Show equipment slots.
-- Support loadouts.
-- Show inventory split by category.
-- Support inventory/equipment actions.
-- Show combat math with buffed/nerfed values.
-- Show stat breakdowns.
-- Show equipment, material, quest item, and junk tooltips.
-- Show rarity-specific visual treatment.
-- Support future non-combat stats without implementing them yet.
+Implementation notes:
 
-## Non-Goals
+- `adventurerRank` is optional because rank is unlocked later.
+- `classId` is optional.
+- `tags` are required even when empty.
+- Race-derived tags are expected to merge in at runtime later.
 
-Do not implement these in the MVP:
+**Current UI status:** the shipped Character Sheet tab set does **not** render a dedicated identity header yet. The identity fields are documented here because the data model already supports them.
 
-- full combat simulation
-- raid resolver
-- dungeon inventory logic
-- crafting UI
-- vendor UI
-- drag-and-drop polish
-- final animation implementation
-- full persistence
-- multiplayer
-- complete equipment balance
-- complete stat taxonomy
+## Equipment Slots
 
-## Character Identity
+The implemented MVP loadout/equipment flow uses these eight slots:
 
-The character sheet should display:
+- `head`
+- `main_hand`
+- `chest`
+- `off_hand`
+- `gloves`
+- `ring`
+- `legs`
+- `boots`
 
-- name
-- race
-- gender
-- level
-- class/archetype if available
-- adventurer rank when unlocked
-- character tags when relevant
+UI rules that match the current panel:
 
-Race may eventually produce tags.
+- every slot renders in a fixed order
+- empty slots show an explicit empty state
+- equipped slots show item name, rarity label, and item level
+- compared slots get a dedicated compare highlight
+- special-rarity equipment shows a badge
+- hovering an equipped slot opens the shared item tooltip shell
 
-Example:
+## Loadout Behavior
 
-```text
-Race: Elf
-Tags: elf, humanoid
-```
+The current MVP keeps loadouts entirely in local container state.
 
-Gender is display-only for MVP unless future systems use it.
+Implemented behavior:
 
-Adventurer rank is optional/unlocked.
+- sample data starts with two loadouts: **Default** and **Dodge Build**
+- exactly one loadout is active at a time
+- selecting a loadout updates the active equipment, stats, and inventory comparisons together
+- creating a loadout adds a new empty loadout with an auto-generated name
+- renaming a loadout updates only its display name
+- equipping from the loadout selector writes the item ID into the active loadout slot map
+- unequipping deletes that slot entry from the active loadout
+- comparison is slot-based and currently uses **item level delta text**, not full stat simulation
 
-## Combat Math
+Not implemented in the current MVP:
 
-The sheet should show final calculated combat stats.
-
-Examples:
-
-```text
-Strength: 40 (+20)
-Mentality: 10 (-20)
-Dodge: 18% (+12%)
-Slashing Armor: 4
-Piercing Armor: 2
-Fire Resistance: -10
-```
-
-Color rules:
-
-- green = buffed/improved
-- red = nerfed/reduced
-- neutral = unchanged
-- muted = inactive/expired/locked
-- gold/special = legendary or special source
-
-Every final number should be explainable through a breakdown.
-
-Example:
-
-```text
-Strength 40
-Base: 20
-Brutal Ring: +20
-Final: 40
-```
-
-Example:
-
-```text
-Mentality 10
-Base: 30
-Cursed Ring: -20
-Final: 10
-```
-
-## Equipment
-
-MVP equipment slots:
-
-- head
-- chest
-- gloves
-- legs
-- boots
-- main_hand
-- off_hand
-- ring
-
-The equipment panel should show:
-
-- equipped item
-- empty slot state
-- rarity frame
-- item level
-- special rarity badges
-- power-window state if any
-- tooltip trigger
-- comparison when relevant
-
-## Loadouts
-
-MVP loadout model:
-
-- loadout id
-- display name
-- equipment slot map
-- active flag
-- optional notes
-
-MVP actions:
-
-- create loadout
-- rename loadout
-- select active loadout
-- equip item to active loadout
-- unequip item from active loadout
-- compare item against active loadout slot
-
-Future:
-
-- resolver profile attached to loadout
-- rotation profile attached to loadout
+- persistence
+- resolver profiles
+- rotation profiles
 - activity restrictions
 - galvanized validation
 - boss-specific warnings
 
-## Inventory
+## Inventory Categories
 
-Inventory categories:
+The current inventory panel supports these categories:
 
-- equipment
-- materials
-- quest items
-- junk
+- `all`
+- `equipment`
+- `material`
+- `quest_item`
+- `junk`
 
-Inventory should support actions.
+Category behavior:
 
-MVP actions:
+- the header row shows tab counts per category
+- category filtering is client-side
+- the search box filters against normalized item name, rarity, category, and tag terms
 
-- equip
-- unequip
-- compare
-- move item to loadout
-- inspect tooltip
-- mark favorite if easy
+Per-category display rules:
+
+- **equipment**: item level plus compare summary
+- **material**: quantity plus quality stars when present
+- **quest items**: quest-item label
+- **junk**: junk label
+
+## Inventory Actions
+
+The current MVP exposes these user actions in the inventory panel:
+
 - filter by category
-- search if easy
+- search inventory
+- inspect tooltip on hover
+- compare an equipment item against the active slot item
+- equip an equipment item into the active loadout
+- unequip an equipped item from the active loadout
 
-Materials should show:
+Important limits:
 
-- quantity
-- rarity
-- quality stars when applicable
-- crafting tags
-- source if known
+- materials, quest items, and junk are inspect-only in the current UI
+- there is **no** drag-and-drop flow
+- there is **no** favorite/lock action
+- there is **no** inventory move/sort/persistence system
 
-Quest items should show:
+## Stat Math Rules
 
-- quest/use context
-- description
-- special rarity if any
+The Stats tab is currently combat-stat-only.
 
-Junk should show:
+Current data flow:
 
-- sell value if known
-- description
-- flavor
+1. load base stats from `assets/data/base-stats.json`
+2. load equipment definitions from `assets/data/equipment-items.json`
+3. gather active loadout item modifiers
+4. build `LabeledModifier[]`
+5. compute `StatBreakdown` records through `computeStatBreakdowns`
+
+Current math rules:
+
+- additive modifiers are summed per stat
+- multiplicative modifiers are multiplied per stat
+- final stat formula is:
+
+```text
+(base + sum(add modifiers)) * product(multiply modifiers)
+```
+
+- inactive modifiers stay visible in breakdowns but do **not** change the final total
+- the current Stats tab renders these configured keys:
+  - `strength`
+  - `mentality`
+  - `physical_damage`
+  - `dodge_chance`
+  - `block_chance`
+  - `armor`
+  - `fire_resistance`
+  - `max_hp`
+  - `mana`
+
+### Future Non-Combat Stats
+
+The underlying model shape already supports future stat expansion:
+
+- `StatBlock` is `Record<string, number>`
+- modifiers target arbitrary string stat keys
+- breakdowns are keyed by stat string, not by a fixed enum
+
+That means future non-combat stats are supported by the model shape, but they are **not implemented in the current Character Sheet UI** because the Angular view only renders the combat-focused stat config above.
+
+## Green / Red Number Display
+
+Current display-state rules come directly from the computed `StatBreakdown.displayState`:
+
+- `buffed` → final value is above base
+- `nerfed` → final value is below base
+- `neutral` → final value equals base and no inactive-only cue applies
+- `muted` → final value is neutral but the stat has inactive modifiers in its breakdown
+- `special` → final value is above base and at least one active modifier is marked special
+
+Current UI treatment:
+
+- green numbers for `buffed`
+- red numbers for `nerfed`
+- muted/low-emphasis text for `muted`
+- accent treatment for `special`
+- delta text follows the same state coloring rules
+
+Example from current sample data:
+
+- `Ring of Split Mind` makes **Strength** green with `+20`
+- the same ring makes **Mentality** red with `-20`
 
 ## Tooltip Families
 
-Tooltips share a visual family but differ by item type.
+The shared tooltip shell chooses a family by inventory item category:
 
-Families:
+- `equipment` → equipment tooltip body
+- `material` → material tooltip body
+- `quest_item` → quest tooltip body
+- `junk` → junk tooltip body
 
-- equipment tooltip
-- material tooltip
-- quest item tooltip
-- junk tooltip
+### Equipment Tooltip
 
-Equipment tooltip is richest.
-
-Equipment tooltip sections:
+Currently rendered sections:
 
 - header
-- rarity
-- slot
-- item level
+- base rarity label
+- optional special-rarity badges
+- optional legendary-family focus block
+- slot + item level
 - requirements
 - combat stats
+- special effects (raw effect IDs for now)
+- tags
+- description / flavor
+
+Documented but intentionally blocked by GAP notes in code:
+
 - skill association
 - rotation impact
-- special effects
 - power window
-- tags
 - training impact
-- flavor
+- effect display-name registry
 
-Material tooltip sections:
+### Material Tooltip
 
-- rarity
+Currently rendered sections:
+
 - quantity
-- quality stars if applicable
-- crafting use
+- quality stars when present
+- crafting use tags
 - source
 - tags
-- flavor
+- description / flavor
 
-Quest tooltip sections:
+### Quest Tooltip
 
-- quest/use
-- special state
-- description
-- flavor
+Currently rendered sections:
 
-Junk tooltip sections:
+- quest / use context
+- status (`Usable`, `Not usable`, or `Locked`)
+- designation badge when present
+- description / flavor
 
-- sell value
-- description
-- flavor
+### Junk Tooltip
 
-## Rarity Visual Language
+Currently rendered sections:
 
-Base rarities:
+- sell value when present
+- description / flavor
 
-- junk
-- common
-- uncommon
-- rare
-- epic
-- legendary
-- ephemeral
-- mythical
-- primal
+## Rarity Visual Treatment
 
-Special rarities:
+The current MVP uses one tooltip shell with rarity-driven token overrides instead of separate tooltip components per rarity.
 
-- cursed
-- divine
-- infernal
-- phantom
-- temporal
-- secret
-- galvanized
+### Base rarity treatment
 
-Normal rarities can use static accents.
+Supported base-rarity states in the tooltip shell:
 
-Legendary+ and special rarities should have special visual treatment. Animation implementation is not required in MVP, but the intended animation language should be documented in the component styling comments or design notes.
+- `junk`
+- `common`
+- `uncommon`
+- `rare`
+- `epic`
+- `legendary`
+- `ephemeral`
+- `mythical`
+- `primal`
 
-### Legendary
+Current behavior:
 
-Look:
+- all base rarities tint the shell border/background from shared rarity tokens
+- `legendary`, `ephemeral`, `mythical`, and `primal` add a dedicated focus block in the tooltip header area
+- `legendary`, `ephemeral`, `mythical`, and `primal` also add stronger box-shadow treatment than lower tiers
 
-- gold/orange frame
-- distinct legendary effect block
-- subtle premium glow
+### Special rarity treatment
 
-Animation direction:
+The tooltip shell also supports these special-rarity overlays and badges:
 
-- slow breathing border glow
-- small shimmer across legendary effect title
+- `cursed`
+- `divine`
+- `infernal`
+- `phantom`
+- `temporal`
+- `secret`
+- `galvanized`
 
-### Ephemeral
+Current behavior:
 
-Look:
+- special rarities render uppercase badges in the header
+- special rarities can render one or more focus sections with explanatory copy
+- critical special states add stronger shell emphasis
+- equipment slots and inventory rows also surface special rarity with compact badges
 
-- pale gold / spectral-gold frame
-- legendary effect marked as maximized
+## MVP Non-Goals
 
-Animation direction:
+The following are out of scope for the currently implemented MVP:
 
-- soft fading shimmer
-- translucent aura
+- full combat simulation
+- raid or dungeon resolver behavior
+- crafting UI
+- vendor UI
+- drag-and-drop polish
+- final rarity animation work
+- persistence / save integration
+- multiplayer behavior
+- complete equipment balance
+- complete stat taxonomy
+- non-combat stat panels in the Character Sheet UI
+- a shipped character identity header in the Character Sheet tab set
 
-### Mythical
+## Current Page Shape
 
-Look:
+The shipped Angular 21 Character Sheet is currently organized as:
 
-- deep violet + gold frame
-- ornate structure
-- all rolls marked maxed
+- **Equipment tab**: loadout selector + equipment panel
+- **Stats tab**: combat stat groups + breakdown drawer
+- **Inventory tab**: category tabs + search + inventory item list
 
-Animation direction:
-
-- slow star-like sparkle on corners
-- subtle flowing border
-
-### Primal
-
-Look:
-
-- ancient red/gold/white frame
-- strongest visual identity
-- primal bonus has its own highlighted block
-
-Animation direction:
-
-- low-frequency pulsing aura
-- occasional rune flicker
-
-### Cursed
-
-Look:
-
-- dark red/black cracked overlay
-- warning treatment
-- curse section near top
-
-Animation direction:
-
-- faint red pulse
-- crack/glitch flicker
-
-### Divine
-
-Look:
-
-- white/gold clean glow
-- sacred frame overlay
-
-Animation direction:
-
-- gentle radiance
-- slow vertical light sweep
-
-### Infernal
-
-Look:
-
-- black/red/orange heat treatment
-- burning edge accent
-
-Animation direction:
-
-- ember particles
-- heat shimmer
-
-### Phantom
-
-Look:
-
-- blue/grey translucent ghosted frame
-- remaining uses displayed prominently
-
-Animation direction:
-
-- fading opacity shimmer
-- ghost trail flicker
-
-### Temporal
-
-Look:
-
-- blue/gold time motif
-- clock/rift accent
-- context restriction block
-
-Animation direction:
-
-- slow rotating glyph/ring
-- subtle time ripple
-
-### Secret
-
-Look:
-
-- dark frame with hidden glyphs
-- mystery accent
-- revealed/unrevealed state
-
-Animation direction:
-
-- glyphs appear and vanish faintly
-
-### Galvanized
-
-Look:
-
-- electric/charged overlay
-- metallic bright edge
-- temporary boost badge
-
-Animation direction:
-
-- short electric arc flicker
-- charged border pulse
-
-## MVP Page Layout
-
-Suggested layout:
-
-```text
-Top Header:
-  Character portrait/name/race/gender/level/rank
-
-Left Column:
-  Equipment slots
-  Loadout selector
-
-Center Column:
-  Combat stats summary
-  Stat breakdown tabs
-  Rotation preview summary placeholder
-
-Right Column:
-  Inventory tabs
-  Item details / compare panel
-```
-
-## Angular Notes
-
-Use Angular 21.
-
-The implementation should be componentized:
-
-- character-sheet-page
-- character-identity-header
-- equipment-panel
-- equipment-slot
-- loadout-selector
-- inventory-panel
-- inventory-item-row/card
-- stat-summary
-- stat-breakdown
-- item-tooltip
-- equipment-tooltip
-- material-tooltip
-- quest-item-tooltip
-- junk-tooltip
-
-Use static/mock data first.
-
-Keep the data model clean so it can connect to real game state later.
+This document should be updated whenever the implemented tab layout, supported model fields, or tooltip/stat rules change.
