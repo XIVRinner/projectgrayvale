@@ -9,7 +9,7 @@
   (closed)="closed.emit()"
 >
   <section class="gv-gameplay-log" aria-label="Gameplay log entries">
-    @if (entries().length === 0 && debugEntries().length === 0) {
+    @if (!hasAnyData()) {
       <div class="gv-gameplay-log__empty">
         <p class="gv-gameplay-log__empty-title">No gameplay entries yet.</p>
         <p class="gv-gameplay-log__empty-copy">
@@ -17,64 +17,22 @@
         </p>
       </div>
     } @else {
-      @if (entries().length > 0) {
-        <section class="gv-gameplay-log__section" aria-label="Player-facing gameplay entries">
-          <div class="gv-gameplay-log__section-header">
-            <h3 class="gv-gameplay-log__section-title">Gameplay Feed</h3>
-            <p class="gv-gameplay-log__section-copy">
-              Human-readable quest, loot, combat, dialogue, and system updates.
-            </p>
-          </div>
-          <ol class="gv-gameplay-log__list">
-            @for (entry of entries(); track trackEntry($index, entry)) {
-              <li class="gv-gameplay-log__item" [attr.data-type]="entry.type">
-                <span class="gv-gameplay-log__chip">{{ entry.type }}</span>
-                @if (entry.type === "choice") {
-                  <div class="gv-gameplay-log__choice-block">
-                    <p class="gv-gameplay-log__choice-title">Choice options recorded</p>
-                    <ul class="gv-gameplay-log__choice-list">
-                      @for (option of entry.options; track option.index) {
-                        <li class="gv-gameplay-log__choice-item">
-                          <span>{{ option.label }}</span>
-                          @if (option.seen) {
-                            <span class="gv-gameplay-log__choice-seen">Seen</span>
-                          }
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                } @else {
-                  <p class="gv-gameplay-log__text">{{ entry.text }}</p>
-                }
-              </li>
-            }
-          </ol>
-        </section>
+      <gv-shell-gameplay-log-filter-bar
+        [section]="activeSection()"
+        [feedFilter]="activeFeedFilter()"
+        [traceScope]="activeTraceScope()"
+        [availableScopes]="availableScopes()"
+        (sectionChanged)="activeSection.set($event)"
+        (feedFilterChanged)="activeFeedFilter.set($event)"
+        (traceScopeChanged)="activeTraceScope.set($event)"
+      />
+
+      @if (isFeedActive()) {
+        <gv-shell-gameplay-log-feed-list [entries]="filteredFeedEntries()" />
       }
 
-      @if (debugEntries().length > 0) {
-        <section class="gv-gameplay-log__section" aria-label="Runtime trace entries">
-          <div class="gv-gameplay-log__section-header">
-            <h3 class="gv-gameplay-log__section-title">Runtime Trace</h3>
-            <p class="gv-gameplay-log__section-copy">
-              Diagnostic messages from gameplay-facing containers and services.
-            </p>
-          </div>
-          <ol class="gv-gameplay-log__debug-list">
-            @for (entry of debugEntries(); track trackDebugEntry($index, entry)) {
-              <li class="gv-gameplay-log__debug-item">
-                <div class="gv-gameplay-log__debug-meta">
-                  <span class="gv-gameplay-log__chip gv-gameplay-log__chip--debug">{{ entry.scope }}</span>
-                  <time class="gv-gameplay-log__debug-time">{{ entry.timestamp }}</time>
-                </div>
-                <p class="gv-gameplay-log__text">{{ entry.message }}</p>
-                @if (entry.details) {
-                  <pre class="gv-gameplay-log__debug-details">{{ entry.details }}</pre>
-                }
-              </li>
-            }
-          </ol>
-        </section>
+      @if (isTraceActive()) {
+        <gv-shell-gameplay-log-trace-list [entries]="filteredTraceEntries()" />
       }
     }
   </section>

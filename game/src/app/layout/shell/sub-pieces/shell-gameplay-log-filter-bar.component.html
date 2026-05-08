@@ -1,0 +1,44 @@
+<div class="gv-log-filter-bar" role="toolbar" aria-label="Log filters">
+  <div class="gv-log-filter-bar__sections" role="group" aria-label="View section">
+    @for (s of sections; track s.id) {
+      <button
+        type="button"
+        class="gv-log-filter-bar__section-btn"
+        [attr.aria-pressed]="section() === s.id"
+        (click)="sectionChanged.emit(s.id)"
+      >{{ s.label }}</button>
+    }
+  </div>
+
+  @if (showFeedFilter()) {
+    <div class="gv-log-filter-bar__control">
+      <label class="gv-log-filter-bar__label" for="gv-log-type-filter">Type</label>
+      <select
+        id="gv-log-type-filter"
+        class="gv-log-filter-bar__select"
+        (change)="onFeedFilterChange($event)"
+      >
+        @for (t of feedTypes; track t.id) {
+          <option [value]="t.id" [selected]="feedFilter() === t.id">{{ t.label }}</option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (showTraceFilter()) {
+    <div class="gv-log-filter-bar__control">
+      <label class="gv-log-filter-bar__label" for="gv-log-scope-filter">Scope</label>
+      <select
+        id="gv-log-scope-filter"
+        class="gv-log-filter-bar__select"
+        (change)="onTraceScopeChange($event)"
+      >
+        @for (scope of availableScopes(); track scope) {
+          <option [value]="scope" [selected]="traceScope() === scope">
+            {{ scope === "all" ? "All scopes" : scope }}
+          </option>
+        }
+      </select>
+    </div>
+  }
+</div>

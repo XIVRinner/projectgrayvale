@@ -1,6 +1,6 @@
-import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { samplePlayer, type Quest } from "@rinner/grayvale-core";
+import { signal } from "@angular/core";
 import { of, Subject } from "rxjs";
 
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
@@ -14,6 +14,7 @@ import { GameSettingsService } from "../../core/services/game-settings.service";
 import { WorldStateService } from "../../core/services/world-state.service";
 import { GameplayGraphRuntime } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import { QuestsLoader } from "../../data/loaders/quests.loader";
+import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 
 import { ShellContainerComponent } from "./shell-container.component";
 
@@ -59,8 +60,8 @@ describe("ShellContainerComponent", () => {
     ]);
   });
 
-  it("enables the Gameplay Log topbar action and updates its badge from gameplay entries", async () => {
-    const { component, fixture, roster } = await createFixture();
+  it("shows no badge on the Gameplay Log topbar action when there are no errors", async () => {
+    const { component } = await createFixture();
 
     expect(component.topbarActions()[0]).toEqual({
       id: "topbar:gameplay-log",
@@ -69,6 +70,26 @@ describe("ShellContainerComponent", () => {
       badge: undefined,
       tone: "default"
     });
+  });
+
+  it("shows error count badge on Gameplay Log when debug errors are logged", async () => {
+    const { component, fixture } = await createFixture();
+    const debugLog = TestBed.inject(DebugLogService);
+
+    debugLog.logMessage("shell", "Something went wrong.", { reason: "test" }, "error");
+    fixture.detectChanges();
+
+    expect(component.topbarActions()[0]).toEqual({
+      id: "topbar:gameplay-log",
+      label: "Gameplay Log",
+      icon: "pi pi-list",
+      badge: 1,
+      tone: "default"
+    });
+  });
+
+  it("does not show a badge for normal gameplay entries without errors", async () => {
+    const { component, fixture, roster } = await createFixture();
 
     roster.applyActiveCharacterDeltas([
       {
@@ -83,12 +104,9 @@ describe("ShellContainerComponent", () => {
     ]);
     fixture.detectChanges();
 
-    expect(component.topbarActions()[0]).toEqual({
+    expect(component.topbarActions()[0]).toMatchObject({
       id: "topbar:gameplay-log",
-      label: "Gameplay Log",
-      icon: "pi pi-list",
-      badge: 1,
-      tone: "default"
+      badge: undefined
     });
   });
 
