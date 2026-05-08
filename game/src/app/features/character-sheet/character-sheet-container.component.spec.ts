@@ -1,9 +1,34 @@
+import type { Signal, WritableSignal } from "@angular/core";
+import { TestBed } from "@angular/core/testing";
+import type { EquipmentSlot, Loadout } from "@rinner/grayvale-core";
+
 import { CharacterSheetContainerComponent } from "./character-sheet-container.component";
+import type { LoadoutEquipEvent } from "./loadout-selector/loadout-selector.types";
+
+type TestableCharacterSheetContainerComponent = CharacterSheetContainerComponent & {
+  activeLoadoutId: WritableSignal<string>;
+  loadoutsRecord: WritableSignal<Record<string, Loadout>>;
+  comparedItemId: WritableSignal<string | null>;
+  activeLoadout: Signal<Loadout>;
+  onLoadoutSelected(id: string): void;
+  onItemEquipped(event: LoadoutEquipEvent): void;
+  onItemUnequipped(slot: EquipmentSlot): void;
+  onComparedItemChanged(itemId: string | null): void;
+};
 
 describe("CharacterSheetContainerComponent", () => {
-  it("switches the active loadout", () => {
-    const component = new CharacterSheetContainerComponent() as any;
+  let component: TestableCharacterSheetContainerComponent;
 
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [CharacterSheetContainerComponent]
+    }).compileComponents();
+
+    component = TestBed.createComponent(CharacterSheetContainerComponent)
+      .componentInstance as TestableCharacterSheetContainerComponent;
+  });
+
+  it("switches the active loadout", () => {
     component.onLoadoutSelected("loadout_utility");
 
     expect(component.activeLoadoutId()).toBe("loadout_utility");
@@ -13,8 +38,6 @@ describe("CharacterSheetContainerComponent", () => {
   });
 
   it("equips an item into the active loadout", () => {
-    const component = new CharacterSheetContainerComponent() as any;
-
     component.onLoadoutSelected("loadout_utility");
     component.onComparedItemChanged("ring_bone_carved");
     component.onItemEquipped({ slot: "off_hand", itemId: "item_training_buckler" });
@@ -25,8 +48,6 @@ describe("CharacterSheetContainerComponent", () => {
   });
 
   it("unequips an item from the active loadout", () => {
-    const component = new CharacterSheetContainerComponent() as any;
-
     component.onComparedItemChanged("ring_bone_carved");
     component.onItemUnequipped("ring");
 
