@@ -33,6 +33,34 @@
   --gv-color-action-crafting: #ffb36b;
   --gv-color-action-quest: var(--gv-color-success);
 
+  --gv-color-quest-tag-main-bg: color-mix(in srgb, var(--gv-color-accent) 28%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-main-border: color-mix(in srgb, var(--gv-color-accent) 72%, white 28%);
+  --gv-color-quest-tag-main-text: #fff6d6;
+  --gv-color-quest-tag-side-bg: color-mix(in srgb, var(--gv-color-accent-cool) 16%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-side-border: color-mix(in srgb, var(--gv-color-accent-cool) 48%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-side-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-unlock-skill-bg: color-mix(in srgb, var(--gv-color-accent-purple) 18%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-unlock-skill-border: color-mix(in srgb, var(--gv-color-accent-purple) 48%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-unlock-skill-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-unlock-system-bg: color-mix(in srgb, var(--gv-color-action-travel) 18%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-unlock-system-border: color-mix(in srgb, var(--gv-color-action-travel) 48%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-unlock-system-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-companion-bg: color-mix(in srgb, var(--gv-color-accent-warm) 18%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-companion-border: color-mix(in srgb, var(--gv-color-accent-warm) 52%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-companion-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-daily-bg: color-mix(in srgb, var(--gv-color-success) 18%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-daily-border: color-mix(in srgb, var(--gv-color-success) 48%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-daily-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-weekly-bg: color-mix(in srgb, var(--gv-color-action-fast-travel) 18%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-weekly-border: color-mix(in srgb, var(--gv-color-action-fast-travel) 52%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-weekly-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-incursion-bg: color-mix(in srgb, var(--gv-color-danger) 18%, var(--gv-color-bg-raised));
+  --gv-color-quest-tag-incursion-border: color-mix(in srgb, var(--gv-color-danger) 52%, var(--gv-color-border-subtle));
+  --gv-color-quest-tag-incursion-text: var(--gv-color-text-primary);
+  --gv-color-quest-tag-secret-bg: color-mix(in srgb, var(--gv-color-accent-purple) 30%, #120517 70%);
+  --gv-color-quest-tag-secret-border: color-mix(in srgb, var(--gv-color-accent-purple) 70%, white 30%);
+  --gv-color-quest-tag-secret-text: #f9e2ff;
+
   /* Rarity hierarchy tokens:
    * - Base tiers progress from muted neutrals into vivid accent/signal tones.
    * - Legendary+ and special tiers intentionally blend accent, danger, and travel colors
@@ -69,6 +97,11 @@
   --gv-font-size-md: 1rem;
   --gv-font-size-lg: 1.25rem;
   --gv-font-size-title: 1.875rem;
+
+  --gv-size-item-art: 5rem;
+  --gv-size-card-height-sm: 8rem;
+  --gv-size-card-height-md: 10.5rem;
+  --gv-size-card-height-lg: 12rem;
 
   --gv-anim-fast: 100ms ease;
   --gv-anim-normal: 220ms ease;

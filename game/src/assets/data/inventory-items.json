@@ -4,6 +4,7 @@
     "name": "Old Dagger",
     "category": "equipment",
     "rarity": "uncommon",
+    "iconPath": "assets/images/resources/items/equipment/rusty-dagger.svg",
     "tags": [
       "dagger",
       "melee",
@@ -66,6 +67,7 @@
     "name": "Worn Leather Chestpiece",
     "category": "equipment",
     "rarity": "uncommon",
+    "iconPath": "assets/images/resources/items/equipment/leather-chestpiece.png",
     "tags": [
       "medium",
       "martial",
@@ -98,6 +100,7 @@
     "name": "Irongrip Gauntlets",
     "category": "equipment",
     "rarity": "rare",
+    "iconPath": "assets/images/resources/items/equipment/steel-bracers.png",
     "tags": [
       "heavy",
       "gloves"
@@ -201,6 +204,7 @@
     "name": "Ashwood Buckler",
     "category": "equipment",
     "rarity": "common",
+    "iconPath": "assets/images/resources/items/equipment/copper-shield.png",
     "tags": [
       "shield",
       "off_hand"
@@ -231,6 +235,7 @@
     "name": "Ring of Split Mind",
     "category": "equipment",
     "rarity": "uncommon",
+    "iconPath": "assets/images/resources/items/equipment/gem-ring.png",
     "tags": [
       "ring",
       "accessory"
@@ -263,6 +268,7 @@
     "category": "equipment",
     "rarity": "legendary",
     "specialRarity": "legendary",
+    "iconPath": "assets/images/resources/items/equipment/steel-sword.png",
     "tags": [
       "sword",
       "melee",
@@ -341,6 +347,7 @@
     "name": "Iron Ore",
     "category": "material",
     "rarity": "common",
+    "iconPath": "assets/images/resources/materials/copper-ore.png",
     "tags": [
       "ore",
       "metal",
@@ -358,6 +365,7 @@
     "name": "Whispermoss",
     "category": "material",
     "rarity": "rare",
+    "iconPath": "assets/images/resources/materials/healing-herb.png",
     "tags": [
       "herb",
       "alchemy"

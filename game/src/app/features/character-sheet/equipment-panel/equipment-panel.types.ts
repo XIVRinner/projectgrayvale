@@ -1,4 +1,5 @@
 import type { EquipmentSlot, InventoryEquipmentItem } from "@rinner/grayvale-core";
+import type { EquipmentRequirementStatus } from "../character-sheet-equipment-requirements";
 
 /** View model for a single equipment slot rendered in the panel. */
 export interface EquipmentSlotView {
@@ -6,6 +7,7 @@ export interface EquipmentSlotView {
   readonly slotLabel: string;
   /** Null when the slot is empty. */
   readonly item: InventoryEquipmentItem | null;
+  readonly requirementStatuses: readonly EquipmentRequirementStatus[];
   /** True when this slot is the active comparison target (item hovered in inventory). */
   readonly isCompareTarget: boolean;
   /** Optional comparison summary shown when an inventory item targets this slot. */

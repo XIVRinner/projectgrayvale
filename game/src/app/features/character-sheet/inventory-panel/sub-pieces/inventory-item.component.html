@@ -4,76 +4,104 @@
   [class.gv-inventory-item--compared]="isCompared()"
   (mouseenter)="onTooltipHover(true)"
   (mouseleave)="onTooltipHover(false)"
+  (focusin)="onTooltipHover(true)"
+  (focusout)="onTooltipFocusOut($event)"
 >
-  <header class="gv-inventory-item__header">
-    <div class="gv-inventory-item__title-wrap">
-      <span class="gv-inventory-item__name">{{ item().name }}</span>
-      <span class="gv-inventory-item__type">{{ item().itemTypeLabel }}</span>
-    </div>
-    <div class="gv-inventory-item__meta">
-      <span class="gv-inventory-item__rarity">{{ item().rarity }}</span>
-      @if (item().specialRarity; as specialRarity) {
-        <span class="gv-inventory-item__special-badge">{{ specialRarity }}</span>
-      }
-    </div>
-  </header>
-
-  <div class="gv-inventory-item__details">
-    @if (item().category === "equipment") {
-      <span>ilvl {{ item().itemLevel }}</span>
-      @if (item().compareSummary; as compareSummary) {
-        <span class="gv-inventory-item__compare-summary">{{ compareSummary }}</span>
-      }
-    } @else if (item().category === "material") {
-      <span>Qty {{ item().quantity ?? 0 }}</span>
-      @if (qualityStarsLabel()) {
-        <span class="gv-inventory-item__quality-stars">{{ qualityStarsLabel() }}</span>
-      }
-    } @else if (item().category === "quest_item") {
-      <span>Quest item</span>
-    } @else {
-      <span>Junk</span>
-    }
+  <div class="gv-inventory-item__media">
+    <button
+      type="button"
+      class="gv-inventory-item__art-trigger"
+      [attr.aria-label]="'Inspect ' + item().name"
+    >
+      <gv-item-thumbnail [src]="itemIconPath()" [alt]="item().name + ' artwork'" />
+    </button>
   </div>
 
-  <footer class="gv-inventory-item__actions">
-    @if (item().category === "equipment") {
-      <button
-        type="button"
-        class="gv-inventory-item__action-btn"
-        (click)="onCompareToggle()"
-        [attr.aria-label]="'Compare ' + item().name"
-        pTooltip="Compare against equipped slot item"
-        tooltipPosition="left"
-      >
-        <i class="pi pi-arrows-h" aria-hidden="true"></i>
-      </button>
-      @if (item().isEquipped) {
-        <button
-          type="button"
-          class="gv-inventory-item__action-btn gv-inventory-item__action-btn--warn"
-          (click)="onUnequip()"
-          [attr.aria-label]="'Unequip ' + item().name"
-          pTooltip="Unequip"
-          tooltipPosition="left"
-        >
-          <i class="pi pi-times" aria-hidden="true"></i>
-        </button>
+  <div class="gv-inventory-item__content">
+    <header class="gv-inventory-item__header">
+      <div class="gv-inventory-item__title-wrap">
+        <span class="gv-inventory-item__name">{{ item().name }}</span>
+        <span class="gv-inventory-item__type">{{ item().itemTypeLabel }}</span>
+      </div>
+      <div class="gv-inventory-item__meta">
+        <span class="gv-inventory-item__rarity">{{ item().rarity }}</span>
+        @if (item().specialRarity; as specialRarity) {
+          <span class="gv-inventory-item__special-badge">{{ specialRarity }}</span>
+        }
+      </div>
+    </header>
+
+    <div class="gv-inventory-item__details">
+      @if (item().category === "equipment") {
+        <span><i class="pi pi-star-fill" aria-hidden="true"></i> ilvl {{ item().itemLevel }}</span>
+        @if (item().compareSummary; as compareSummary) {
+          <span class="gv-inventory-item__compare-summary">{{ compareSummary }}</span>
+        }
+      } @else if (item().category === "material") {
+        <span><i class="pi pi-box" aria-hidden="true"></i> Qty {{ item().quantity ?? 0 }}</span>
+        @if (qualityStarsLabel()) {
+          <span class="gv-inventory-item__quality-stars">{{ qualityStarsLabel() }}</span>
+        }
+      } @else if (item().category === "quest_item") {
+        <span><i class="pi pi-bookmark" aria-hidden="true"></i> Quest item</span>
       } @else {
+        <span><i class="pi pi-trash" aria-hidden="true"></i> Junk</span>
+      }
+    </div>
+
+    @if (item().requirementStatuses.length) {
+      <ul class="gv-inventory-item__requirements" aria-label="Requirements">
+        @for (requirement of item().requirementStatuses; track requirement.label) {
+          <li
+            class="gv-inventory-item__requirement"
+            [class.gv-inventory-item__requirement--met]="requirement.met"
+            [class.gv-inventory-item__requirement--unmet]="!requirement.met"
+          >
+            {{ requirement.label }}
+          </li>
+        }
+      </ul>
+    }
+
+    <footer class="gv-inventory-item__actions">
+      @if (item().category === "equipment") {
         <button
           type="button"
-          class="gv-inventory-item__action-btn gv-inventory-item__action-btn--accent"
-          (click)="onEquip()"
-          [attr.aria-label]="'Equip ' + item().name"
-          [disabled]="!item().canEquip"
-          [pTooltip]="equipTooltip()"
-          tooltipPosition="left"
+          class="gv-inventory-item__action-btn"
+          (click)="onCompareToggle()"
+          [attr.aria-label]="'Compare ' + item().name"
+          pTooltip="Compare against equipped slot item"
+          tooltipPosition="top"
         >
-          <i class="pi pi-check" aria-hidden="true"></i>
+          <i class="pi pi-arrows-h" aria-hidden="true"></i>
         </button>
+        @if (item().isEquipped) {
+          <button
+            type="button"
+            class="gv-inventory-item__action-btn gv-inventory-item__action-btn--warn"
+            (click)="onUnequip()"
+            [attr.aria-label]="'Unequip ' + item().name"
+            pTooltip="Unequip"
+            tooltipPosition="top"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="gv-inventory-item__action-btn gv-inventory-item__action-btn--accent"
+            (click)="onEquip()"
+            [attr.aria-label]="'Equip ' + item().name"
+            [disabled]="!item().canEquip"
+            [pTooltip]="equipTooltip()"
+            tooltipPosition="top"
+          >
+            <i class="pi pi-check" aria-hidden="true"></i>
+          </button>
+        }
       }
-    }
-  </footer>
+    </footer>
+  </div>
 
   @if (showTooltip()) {
     <div class="gv-inventory-item__tooltip-panel">

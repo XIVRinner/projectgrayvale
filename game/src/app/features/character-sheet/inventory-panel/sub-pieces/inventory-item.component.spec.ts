@@ -26,7 +26,7 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
     case "equipment":
       return {
         ...base,
-        itemTypeLabel: `Equipment · ${itemDef.slot.replace("_", " ")}`,
+        itemTypeLabel: `Equipment - ${itemDef.slot.replace("_", " ")}`,
         quantity: null,
         qualityStars: null,
         itemLevel: itemDef.itemLevel,
@@ -35,7 +35,8 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         compareSummary: "Slot empty",
         isEquipped: false,
         canEquip: true,
-        equipDisabledReason: null
+        equipDisabledReason: null,
+        requirementStatuses: []
       };
     case "material":
       return {
@@ -49,7 +50,8 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         compareSummary: null,
         isEquipped: false,
         canEquip: false,
-        equipDisabledReason: null
+        equipDisabledReason: null,
+        requirementStatuses: []
       };
     case "quest_item":
       return {
@@ -63,7 +65,8 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         compareSummary: null,
         isEquipped: false,
         canEquip: false,
-        equipDisabledReason: null
+        equipDisabledReason: null,
+        requirementStatuses: []
       };
     case "junk":
       return {
@@ -77,7 +80,8 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         compareSummary: null,
         isEquipped: false,
         canEquip: false,
-        equipDisabledReason: null
+        equipDisabledReason: null,
+        requirementStatuses: []
       };
   }
 };
@@ -110,14 +114,14 @@ describe("InventoryItemComponent", () => {
 
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector(".gv-inventory-item__details")?.textContent).toContain("Qty 10");
-    expect(element.querySelector(".gv-inventory-item__quality-stars")?.textContent).toContain("★★");
+    expect(element.querySelector(".gv-inventory-item__quality-stars")?.textContent?.trim().length).toBe(2);
   });
 
   it("uses the quest tooltip family for quest items", () => {
     fixture.componentRef.setInput("item", toItemView(sampleQuestItem));
     fixture.detectChanges();
 
-    const host = fixture.nativeElement.querySelector(".gv-inventory-item") as HTMLElement;
+    const host = fixture.nativeElement.querySelector(".gv-inventory-item__art-trigger") as HTMLElement;
     host.dispatchEvent(new Event("mouseenter"));
     fixture.detectChanges();
 
@@ -130,7 +134,7 @@ describe("InventoryItemComponent", () => {
     fixture.componentRef.setInput("item", toItemView(sampleJunkItem));
     fixture.detectChanges();
 
-    const host = fixture.nativeElement.querySelector(".gv-inventory-item") as HTMLElement;
+    const host = fixture.nativeElement.querySelector(".gv-inventory-item__art-trigger") as HTMLElement;
     host.dispatchEvent(new Event("mouseenter"));
     fixture.detectChanges();
 

@@ -1,16 +1,25 @@
 :host {
   display: block;
+  flex: 1 1 0;
+  min-inline-size: 0;
 }
 
 .gv-equip-panel {
   display: grid;
-  gap: var(--gv-space-md);
+  gap: var(--gv-space-lg);
+  block-size: 100%;
+  padding: var(--gv-space-sm);
+  border-radius: var(--gv-radius-lg);
+  border: var(--gv-border-subtle);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--gv-color-accent-cool) 10%, transparent), transparent 36%),
+    var(--gv-color-bg-surface);
 }
 
 .gv-equip-panel__title {
   margin: 0;
   font-family: var(--gv-font-dialogue);
-  font-size: var(--gv-font-size-lg);
+  font-size: var(--gv-font-size-title);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -21,7 +30,8 @@
 .gv-equip-panel__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--gv-space-sm);
+  grid-auto-rows: minmax(var(--gv-size-card-height-md), 1fr);
+  gap: var(--gv-space-md);
 }
 
 .gv-equip-panel__state {

@@ -6,12 +6,14 @@ import type { GameLogEntry } from "../../core/services/game-log/log-mapper";
 import type { GameplayGraphDebugSnapshot } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
+import type { QuestViewModel } from "./quest-log/quest-view-model";
 import { ShellFooterComponent } from "./shell-footer.component";
 import { ShellCharacterPanelComponent } from "./sub-pieces/shell-character-panel.component";
 import { ShellCharacterSheetDialogComponent } from "./sub-pieces/shell-character-sheet-dialog.component";
 import { ShellCharacterCreationDialogComponent } from "./sub-pieces/shell-character-creation-dialog.component";
 import { ShellGegVisualizerDialogComponent } from "./sub-pieces/shell-geg-visualizer-dialog.component";
 import { ShellGameplayLogDialogComponent } from "./sub-pieces/shell-gameplay-log-dialog.component";
+import { ShellQuestLogDialogComponent } from "./sub-pieces/shell-quest-log-dialog.component";
 import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
 import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
 import { ShellQuestTrackerComponent } from "./sub-pieces/shell-quest-tracker.component";
@@ -39,6 +41,7 @@ import {
     ShellFooterComponent,
     ShellGegVisualizerDialogComponent,
     ShellGameplayLogDialogComponent,
+    ShellQuestLogDialogComponent,
     ShellTopbarComponent,
     ShellActionPanelComponent,
     ShellQuestTrackerComponent,
@@ -58,12 +61,15 @@ export class ShellViewComponent {
   readonly actionGroups = input.required<readonly ShellActionGroup[]>();
   readonly characterPanel = input.required<ShellCharacterPanel>();
   readonly questTrackerPanel = input.required<ShellQuestTrackerPanel>();
+  readonly questLogQuests = input.required<readonly QuestViewModel[]>();
+  readonly trackedQuestIds = input.required<readonly string[]>();
   readonly saveSlots = input.required<readonly ShellSaveSlotSummary[]>();
   readonly isCharacterSheetOpen = input.required<boolean>();
   readonly isCharacterCreationOpen = input.required<boolean>();
   readonly isCharacterCreationRequired = input.required<boolean>();
   readonly isSaveManagerOpen = input.required<boolean>();
   readonly isGameplayLogOpen = input.required<boolean>();
+  readonly isQuestLogOpen = input.required<boolean>();
   readonly isGegVisualizerOpen = input.required<boolean>();
   readonly gameplayLogEntries = input.required<readonly GameLogEntry[]>();
   readonly debugLogEntries = input.required<readonly DebugLogEntry[]>();
@@ -80,6 +86,9 @@ export class ShellViewComponent {
   readonly saveManagerOpenRequested = output<void>();
   readonly saveManagerCloseRequested = output<void>();
   readonly gameplayLogCloseRequested = output<void>();
+  readonly questLogOpenRequested = output<void>();
+  readonly questLogCloseRequested = output<void>();
+  readonly trackedQuestIdsChanged = output<readonly string[]>();
   readonly gegVisualizerOpenRequested = output<void>();
   readonly gegVisualizerCloseRequested = output<void>();
   readonly topbarActionSelected = output<string>();

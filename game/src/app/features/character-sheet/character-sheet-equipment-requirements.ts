@@ -5,46 +5,73 @@ export interface EquipmentRequirementCheck {
   readonly reason: string | null;
 }
 
+export interface EquipmentRequirementStatus {
+  readonly label: string;
+  readonly met: boolean;
+}
+
 export function checkEquipmentRequirements(
   player: Player | null,
   item: InventoryEquipmentItem
 ): EquipmentRequirementCheck {
-  if (!player) {
+  const statuses = buildEquipmentRequirementStatuses(player, item);
+
+  const unmetRequirement = statuses.find((status) => !status.met);
+  if (unmetRequirement) {
     return {
       canEquip: false,
-      reason: "No active character."
+      reason: `${unmetRequirement.label}.`
     };
-  }
-
-  const levelRequirement = item.requirements?.levelRequirement;
-
-  if (
-    typeof levelRequirement === "number" &&
-    player.progression.level < levelRequirement
-  ) {
-    return {
-      canEquip: false,
-      reason: `Requires level ${levelRequirement}.`
-    };
-  }
-
-  const skillRequirement = item.requirements?.skillRequirement;
-
-  if (skillRequirement) {
-    const currentSkillLevel = player.skills[skillRequirement.skillId] ?? 0;
-
-    if (currentSkillLevel < skillRequirement.level) {
-      return {
-        canEquip: false,
-        reason: `Requires ${prettyLabel(skillRequirement.skillId)} ${skillRequirement.level}.`
-      };
-    }
   }
 
   return {
     canEquip: true,
     reason: null
   };
+}
+
+export function buildEquipmentRequirementStatuses(
+  player: Player | null,
+  item: InventoryEquipmentItem
+): readonly EquipmentRequirementStatus[] {
+  const statuses: EquipmentRequirementStatus[] = [];
+
+  if (!player) {
+    if (typeof item.requirements?.levelRequirement === "number") {
+      statuses.push({
+        label: `Requires level ${item.requirements.levelRequirement}`,
+        met: false
+      });
+    }
+
+    if (item.requirements?.skillRequirement) {
+      statuses.push({
+        label: `Requires ${prettyLabel(item.requirements.skillRequirement.skillId)} ${item.requirements.skillRequirement.level}`,
+        met: false
+      });
+    }
+
+    return statuses;
+  }
+
+  const levelRequirement = item.requirements?.levelRequirement;
+  if (typeof levelRequirement === "number") {
+    statuses.push({
+      label: `Requires level ${levelRequirement}`,
+      met: player.progression.level >= levelRequirement
+    });
+  }
+
+  const skillRequirement = item.requirements?.skillRequirement;
+  if (skillRequirement) {
+    const currentSkillLevel = player.skills[skillRequirement.skillId] ?? 0;
+    statuses.push({
+      label: `Requires ${prettyLabel(skillRequirement.skillId)} ${skillRequirement.level}`,
+      met: currentSkillLevel >= skillRequirement.level
+    });
+  }
+
+  return statuses;
 }
 
 function prettyLabel(value: string): string {

@@ -1,0 +1,220 @@
+:host {
+  display: block;
+  min-block-size: 100%;
+}
+
+.gv-quest-detail,
+.gv-quest-detail__empty {
+  display: grid;
+  gap: var(--gv-space-md);
+  min-block-size: 100%;
+}
+
+.gv-quest-detail__empty {
+  place-items: center;
+  color: var(--gv-color-text-muted);
+}
+
+.gv-quest-detail__empty p,
+.gv-quest-detail__eyebrow,
+.gv-quest-detail__title,
+.gv-quest-detail__copy,
+.gv-quest-detail__journey-title,
+.gv-quest-detail__reward-group h5,
+.gv-quest-detail__reward-group li {
+  margin: 0;
+}
+
+.gv-quest-detail__header {
+  display: flex;
+  gap: var(--gv-space-md);
+  align-items: start;
+  justify-content: space-between;
+}
+
+.gv-quest-detail__heading {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-quest-detail__eyebrow {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gv-quest-detail__title {
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-quest-detail__header-actions {
+  display: inline-flex;
+  gap: var(--gv-space-xs);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.gv-quest-detail__track {
+  border-color: var(--gv-color-border-subtle);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-quest-detail__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gv-space-sm);
+}
+
+.gv-quest-detail__summary div {
+  display: grid;
+  gap: var(--gv-space-xs);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  padding: var(--gv-space-sm);
+}
+
+.gv-quest-detail__summary span {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gv-quest-detail__summary strong,
+.gv-quest-detail__copy {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.45;
+}
+
+:host ::ng-deep .gv-quest-detail__progress {
+  block-size: 0.6rem;
+  background: color-mix(in srgb, var(--gv-color-overlay-strong) 80%, transparent);
+}
+
+:host ::ng-deep .gv-quest-detail__progress .p-progressbar-value {
+  background: linear-gradient(
+    90deg,
+    var(--gv-color-accent),
+    color-mix(in srgb, var(--gv-color-accent-warm) 80%, white 20%)
+  );
+}
+
+.gv-quest-detail__section {
+  display: grid;
+  gap: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 44%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  padding: var(--gv-space-md);
+}
+
+.gv-quest-detail__section-title {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-md);
+}
+
+.gv-quest-detail__journey {
+  list-style: none;
+  display: grid;
+  gap: var(--gv-space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.gv-quest-detail__journey-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--gv-space-sm);
+  align-items: start;
+}
+
+.gv-quest-detail__journey-marker {
+  display: grid;
+  place-items: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: 999px;
+  border: var(--gv-border-subtle);
+  background: color-mix(in srgb, var(--gv-color-bg-primary) 92%, transparent);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-quest-detail__journey-step[data-state="completed"] .gv-quest-detail__journey-marker {
+  color: var(--gv-color-success);
+  border-color: color-mix(in srgb, var(--gv-color-success) 32%, var(--gv-color-border-subtle));
+}
+
+.gv-quest-detail__journey-step[data-state="current"] .gv-quest-detail__journey-marker {
+  color: var(--gv-color-accent);
+  border-color: color-mix(in srgb, var(--gv-color-accent) 32%, var(--gv-color-border-subtle));
+}
+
+.gv-quest-detail__journey-title {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.45;
+}
+
+.gv-quest-detail__journey-step[data-state="completed"] .gv-quest-detail__journey-title {
+  color: var(--gv-color-success);
+}
+
+.gv-quest-detail__journey-step[data-state="future"] .gv-quest-detail__journey-title {
+  color: var(--gv-color-text-muted);
+}
+
+.gv-quest-detail__reward-group {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-quest-detail__reward-group h5 {
+  color: var(--gv-color-accent-warm);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-quest-detail__reward-group ul {
+  list-style: none;
+  display: grid;
+  gap: var(--gv-space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.gv-quest-detail__reward-group li {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: center;
+  justify-content: space-between;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-quest-detail__reward-group li span {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+}
+
+@media (max-width: 48rem) {
+  .gv-quest-detail__header {
+    flex-direction: column;
+  }
+
+  .gv-quest-detail__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .gv-quest-detail__reward-group li {
+    flex-direction: column;
+    align-items: start;
+  }
+}

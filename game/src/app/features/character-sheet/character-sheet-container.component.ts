@@ -92,6 +92,7 @@ const EMPTY_LOADOUT: Loadout = {
               />
               <gv-equipment-panel-container
                 [activeLoadout]="activeLoadout()"
+                [player]="activeCharacter()"
                 [comparedItemId]="comparedItemId()"
                 (compareItemChanged)="onComparedItemChanged($event)"
               />

@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
-import { type Player, type Quest, type QuestObjective, type QuestStep, type Race } from "@rinner/grayvale-core";
+import { type Player, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { ActivityService } from "../../core/services/activity.service";
@@ -22,14 +22,18 @@ import {
 } from "../../data/loaders/character-creator-options.loader";
 
 import { buildShellCharacterPanel, ShellCharacterMetadata } from "./shell-character-panel.mapper";
+import {
+  buildQuestTrackerPanel,
+  buildQuestViewModels,
+  DEFAULT_TRACKED_QUEST_COUNT,
+  resolveTrackedQuestIds
+} from "./shell-quest.mapper";
 import { ShellViewComponent } from "./shell-view.component";
 import {
   ShellActionGroup,
   ShellCharacterPanel,
   ShellLayoutPreset,
   ShellNavItem,
-  ShellQuestTrackerEntry,
-  ShellQuestTrackerObjective,
   ShellQuestTrackerPanel,
   ShellSaveSlotSummary,
   ShellStatusItem,
@@ -52,12 +56,15 @@ import {
       [actionGroups]="actionGroups()"
       [characterPanel]="characterPanel()"
       [questTrackerPanel]="questTrackerPanel()"
+      [questLogQuests]="questViewModels()"
+      [trackedQuestIds]="effectiveTrackedQuestIds()"
       [saveSlots]="saveSlots()"
       [isCharacterSheetOpen]="isCharacterSheetOpen()"
       [isCharacterCreationOpen]="isCharacterCreationOpen()"
       [isCharacterCreationRequired]="isCharacterCreationRequired()"
       [isSaveManagerOpen]="isSaveManagerOpen()"
       [isGameplayLogOpen]="isGameplayLogOpen()"
+      [isQuestLogOpen]="isQuestLogOpen()"
       [isGegVisualizerOpen]="isGegVisualizerOpen()"
       [gameplayLogEntries]="gameplayLogEntries()"
       [debugLogEntries]="debugLogEntries()"
@@ -79,6 +86,9 @@ import {
       (saveManagerOpenRequested)="openSaveManager()"
       (saveManagerCloseRequested)="closeSaveManager()"
       (gameplayLogCloseRequested)="closeGameplayLog()"
+      (questLogOpenRequested)="openQuestLog()"
+      (questLogCloseRequested)="closeQuestLog()"
+      (trackedQuestIdsChanged)="setTrackedQuestIds($event)"
       (gegVisualizerOpenRequested)="openGegVisualizer()"
       (gegVisualizerCloseRequested)="closeGegVisualizer()"
       (saveSlotLoadRequested)="loadSlot($event)"
@@ -107,9 +117,11 @@ export class ShellContainerComponent {
   protected readonly isCharacterSheetOpen = signal(false);
   protected readonly isSaveManagerOpen = signal(false);
   protected readonly isGameplayLogOpen = signal(false);
+  protected readonly isQuestLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
+  protected readonly trackedQuestIdsState = signal<readonly string[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
   protected readonly gameplayLogEntries = toSignal(this.gameplayLog.log$, {
     initialValue: []
@@ -339,11 +351,27 @@ export class ShellContainerComponent {
     );
   });
 
+  readonly questViewModels = computed(() =>
+    buildQuestViewModels(
+      this.gameQuests.authoredQuests(),
+      this.roster.activeCharacter()?.questLog
+    )
+  );
+
+  readonly effectiveTrackedQuestIds = computed(() =>
+    resolveTrackedQuestIds(
+      this.questViewModels(),
+      this.trackedQuestIdsState(),
+      DEFAULT_TRACKED_QUEST_COUNT
+    )
+  );
+
   readonly questTrackerPanel = computed<ShellQuestTrackerPanel>(() =>
     buildQuestTrackerPanel(
+      this.questViewModels(),
       this.gameQuests.runtimeStates(),
-      this.gameQuests.authoredQuests(),
-      this.gameSettings.attributesById()
+      this.effectiveTrackedQuestIds(),
+      DEFAULT_TRACKED_QUEST_COUNT
     )
   );
 
@@ -353,6 +381,7 @@ export class ShellContainerComponent {
     this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(true);
   }
@@ -367,6 +396,7 @@ export class ShellContainerComponent {
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isCharacterSheetOpen.set(true);
   }
@@ -397,6 +427,7 @@ export class ShellContainerComponent {
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isSaveManagerOpen.set(true);
     this.transferStatusMessage.set(null);
@@ -415,6 +446,7 @@ export class ShellContainerComponent {
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
+    this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isGameplayLogOpen.set(true);
   }
@@ -424,12 +456,36 @@ export class ShellContainerComponent {
     this.isGameplayLogOpen.set(false);
   }
 
+  protected openQuestLog(): void {
+    this.logUi("Opening quest log dialog.", {
+      questCount: this.questViewModels().length,
+      trackedQuestIds: this.effectiveTrackedQuestIds()
+    });
+    this.isCharacterSheetOpen.set(false);
+    this.isCharacterCreationOpenState.set(false);
+    this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
+    this.isQuestLogOpen.set(true);
+  }
+
+  protected closeQuestLog(): void {
+    this.logUi("Closing quest log dialog.");
+    this.isQuestLogOpen.set(false);
+  }
+
+  protected setTrackedQuestIds(questIds: readonly string[]): void {
+    this.logUi("Updated tracked quest ids.", { questIds });
+    this.trackedQuestIdsState.set(questIds);
+  }
+
   protected openGegVisualizer(): void {
     this.logUi("Opening GEG visualizer dialog.");
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(true);
   }
 
@@ -445,6 +501,7 @@ export class ShellContainerComponent {
     this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
+    this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
   }
@@ -623,141 +680,4 @@ function resolveSaveSlotPortraitPath(
   }
 
   return `${race.imageBasePath}/${appearance.variant}/${portraitFile}`;
-}
-
-function buildQuestTrackerPanel(
-  runtimeStates: readonly ReturnType<GameQuestService["runtimeStates"]>[number][],
-  quests: readonly ReturnType<GameQuestService["authoredQuests"]>[number][],
-  attributesById: ReadonlyMap<string, { name: string }>
-): ShellQuestTrackerPanel {
-  return {
-    title: "Quest Tracker",
-    emptyLabel: "No active quests. Story and field work will appear here when they are underway.",
-    entries: runtimeStates.map((state) =>
-      buildQuestTrackerEntry(state, quests.find((quest) => quest.id === state.questId), attributesById)
-    )
-  };
-}
-
-function buildQuestTrackerEntry(
-  state: ReturnType<GameQuestService["runtimeStates"]>[number],
-  quest: ReturnType<GameQuestService["authoredQuests"]>[number] | undefined,
-  attributesById: ReadonlyMap<string, { name: string }>
-): ShellQuestTrackerEntry {
-  const questTitle = prettyQuestTitle(quest?.id ?? state.questId);
-  const step = resolveQuestStep(quest, state.stepId);
-  const rootObjectives = Object.entries(state.objectives)
-    .filter(([objectiveId]) => isLeafObjectiveId(objectiveId, state))
-    .map(([objectiveId, progress]) =>
-      buildQuestTrackerObjective(
-        objectiveId,
-        progress,
-        step,
-        attributesById
-      )
-    );
-
-  return {
-    id: state.questId,
-    title: questTitle,
-    status: state.completed ? "completed" : "active",
-    summary:
-      rootObjectives[0]?.progressLabel ??
-      (step?.label ?? (state.completed ? "Completed." : "In progress.")),
-    objectives: rootObjectives
-  };
-}
-
-function buildQuestTrackerObjective(
-  objectiveId: string,
-  progress: { current: number; target: number; completed: boolean },
-  step: QuestStepLike | null,
-  attributesById: ReadonlyMap<string, { name: string }>
-): ShellQuestTrackerObjective {
-  const objective = resolveObjectiveById(step, objectiveId);
-
-  if (objective?.type === "attribute_reached") {
-    const attributeName = attributesById.get(objective.attribute)?.name ?? prettyQuestTitle(objective.attribute);
-
-    return {
-      id: objectiveId,
-      label: attributeName,
-      progressLabel: `${formatTrackerScore(progress.current)} / ${formatTrackerScore(progress.target)}`,
-      completed: progress.completed
-    };
-  }
-
-  return {
-    id: objectiveId,
-    label: "Objective",
-    progressLabel: `${formatTrackerScore(progress.current)} / ${formatTrackerScore(progress.target)}`,
-    completed: progress.completed
-  };
-}
-
-function resolveObjectiveById(
-  step: QuestStepLike | null,
-  objectiveId: string
-): QuestObjective | null {
-  if (!step?.objectives) {
-    return null;
-  }
-
-  const segments = objectiveId.split(":")[1]?.split(".") ?? [];
-
-  if (segments.length === 0) {
-    return null;
-  }
-
-  let currentObjective = step.objectives[Number(segments[0])];
-
-  for (const segment of segments.slice(1)) {
-    if (!currentObjective || currentObjective.type !== "composite") {
-      return null;
-    }
-
-    currentObjective = currentObjective.objectives[Number(segment)];
-  }
-
-  return currentObjective ?? null;
-}
-
-function resolveQuestStep(
-  quest: Quest | undefined,
-  stepId: string
-): QuestStepLike | null {
-  if (!quest) {
-    return null;
-  }
-
-  if (quest.steps && quest.steps.length > 0) {
-    return quest.steps.find((step) => step.id === stepId) ?? null;
-  }
-
-  return {
-    label: undefined,
-    objectives: quest.objectives
-  };
-}
-
-type QuestStepLike = Pick<QuestStep, "label" | "objectives">;
-
-function isLeafObjectiveId(
-  objectiveId: string,
-  state: ReturnType<GameQuestService["runtimeStates"]>[number]
-): boolean {
-  return !Object.keys(state.objectives).some(
-    (candidateId) => candidateId !== objectiveId && candidateId.startsWith(`${objectiveId}.`)
-  );
-}
-
-function prettyQuestTitle(value: string): string {
-  return value
-    .replace(/^quest_/, "")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatTrackerScore(value: number): string {
-  return value.toFixed(1);
 }

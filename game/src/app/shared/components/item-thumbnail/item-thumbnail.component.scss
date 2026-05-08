@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.gv-item-thumbnail {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--gv-radius-md);
+  border: var(--gv-border-subtle);
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--gv-color-accent) 12%, transparent), transparent 58%),
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-overlay-soft) 88%, transparent), transparent 42%),
+    var(--gv-color-bg-shade);
+  overflow: hidden;
+}
+
+.gv-item-thumbnail__image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}

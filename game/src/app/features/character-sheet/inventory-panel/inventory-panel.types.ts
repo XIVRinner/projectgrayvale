@@ -5,6 +5,7 @@ import type {
   MaterialQuality,
   SpecialRarity
 } from "@rinner/grayvale-core";
+import type { EquipmentRequirementStatus } from "../character-sheet-equipment-requirements";
 
 export type InventoryPanelCategory = "all" | ItemCategory;
 
@@ -24,6 +25,7 @@ export interface InventoryPanelItemView {
   readonly isEquipped: boolean;
   readonly canEquip: boolean;
   readonly equipDisabledReason: string | null;
+  readonly requirementStatuses: readonly EquipmentRequirementStatus[];
   readonly searchTerms: readonly string[];
   /** Full item definition passed through for rich tooltip rendering. */
   readonly itemDef: InventoryItemDefinition;
@@ -48,6 +50,14 @@ export const INVENTORY_CATEGORY_LABELS: Readonly<Record<InventoryPanelCategory, 
   material: "Materials",
   quest_item: "Quest Items",
   junk: "Junk"
+};
+
+export const INVENTORY_CATEGORY_ICONS: Readonly<Record<InventoryPanelCategory, string>> = {
+  all: "pi pi-th-large",
+  equipment: "pi pi-shield",
+  material: "pi pi-box",
+  quest_item: "pi pi-bookmark",
+  junk: "pi pi-trash"
 };
 
 export const isEquipmentItem = (

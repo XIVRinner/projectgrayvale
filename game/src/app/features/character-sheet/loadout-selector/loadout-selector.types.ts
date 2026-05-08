@@ -1,4 +1,5 @@
 import type { EquipmentSlot, InventoryEquipmentItem } from "@rinner/grayvale-core";
+import type { EquipmentRequirementStatus } from "../character-sheet-equipment-requirements";
 
 /** View model for a single loadout row in the selector list. */
 export interface LoadoutRowView {
@@ -13,6 +14,7 @@ export interface LoadoutSlotRowView {
   readonly slotId: EquipmentSlot;
   readonly slotLabel: string;
   readonly equippedItem: InventoryEquipmentItem | null;
+  readonly requirementStatuses: readonly EquipmentRequirementStatus[];
 }
 
 export interface LoadoutSlotEquipOptionView {

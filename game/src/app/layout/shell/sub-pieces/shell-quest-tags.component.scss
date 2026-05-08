@@ -1,0 +1,92 @@
+:host {
+  display: block;
+}
+
+.gv-quest-tags {
+  display: flex;
+  gap: var(--gv-space-xs);
+  flex-wrap: wrap;
+}
+
+.gv-quest-tags--compact {
+  gap: 0.35rem;
+}
+
+.gv-quest-tags__tag {
+  border: 1px solid var(--gv-quest-tag-border, var(--gv-color-border-subtle));
+  border-radius: 999px;
+  background: var(--gv-quest-tag-bg, color-mix(in srgb, var(--gv-color-overlay-strong) 90%, transparent));
+  color: var(--gv-quest-tag-text, var(--gv-color-text-primary));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gv-quest-tag-border, var(--gv-color-border-subtle)) 15%, transparent);
+  font-size: var(--gv-font-size-xxs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 0.28rem 0.55rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gv-quest-tags--compact .gv-quest-tags__tag {
+  padding: 0.22rem 0.45rem;
+}
+
+.gv-quest-tags__tag--strong {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gv-quest-tag-border, var(--gv-color-border-subtle)) 35%, transparent),
+    0 0 16px color-mix(in srgb, var(--gv-quest-tag-bg, transparent) 28%, transparent);
+}
+
+.gv-quest-tags__tag[data-tag="main"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-main-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-main-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-main-text);
+}
+
+.gv-quest-tags__tag[data-tag="side"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-side-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-side-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-side-text);
+}
+
+.gv-quest-tags__tag[data-tag="unlock-skill"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-unlock-skill-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-unlock-skill-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-unlock-skill-text);
+}
+
+.gv-quest-tags__tag[data-tag="unlock-system"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-unlock-system-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-unlock-system-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-unlock-system-text);
+}
+
+.gv-quest-tags__tag[data-tag="companion"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-companion-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-companion-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-companion-text);
+}
+
+.gv-quest-tags__tag[data-tag="daily"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-daily-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-daily-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-daily-text);
+}
+
+.gv-quest-tags__tag[data-tag="weekly"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-weekly-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-weekly-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-weekly-text);
+}
+
+.gv-quest-tags__tag[data-tag="incursion"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-incursion-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-incursion-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-incursion-text);
+}
+
+.gv-quest-tags__tag[data-tag="secret"] {
+  --gv-quest-tag-bg: var(--gv-color-quest-tag-secret-bg);
+  --gv-quest-tag-border: var(--gv-color-quest-tag-secret-border);
+  --gv-quest-tag-text: var(--gv-color-quest-tag-secret-text);
+}

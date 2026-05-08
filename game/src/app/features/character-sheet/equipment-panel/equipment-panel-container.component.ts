@@ -15,10 +15,13 @@ import {
   type EquipmentSlot,
   type InventoryEquipmentItem,
   type Loadout,
+  type Player,
   inventoryEquipmentItemSchema,
   sampleLoadoutDefault
 } from "@rinner/grayvale-core";
 
+import { parseItemArrayWithIconPath } from "../character-sheet-item-assets";
+import { buildEquipmentRequirementStatuses } from "../character-sheet-equipment-requirements";
 import { EquipmentPanelViewComponent } from "./equipment-panel-view.component";
 import type { EquipmentSlotView } from "./equipment-panel.types";
 
@@ -73,6 +76,7 @@ export class EquipmentPanelContainerComponent {
 
   /** Active loadout provided by the parent character-sheet container. */
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
+  readonly player = input<Player | null>(null);
   /** Selected inventory equipment item ID to compare against active slot. */
   readonly comparedItemId = input<string | null>(null);
   readonly compareItemChanged = output<string | null>();
@@ -103,6 +107,7 @@ export class EquipmentPanelContainerComponent {
         slotId,
         slotLabel: SLOT_LABELS[slotId],
         item,
+        requirementStatuses: item ? buildEquipmentRequirementStatuses(this.player(), item) : [],
         isCompareTarget,
         compareDeltaLabel
       } satisfies EquipmentSlotView;
@@ -113,14 +118,7 @@ export class EquipmentPanelContainerComponent {
     this.http
       .get<unknown>("assets/data/equipment-items.json")
       .pipe(
-        map((raw) => {
-          if (!Array.isArray(raw)) {
-            this.error.set("Invalid equipment data format: expected an array.");
-            this.isLoading.set(false);
-            return [] as InventoryEquipmentItem[];
-          }
-          return raw.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry));
-        }),
+        map((raw) => parseItemArrayWithIconPath(raw, (entry) => inventoryEquipmentItemSchema.parse(entry))),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load equipment items.";
           this.error.set(message);

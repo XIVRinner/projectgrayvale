@@ -22,6 +22,7 @@ const SAMPLE_ITEMS: readonly InventoryPanelItemView[] = [
     isEquipped: false,
     canEquip: true,
     equipDisabledReason: null,
+    requirementStatuses: [],
     searchTerms: ["rustleaf dagger", "equipment", "uncommon"],
     itemDef: sampleEquipmentItem
   },
@@ -40,6 +41,7 @@ const SAMPLE_ITEMS: readonly InventoryPanelItemView[] = [
     isEquipped: false,
     canEquip: false,
     equipDisabledReason: null,
+    requirementStatuses: [],
     searchTerms: ["iron ore", "material", "common"],
     itemDef: sampleMaterialItem
   },
@@ -58,6 +60,7 @@ const SAMPLE_ITEMS: readonly InventoryPanelItemView[] = [
     isEquipped: false,
     canEquip: false,
     equipDisabledReason: null,
+    requirementStatuses: [],
     searchTerms: ["signal stone", "quest_item", "uncommon"],
     itemDef: sampleQuestItem
   }

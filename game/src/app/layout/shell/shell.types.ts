@@ -3,6 +3,7 @@ import type {
   ActionPanelGroupThemeKey,
   ActionPanelGroupView
 } from "../../shared/models/action-panel-group.model";
+import type { QuestTag } from "./quest-log/quest-view-model";
 
 export type ShellLayoutPreset = "story-focus" | "command-center";
 
@@ -148,15 +149,24 @@ export interface ShellQuestTrackerObjective {
 export interface ShellQuestTrackerEntry {
   readonly id: string;
   readonly title: string;
-  readonly status: "active" | "completed";
-  readonly summary: string;
-  readonly objectives: readonly ShellQuestTrackerObjective[];
+  readonly tags: readonly {
+    id: QuestTag;
+    label: string;
+    emphasis: "strong" | "standard";
+  }[];
+  readonly status: "inactive" | "active" | "completed";
+  readonly stepLabel: string;
+  readonly objectiveLabel: string;
+  readonly progressLabel: string;
+  readonly progressPercent: number;
+  readonly isTracked: boolean;
 }
 
 export interface ShellQuestTrackerPanel {
   readonly title: string;
   readonly emptyLabel: string;
   readonly entries: readonly ShellQuestTrackerEntry[];
+  readonly maxVisibleEntries: number;
 }
 
 export interface ShellCharacterPanel {

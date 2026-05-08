@@ -23,6 +23,7 @@ import {
   type StatBreakdown
 } from "@rinner/grayvale-core";
 
+import { parseItemArrayWithIconPath } from "../character-sheet-item-assets";
 import type { CharacterStatUnlockState } from "../../../core/services/character-roster.service";
 import { GameSettingsService } from "../../../core/services/game-settings.service";
 import {
@@ -271,9 +272,7 @@ export class CombatStatsContainerComponent {
       .get<unknown>("assets/data/equipment-items.json")
       .pipe(
         map((rawItems) => {
-          const items = Array.isArray(rawItems)
-            ? rawItems.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry))
-            : [];
+          const items = parseItemArrayWithIconPath(rawItems, (entry) => inventoryEquipmentItemSchema.parse(entry));
 
           const registry = new Map<string, InventoryEquipmentItem>();
           for (const item of items) {

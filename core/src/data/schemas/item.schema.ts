@@ -27,6 +27,7 @@ export const baseInventoryItemSchema = z.object({
   category: itemCategorySchema,
   rarity: raritySchema,
   specialRarity: specialRaritySchema.optional(),
+  iconPath: z.string().min(1).optional(),
   tags: z.array(z.string()),
   description: descriptionSchema.optional(),
   flavor: z.string().optional()

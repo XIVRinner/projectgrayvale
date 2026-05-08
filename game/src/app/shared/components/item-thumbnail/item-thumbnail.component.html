@@ -1,0 +1,10 @@
+<div class="gv-item-thumbnail">
+  <img
+    class="gv-item-thumbnail__image"
+    [src]="resolvedSrc()"
+    [alt]="alt()"
+    loading="lazy"
+    decoding="async"
+    (error)="onError($event)"
+  />
+</div>

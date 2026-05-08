@@ -6,6 +6,8 @@
   [style.--slot-rarity-color]="rarityColor()"
   (mouseenter)="onTooltipHover(true)"
   (mouseleave)="onTooltipHover(false)"
+  (focusin)="onTooltipHover(true)"
+  (focusout)="onTooltipFocusOut($event)"
 >
   <header class="gv-equip-slot__header">
     <span class="gv-equip-slot__label">{{ slot().slotLabel }}</span>
@@ -17,19 +19,38 @@
   <div class="gv-equip-slot__body">
     <div class="gv-equip-slot__icon-wrap">
       @if (slot().item) {
-        <i class="pi pi-shield gv-equip-slot__icon-placeholder" aria-hidden="true"></i>
+        <button
+          type="button"
+          class="gv-equip-slot__art-trigger"
+          [attr.aria-label]="'Inspect ' + slot().item?.name"
+        >
+          <gv-item-thumbnail [src]="itemIconPath()" [alt]="slot().item?.name + ' artwork'" />
+        </button>
       } @else {
         <i class="pi pi-minus gv-equip-slot__icon-empty" aria-hidden="true"></i>
       }
     </div>
 
-    <div class="gv-equip-slot__info">
-      @if (slot().item; as item) {
-        <span class="gv-equip-slot__name">{{ item.name }}</span>
-        <span class="gv-equip-slot__rarity-label">{{ rarityName() }}</span>
-        @if (slot().compareDeltaLabel; as compareDeltaLabel) {
-          <span class="gv-equip-slot__compare-label">{{ compareDeltaLabel }}</span>
-        }
+      <div class="gv-equip-slot__info">
+        @if (slot().item; as item) {
+          <span class="gv-equip-slot__name">{{ item.name }}</span>
+          <span class="gv-equip-slot__rarity-label">{{ rarityName() }}</span>
+          @if (slot().requirementStatuses.length) {
+            <ul class="gv-equip-slot__requirements" aria-label="Requirements">
+              @for (requirement of slot().requirementStatuses; track requirement.label) {
+                <li
+                  class="gv-equip-slot__requirement"
+                  [class.gv-equip-slot__requirement--met]="requirement.met"
+                  [class.gv-equip-slot__requirement--unmet]="!requirement.met"
+                >
+                  {{ requirement.label }}
+                </li>
+              }
+            </ul>
+          }
+          @if (slot().compareDeltaLabel; as compareDeltaLabel) {
+            <span class="gv-equip-slot__compare-label">{{ compareDeltaLabel }}</span>
+          }
         @if (item.specialRarity) {
           <span class="gv-equip-slot__special-badge" [attr.data-special]="item.specialRarity">
             {{ item.specialRarity }}

@@ -1,0 +1,86 @@
+<article
+  class="gv-loadout-slot"
+  [class.gv-loadout-slot--filled]="!!slot().equippedItem"
+  (mouseenter)="onTooltipHover(true)"
+  (mouseleave)="onTooltipHover(false)"
+  (focusin)="onTooltipHover(true)"
+  (focusout)="onTooltipFocusOut($event)"
+>
+  <header class="gv-loadout-slot__header">
+    <span class="gv-loadout-slot__label">{{ slot().slotLabel }}</span>
+    @if (slot().equippedItem; as item) {
+      <span class="gv-loadout-slot__ilevel">ilvl {{ item.itemLevel }}</span>
+    }
+  </header>
+
+  <div class="gv-loadout-slot__body">
+    @if (slot().equippedItem; as item) {
+      <div class="gv-loadout-slot__art">
+        <button
+          type="button"
+          class="gv-loadout-slot__art-trigger"
+          [attr.aria-label]="'Inspect ' + item.name"
+        >
+          <gv-item-thumbnail [src]="itemIconPath(item)" [alt]="item.name + ' artwork'" />
+        </button>
+      </div>
+
+      <div class="gv-loadout-slot__info">
+        <span class="gv-loadout-slot__name">{{ item.name }}</span>
+        <span class="gv-loadout-slot__rarity">{{ item.rarity }}</span>
+        @if (slot().requirementStatuses.length) {
+          <ul class="gv-loadout-slot__requirements" aria-label="Requirements">
+            @for (requirement of slot().requirementStatuses; track requirement.label) {
+              <li
+                class="gv-loadout-slot__requirement"
+                [class.gv-loadout-slot__requirement--met]="requirement.met"
+                [class.gv-loadout-slot__requirement--unmet]="!requirement.met"
+              >
+                {{ requirement.label }}
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="gv-loadout-slot__action-btn gv-loadout-slot__action-btn--warn"
+        (click)="itemUnequipped.emit(slot().slotId)"
+        [attr.aria-label]="'Unequip ' + item.name + ' from ' + slot().slotLabel"
+        pTooltip="Unequip"
+        tooltipPosition="top"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    } @else {
+      <div class="gv-loadout-slot__empty-art" aria-hidden="true">
+        <i class="pi pi-plus-circle"></i>
+      </div>
+
+      <div class="gv-loadout-slot__empty-copy">
+        <span class="gv-loadout-slot__empty-title">Open Slot</span>
+        <span class="gv-loadout-slot__empty-subtitle">Choose an item for this loadout.</span>
+      </div>
+
+      <select
+        class="gv-loadout-slot__equip-select"
+        [attr.aria-label]="'Equip item to ' + slot().slotLabel"
+        (change)="onEquipChange($event)"
+      >
+        <option value="">Equip...</option>
+        @for (item of options(); track item.id) {
+          <option [value]="item.id" [disabled]="item.disabled" [title]="optionTitle(item)">
+            {{ item.name }}
+          </option>
+        }
+      </select>
+    }
+  </div>
+
+  @if (showTooltip() && slot().equippedItem; as item) {
+    <div class="gv-loadout-slot__tooltip-panel">
+      <gv-item-tooltip [item]="item" />
+    </div>
+  }
+</article>

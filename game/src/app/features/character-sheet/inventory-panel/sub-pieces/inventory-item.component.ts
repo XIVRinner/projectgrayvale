@@ -3,6 +3,7 @@ import { TooltipModule } from "primeng/tooltip";
 
 import type { EquipmentSlot } from "@rinner/grayvale-core";
 
+import { ItemThumbnailComponent } from "../../../../shared/components/item-thumbnail/item-thumbnail.component";
 import { ItemTooltipComponent } from "../../../../shared/components/item-tooltip/item-tooltip.component";
 import { toQualityStars } from "../inventory-panel.utils";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "../inventory-panel.types";
@@ -10,7 +11,7 @@ import type { InventoryEquipEvent, InventoryPanelItemView } from "../inventory-p
 @Component({
   selector: "gv-inventory-item",
   standalone: true,
-  imports: [TooltipModule, ItemTooltipComponent],
+  imports: [TooltipModule, ItemThumbnailComponent, ItemTooltipComponent],
   templateUrl: "./inventory-item.component.html",
   styleUrl: "./inventory-item.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -25,10 +26,26 @@ export class InventoryItemComponent {
   readonly compareRequested = output<string | null>();
 
   protected readonly qualityStarsLabel = computed(() => toQualityStars(this.item().qualityStars));
+  protected readonly itemIconPath = computed(() => readIconPath(this.item().itemDef));
   protected readonly showTooltip = signal(false);
 
   protected onTooltipHover(visible: boolean): void {
     this.showTooltip.set(visible);
+  }
+
+  protected onTooltipFocusOut(event: FocusEvent): void {
+    const nextTarget = event.relatedTarget;
+    const currentTarget = event.currentTarget;
+
+    if (
+      nextTarget instanceof Node &&
+      currentTarget instanceof HTMLElement &&
+      currentTarget.contains(nextTarget)
+    ) {
+      return;
+    }
+
+    this.showTooltip.set(false);
   }
 
   protected onEquip(): void {
@@ -48,4 +65,12 @@ export class InventoryItemComponent {
     if (item.category !== "equipment") return;
     this.compareRequested.emit(this.isCompared() ? null : item.id);
   }
+}
+
+function readIconPath(item: unknown): string | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  return "iconPath" in item && typeof item.iconPath === "string" ? item.iconPath : null;
 }

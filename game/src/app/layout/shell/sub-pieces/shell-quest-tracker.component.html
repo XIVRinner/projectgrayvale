@@ -1,33 +1,83 @@
 <section class="gv-quest-tracker" aria-label="Quest tracker">
   <header class="gv-quest-tracker__header">
-    <p class="gv-quest-tracker__eyebrow">Field Journal</p>
-    <h2 class="gv-quest-tracker__title">{{ panel().title }}</h2>
+    <div>
+      <p class="gv-quest-tracker__eyebrow">Field Journal</p>
+      <h2 class="gv-quest-tracker__title">{{ panel().title }}</h2>
+    </div>
+
+    <div class="gv-quest-tracker__actions">
+      <button
+        type="button"
+        pButton
+        class="gv-quest-tracker__action gv-quest-tracker__action--primary p-button p-component"
+        icon="pi pi-book"
+        label="Log"
+        (click)="openQuestLogRequested.emit()"
+      ></button>
+
+      @if (panel().entries.length > 0) {
+        <button
+          type="button"
+          pButton
+          class="gv-quest-tracker__action p-button p-component"
+          [icon]="collapsed() ? 'pi pi-chevron-down' : 'pi pi-chevron-up'"
+          [attr.aria-label]="collapsed() ? 'Expand quest tracker' : 'Collapse quest tracker'"
+          (click)="toggleCollapsed()"
+        ></button>
+      }
+    </div>
   </header>
 
   @if (panel().entries.length === 0) {
     <p class="gv-quest-tracker__empty">{{ panel().emptyLabel }}</p>
+  } @else if (collapsed()) {
+    <p class="gv-quest-tracker__collapsed">{{ panel().entries.length }} active quests hidden.</p>
   } @else {
     <div class="gv-quest-tracker__entries">
-      @for (entry of panel().entries; track entry.id) {
+      @for (entry of visibleEntries(); track entry.id) {
         <article class="gv-quest-tracker__entry" [attr.data-status]="entry.status">
-          <div class="gv-quest-tracker__entry-header">
-            <div>
+          <div class="gv-quest-tracker__entry-topline">
+            <div class="gv-quest-tracker__entry-heading">
               <h3 class="gv-quest-tracker__entry-title">{{ entry.title }}</h3>
-              <p class="gv-quest-tracker__entry-summary">{{ entry.summary }}</p>
+              <gv-shell-quest-tags [tags]="entry.tags" [compact]="true" />
             </div>
-            <span class="gv-quest-tracker__entry-badge">{{ entry.status }}</span>
+
+            <div class="gv-quest-tracker__entry-meta">
+              @if (entry.isTracked) {
+                <span class="gv-quest-tracker__entry-badge">Tracked</span>
+              }
+            </div>
           </div>
 
-          <div class="gv-quest-tracker__objective-list">
-            @for (objective of entry.objectives; track objective.id) {
-              <div class="gv-quest-tracker__objective" [attr.data-completed]="objective.completed">
-                <span class="gv-quest-tracker__objective-label">{{ objective.label }}</span>
-                <span class="gv-quest-tracker__objective-progress">{{ objective.progressLabel }}</span>
-              </div>
-            }
+          <p class="gv-quest-tracker__entry-step">{{ entry.stepLabel }}</p>
+
+          <p class="gv-quest-tracker__objective">
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+            <span>{{ entry.objectiveLabel }}</span>
+          </p>
+
+          <div class="gv-quest-tracker__progress-meta">
+            <span>{{ entry.progressLabel }}</span>
+            <span>{{ entry.progressPercent }}%</span>
           </div>
+
+          <p-progressbar
+            [value]="entry.progressPercent"
+            [showValue]="false"
+            styleClass="gv-quest-tracker__progressbar"
+          />
         </article>
       }
     </div>
+
+    @if (hiddenCount() > 0) {
+      <button
+        type="button"
+        pButton
+        class="gv-quest-tracker__more p-button p-component"
+        [label]="expanded() ? 'Show fewer' : '+' + hiddenCount() + ' more active quests'"
+        (click)="toggleExpanded()"
+      ></button>
+    }
   }
 </section>

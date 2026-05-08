@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+.gv-quest-objectives {
+  list-style: none;
+  display: grid;
+  gap: var(--gv-space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.gv-quest-objectives--compact {
+  gap: var(--gv-space-xs);
+  margin-block-start: var(--gv-space-xs);
+  padding-inline-start: var(--gv-space-md);
+}
+
+.gv-quest-objectives__item {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-quest-objectives__row {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: start;
+  justify-content: space-between;
+}
+
+.gv-quest-objectives__label,
+.gv-quest-objectives__progress {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.45;
+}
+
+.gv-quest-objectives__progress {
+  color: var(--gv-color-text-muted);
+  white-space: nowrap;
+}
+
+.gv-quest-objectives__item[data-completed="true"] .gv-quest-objectives__label,
+.gv-quest-objectives__item[data-completed="true"] .gv-quest-objectives__progress {
+  color: var(--gv-color-success);
+}
+
+@media (max-width: 48rem) {
+  .gv-quest-objectives__row {
+    flex-direction: column;
+  }
+
+  .gv-quest-objectives__progress {
+    white-space: normal;
+  }
+}

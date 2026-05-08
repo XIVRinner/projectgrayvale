@@ -1,0 +1,13 @@
+@if (tags().length > 0) {
+  <div class="gv-quest-tags" [class.gv-quest-tags--compact]="compact()">
+    @for (tag of tags(); track tag.id) {
+      <span
+        class="gv-quest-tags__tag"
+        [class.gv-quest-tags__tag--strong]="tag.emphasis === 'strong'"
+        [attr.data-tag]="tag.id"
+      >
+        {{ tag.label }}
+      </span>
+    }
+  </div>
+}

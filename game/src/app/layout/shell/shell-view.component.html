@@ -34,7 +34,10 @@
     </section>
 
     <aside class="gv-shell__panel gv-shell__intel-panel">
-      <gv-shell-quest-tracker [panel]="questTrackerPanel()" />
+      <gv-shell-quest-tracker
+        [panel]="questTrackerPanel()"
+        (openQuestLogRequested)="questLogOpenRequested.emit()"
+      />
     </aside>
   </main>
 
@@ -64,6 +67,14 @@
     [entries]="gameplayLogEntries()"
     [debugEntries]="debugLogEntries()"
     (closed)="gameplayLogCloseRequested.emit()"
+  />
+
+  <gv-shell-quest-log-dialog
+    [open]="isQuestLogOpen()"
+    [quests]="questLogQuests()"
+    [trackedQuestIds]="trackedQuestIds()"
+    (openChange)="!$event ? questLogCloseRequested.emit() : questLogOpenRequested.emit()"
+    (trackQuestChange)="trackedQuestIdsChanged.emit($event)"
   />
 
   <gv-shell-character-sheet-dialog

@@ -18,7 +18,8 @@
     background var(--gv-anim-normal),
     box-shadow var(--gv-anim-normal);
   cursor: default;
-  min-block-size: 5.5rem;
+  min-block-size: var(--gv-size-card-height-md);
+  block-size: 100%;
 }
 
 .gv-equip-slot--equipped {
@@ -68,33 +69,45 @@
   display: flex;
   align-items: center;
   gap: var(--gv-space-sm);
-  min-block-size: 2.25rem;
+  min-block-size: var(--gv-size-item-art);
 }
 
 .gv-equip-slot__icon-wrap {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 2.25rem;
-  block-size: 2.25rem;
+  inline-size: var(--gv-size-item-art);
+  block-size: var(--gv-size-item-art);
   border-radius: var(--gv-radius-sm);
   border: 1px solid color-mix(in srgb, var(--slot-rarity-color) 40%, var(--gv-color-border-subtle));
   background: color-mix(in srgb, var(--slot-rarity-color) 12%, var(--gv-color-bg-primary));
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.gv-equip-slot__icon-placeholder {
-  font-size: var(--gv-font-size-lg);
-  color: color-mix(in srgb, var(--slot-rarity-color) 90%, white);
+.gv-equip-slot__art-trigger {
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: help;
+}
+
+.gv-equip-slot__art-trigger:focus-visible {
+  outline: 2px solid var(--gv-color-accent);
+  outline-offset: 2px;
 }
 
 .gv-equip-slot__icon-empty {
-  font-size: var(--gv-font-size-md);
+  font-size: var(--gv-font-size-lg);
   color: var(--gv-color-border-subtle);
 }
 
 .gv-equip-slot__info {
   display: grid;
+  align-content: start;
   gap: calc(var(--gv-space-xs) * 0.5);
   flex: 1;
   min-inline-size: 0;
@@ -116,6 +129,26 @@
   color: color-mix(in srgb, var(--slot-rarity-color) 90%, var(--gv-color-text-muted));
   line-height: 1.2;
   text-transform: capitalize;
+}
+
+.gv-equip-slot__requirements {
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 0.5);
+  margin: 0;
+  padding-inline-start: 1rem;
+}
+
+.gv-equip-slot__requirement {
+  font-size: var(--gv-font-size-xxs);
+  line-height: 1.35;
+}
+
+.gv-equip-slot__requirement--met {
+  color: var(--gv-color-success);
+}
+
+.gv-equip-slot__requirement--unmet {
+  color: var(--gv-color-danger);
 }
 
 .gv-equip-slot__empty-label {
@@ -187,8 +220,9 @@
 
 .gv-equip-slot__tooltip-panel {
   position: absolute;
-  inset-inline-start: calc(100% + var(--gv-space-sm));
-  inset-block-start: 0;
+  inset-inline-start: 50%;
+  inset-block-start: calc(100% + var(--gv-space-sm));
   z-index: 20;
+  transform: translateX(-50%);
   pointer-events: none;
 }

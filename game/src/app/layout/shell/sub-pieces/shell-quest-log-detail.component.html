@@ -1,0 +1,115 @@
+@if (!quest()) {
+  <div class="gv-quest-detail__empty">
+    <p>Select a quest to view details.</p>
+  </div>
+} @else {
+  <section class="gv-quest-detail" aria-label="Selected quest details">
+    <header class="gv-quest-detail__header">
+      <div class="gv-quest-detail__heading">
+        <p class="gv-quest-detail__eyebrow">{{ quest()!.id }}</p>
+        <h3 class="gv-quest-detail__title">{{ quest()!.title }}</h3>
+        <gv-shell-quest-tags [tags]="quest()!.tags" />
+      </div>
+
+      <div class="gv-quest-detail__header-actions">
+        <p-tag
+          [value]="quest()!.statusLabel"
+          [severity]="statusSeverity(quest()!.status)"
+        />
+
+        <button
+          type="button"
+          pButton
+          class="gv-quest-detail__track p-button p-component"
+          [disabled]="!quest()!.isActive"
+          [label]="tracked() ? 'Untrack' : 'Track'"
+          [icon]="tracked() ? 'pi pi-eye-slash' : 'pi pi-eye'"
+          (click)="toggleTrackedQuest()"
+        ></button>
+      </div>
+    </header>
+
+    <div class="gv-quest-detail__summary">
+      <div><span>Status</span><strong>{{ quest()!.statusLabel }}</strong></div>
+      <div><span>Progress</span><strong>{{ quest()!.progressText }}</strong></div>
+      <div><span>Current Step</span><strong>{{ quest()!.currentStepLabel }}</strong></div>
+    </div>
+
+    <p-progressbar
+      [value]="quest()!.progressPercent"
+      [showValue]="false"
+      styleClass="gv-quest-detail__progress"
+    />
+
+    <section class="gv-quest-detail__section">
+      <h4 class="gv-quest-detail__section-title">Current Objective</h4>
+
+      @if (quest()!.objectives.length > 0) {
+        <gv-shell-quest-objective-list [objectives]="quest()!.objectives" />
+      } @else {
+        <p class="gv-quest-detail__copy">{{ quest()!.currentObjectiveLabel }}</p>
+      }
+    </section>
+
+    <section class="gv-quest-detail__section">
+      <h4 class="gv-quest-detail__section-title">Journey</h4>
+      <ol class="gv-quest-detail__journey">
+        @for (step of quest()!.steps; track step.id) {
+          <li class="gv-quest-detail__journey-step" [attr.data-state]="step.state">
+            <div class="gv-quest-detail__journey-marker">
+              <i
+                class="pi"
+                [class.pi-check]="step.state === 'completed'"
+                [class.pi-arrow-right]="step.state === 'current'"
+                [class.pi-circle]="step.state === 'future'"
+                aria-hidden="true"
+              ></i>
+            </div>
+            <div class="gv-quest-detail__journey-body">
+              <p class="gv-quest-detail__journey-title">{{ step.label }}</p>
+              @if (step.state === 'current' && step.objectives.length > 0) {
+                <gv-shell-quest-objective-list [objectives]="step.objectives" [compact]="true" />
+              }
+            </div>
+          </li>
+        }
+      </ol>
+    </section>
+
+    @if (hasRewards()) {
+      <section class="gv-quest-detail__section">
+        <h4 class="gv-quest-detail__section-title">Rewards</h4>
+        @if (quest()!.startRewards.length > 0) {
+          <div class="gv-quest-detail__reward-group">
+            <h5>Start Rewards</h5>
+            <ul>
+              @for (reward of quest()!.startRewards; track trackReward($index, reward)) {
+                <li>{{ reward.label }} @if (reward.stateLabel) { <span>{{ reward.stateLabel }}</span> }</li>
+              }
+            </ul>
+          </div>
+        }
+        @if ((quest()!.currentStep?.rewards ?? []).length > 0) {
+          <div class="gv-quest-detail__reward-group">
+            <h5>Current Step Rewards</h5>
+            <ul>
+              @for (reward of quest()!.currentStep!.rewards; track trackReward($index, reward)) {
+                <li>{{ reward.label }} @if (reward.stateLabel) { <span>{{ reward.stateLabel }}</span> }</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (quest()!.rewards.length > 0) {
+          <div class="gv-quest-detail__reward-group">
+            <h5>Final Rewards</h5>
+            <ul>
+              @for (reward of quest()!.rewards; track trackReward($index, reward)) {
+                <li>{{ reward.label }} @if (reward.stateLabel) { <span>{{ reward.stateLabel }}</span> }</li>
+              }
+            </ul>
+          </div>
+        }
+      </section>
+    }
+  </section>
+}

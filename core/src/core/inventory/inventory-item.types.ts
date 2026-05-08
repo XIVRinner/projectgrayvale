@@ -28,6 +28,8 @@ export interface BaseInventoryItem {
   rarity: Rarity;
   /** Present only when the item belongs to a special-rarity tier. */
   specialRarity?: SpecialRarity;
+  /** Asset-served thumbnail used by inventory and equipment UIs. */
+  iconPath?: string;
   tags: string[];
   description?: string;
   flavor?: string;

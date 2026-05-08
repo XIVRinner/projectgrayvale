@@ -1,0 +1,64 @@
+<p-dialog
+  [visible]="open()"
+  header="Quest Log"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="true"
+  [breakpoints]="breakpoints"
+  [styleClass]="'gv-quest-log-dialog'"
+  [contentStyleClass]="'gv-quest-log-dialog__content'"
+  [style]="{ width: '60vw', height: '60vh' }"
+  [contentStyle]="{ height: 'calc(60vh - 4.5rem)' }"
+  (visibleChange)="openChange.emit($event)"
+  (onHide)="closeDialog()"
+>
+  <section class="gv-quest-log" aria-label="Quest log">
+    <header class="gv-quest-log__toolbar">
+      <input
+        pInputText
+        class="gv-quest-log__search"
+        type="text"
+        [ngModel]="filters().search"
+        placeholder="Search quests, steps, objectives, rewards"
+        (ngModelChange)="updateSearch($event)"
+      />
+      <p-select [options]="statusOptions" optionLabel="label" optionValue="value" [ngModel]="filters().status" appendTo="body" placeholder="Status" (ngModelChange)="updateStatus($event)" />
+      <p-select [options]="rewardOptions" optionLabel="label" optionValue="value" [ngModel]="filters().rewardType" appendTo="body" placeholder="Reward" (ngModelChange)="updateRewardType($event)" />
+      <p-select [options]="objectiveOptions" optionLabel="label" optionValue="value" [ngModel]="filters().objectiveType" appendTo="body" placeholder="Objective" (ngModelChange)="updateObjectiveType($event)" />
+      <p-select [options]="sortOptions" optionLabel="label" optionValue="value" [ngModel]="filters().sort" appendTo="body" placeholder="Sort" (ngModelChange)="updateSort($event)" />
+    </header>
+
+    @if (quests().length === 0) {
+      <div class="gv-quest-log__empty"><p>No quests available.</p></div>
+    } @else {
+      <div class="gv-quest-log__layout">
+        <section class="gv-quest-log__list" aria-label="Quest list">
+          @if (filteredQuests().length === 0) {
+            <div class="gv-quest-log__empty"><p>No quests match your filters.</p></div>
+          } @else {
+            @for (quest of filteredQuests(); track quest.id) {
+              <button type="button" class="gv-quest-log__row" [class.gv-quest-log__row--selected]="selectedQuestId() === quest.id" (click)="selectQuest(quest.id)">
+                <div class="gv-quest-log__row-topline"><h3>{{ quest.title }}</h3><p-tag [value]="quest.statusLabel" [severity]="statusSeverity(quest.status)" /></div>
+                <gv-shell-quest-tags [tags]="quest.tags" [compact]="true" />
+                <p class="gv-quest-log__row-step">{{ quest.currentStepLabel }}</p>
+                <p class="gv-quest-log__row-objective">{{ quest.currentObjectiveShortLabel }}</p>
+                <div class="gv-quest-log__row-progress"><span>{{ quest.progressText }}</span>@if (isTracked(quest.id)) { <span class="gv-quest-log__tracked">Tracked</span> }</div>
+                <p-progressbar [value]="quest.progressPercent" [showValue]="false" styleClass="gv-quest-log__row-progressbar" />
+              </button>
+            }
+          }
+        </section>
+
+        <section class="gv-quest-log__detail">
+          <gv-shell-quest-log-detail
+            [quest]="selectedQuest()"
+            [tracked]="selectedQuest() ? isTracked(selectedQuest()!.id) : false"
+            (trackToggled)="toggleTrackedQuest($event)"
+          />
+        </section>
+      </div>
+    }
+  </section>
+</p-dialog>

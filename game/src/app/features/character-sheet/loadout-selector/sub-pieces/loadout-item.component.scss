@@ -6,8 +6,8 @@
   display: flex;
   align-items: center;
   gap: var(--gv-space-xs);
-  padding: var(--gv-space-xs) var(--gv-space-sm);
-  border-radius: var(--gv-radius-sm);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  border-radius: var(--gv-radius-md);
   border: 1px solid transparent;
   transition:
     background var(--gv-anim-fast),
@@ -32,7 +32,7 @@
   border: none;
   padding: 0;
   text-align: start;
-  font-size: var(--gv-font-size-sm);
+  font-size: var(--gv-font-size-md);
   font-weight: 600;
   color: var(--gv-color-text-primary);
   cursor: pointer;
@@ -56,9 +56,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 1.5rem;
-  block-size: 1.5rem;
-  border-radius: var(--gv-radius-sm);
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: var(--gv-radius-md);
   border: var(--gv-border-subtle);
   background: transparent;
   color: var(--gv-color-text-muted);
@@ -93,10 +93,10 @@
   min-inline-size: 0;
   background: var(--gv-color-bg-shade);
   border: 1px solid var(--gv-color-accent);
-  border-radius: var(--gv-radius-sm);
-  padding: calc(var(--gv-space-xs) * 0.5) var(--gv-space-xs);
+  border-radius: var(--gv-radius-md);
+  padding: var(--gv-space-sm);
   color: var(--gv-color-text-primary);
-  font-size: var(--gv-font-size-sm);
+  font-size: var(--gv-font-size-md);
   font-family: var(--gv-font-ui);
   outline: none;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--gv-color-accent) 25%, transparent);

@@ -1,0 +1,20 @@
+<ul class="gv-quest-objectives" [class.gv-quest-objectives--compact]="compact()">
+  @for (objective of objectives(); track objective.id) {
+    <li class="gv-quest-objectives__item" [attr.data-completed]="objective.isCompleted === true">
+      <div class="gv-quest-objectives__row">
+        <span class="gv-quest-objectives__label">{{ objective.label }}</span>
+
+        @if (objective.progressText) {
+          <span class="gv-quest-objectives__progress">{{ objective.progressText }}</span>
+        }
+      </div>
+
+      @if (objective.children && objective.children.length > 0) {
+        <gv-shell-quest-objective-list
+          [objectives]="objective.children"
+          [compact]="true"
+        />
+      }
+    </li>
+  }
+</ul>

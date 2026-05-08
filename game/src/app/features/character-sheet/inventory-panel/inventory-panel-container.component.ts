@@ -21,7 +21,11 @@ import {
   sampleLoadoutDefault
 } from "@rinner/grayvale-core";
 
-import { checkEquipmentRequirements } from "../character-sheet-equipment-requirements";
+import { parseItemArrayWithIconPath } from "../character-sheet-item-assets";
+import {
+  buildEquipmentRequirementStatuses,
+  checkEquipmentRequirements
+} from "../character-sheet-equipment-requirements";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "./inventory-panel.types";
 import { isEquipmentItem } from "./inventory-panel.types";
 import { InventoryPanelViewComponent } from "./inventory-panel-view.component";
@@ -87,6 +91,7 @@ export class InventoryPanelContainerComponent {
           isEquipped: false,
           canEquip: false,
           equipDisabledReason: null,
+          requirementStatuses: [],
           searchTerms,
           itemDef: item
         } satisfies InventoryPanelItemView;
@@ -109,6 +114,7 @@ export class InventoryPanelContainerComponent {
           isEquipped: false,
           canEquip: false,
           equipDisabledReason: null,
+          requirementStatuses: [],
           searchTerms,
           itemDef: item
         } satisfies InventoryPanelItemView;
@@ -131,12 +137,14 @@ export class InventoryPanelContainerComponent {
           isEquipped: false,
           canEquip: false,
           equipDisabledReason: null,
+          requirementStatuses: [],
           searchTerms,
           itemDef: item
         } satisfies InventoryPanelItemView;
       }
 
       const requirementCheck = checkEquipmentRequirements(this.player(), item);
+      const requirementStatuses = buildEquipmentRequirementStatuses(this.player(), item);
       const equippedItemId = loadout.slots[item.slot];
       const equippedItem = equippedItemId ? registry.get(equippedItemId) : null;
       const comparison = compareItemAgainstSlot(loadout, item.slot, item.id);
@@ -158,7 +166,7 @@ export class InventoryPanelContainerComponent {
         category: item.category,
         rarity: item.rarity,
         specialRarity: item.specialRarity,
-        itemTypeLabel: `Equipment · ${item.slot.replace("_", " ")}`,
+        itemTypeLabel: `Equipment - ${item.slot.replace("_", " ")}`,
         quantity: null,
         qualityStars: null,
         itemLevel: item.itemLevel,
@@ -170,6 +178,7 @@ export class InventoryPanelContainerComponent {
         isEquipped: comparison.currentItemId === item.id,
         canEquip: requirementCheck.canEquip,
         equipDisabledReason: requirementCheck.reason,
+        requirementStatuses,
         searchTerms,
         itemDef: item
       } satisfies InventoryPanelItemView;
@@ -180,7 +189,7 @@ export class InventoryPanelContainerComponent {
     this.http
       .get<unknown>("assets/data/inventory-items.json")
       .pipe(
-        map((raw) => inventoryItemDefinitionSchema.array().parse(raw)),
+        map((raw) => parseItemArrayWithIconPath(raw, (entry) => inventoryItemDefinitionSchema.parse(entry))),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load inventory items.";
           this.error.set(message);

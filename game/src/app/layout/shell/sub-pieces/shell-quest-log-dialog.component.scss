@@ -1,0 +1,187 @@
+:host {
+  display: contents;
+}
+
+.gv-quest-log {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--gv-space-md);
+  min-block-size: 100%;
+}
+
+.gv-quest-log__toolbar {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1.6fr) repeat(4, minmax(0, 1fr));
+  gap: var(--gv-space-sm);
+}
+
+.gv-quest-log__search {
+  inline-size: 100%;
+}
+
+.gv-quest-log__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: var(--gv-space-md);
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.gv-quest-log__list,
+.gv-quest-log__detail {
+  min-block-size: 0;
+}
+
+.gv-quest-log__list {
+  display: grid;
+  gap: var(--gv-space-sm);
+  overflow-y: auto;
+  padding-inline-end: var(--gv-space-xs);
+}
+
+.gv-quest-log__detail {
+  overflow-y: auto;
+}
+
+.gv-quest-log__row {
+  display: grid;
+  gap: var(--gv-space-xs);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 44%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  color: inherit;
+  cursor: pointer;
+  padding: var(--gv-space-md);
+  text-align: start;
+  transition:
+    border-color var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
+
+.gv-quest-log__row:hover,
+.gv-quest-log__row--selected {
+  border-color: color-mix(in srgb, var(--gv-color-accent) 38%, var(--gv-color-border-subtle));
+  transform: translateY(-1px);
+}
+
+.gv-quest-log__row-topline {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: start;
+  justify-content: space-between;
+}
+
+.gv-quest-log__row-topline h3,
+.gv-quest-log__row-step,
+.gv-quest-log__row-objective,
+.gv-quest-log__tracked,
+.gv-quest-log__empty p {
+  margin: 0;
+}
+
+.gv-quest-log__row-topline h3 {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-md);
+}
+
+.gv-quest-log__row-step,
+.gv-quest-log__row-progress {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+}
+
+.gv-quest-log__row :is(.gv-quest-tags) {
+  margin-block-end: 0.1rem;
+}
+
+.gv-quest-log__row-objective {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.45;
+}
+
+.gv-quest-log__row-progress {
+  display: flex;
+  gap: var(--gv-space-sm);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gv-quest-log__tracked {
+  color: var(--gv-color-accent-warm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .gv-quest-log__row-progressbar {
+  block-size: 0.5rem;
+  background: color-mix(in srgb, var(--gv-color-overlay-strong) 80%, transparent);
+}
+
+:host ::ng-deep .gv-quest-log__row-progressbar .p-progressbar-value {
+  background: linear-gradient(
+    90deg,
+    var(--gv-color-accent),
+    color-mix(in srgb, var(--gv-color-accent-warm) 80%, white 20%)
+  );
+}
+
+.gv-quest-log__empty {
+  display: grid;
+  place-items: center;
+  min-block-size: 18rem;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 44%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  color: var(--gv-color-text-muted);
+  text-align: center;
+}
+
+:host ::ng-deep .gv-quest-log-dialog {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-overlay-soft) 90%, transparent), transparent 20%),
+    var(--gv-color-bg-surface);
+}
+
+:host ::ng-deep .gv-quest-log-dialog .p-dialog-header,
+:host ::ng-deep .gv-quest-log-dialog .p-dialog-content {
+  background: transparent;
+}
+
+:host ::ng-deep .gv-quest-log-dialog .p-dialog-header {
+  border-bottom: var(--gv-border-subtle);
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+}
+
+:host ::ng-deep .gv-quest-log-dialog__content {
+  overflow: hidden;
+}
+
+@media (max-width: 70rem) {
+  .gv-quest-log__toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48rem) {
+  .gv-quest-log {
+    min-block-size: auto;
+  }
+
+  .gv-quest-log__toolbar,
+  .gv-quest-log__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .gv-quest-log__list {
+    max-block-size: 20rem;
+    padding-inline-end: 0;
+  }
+}
