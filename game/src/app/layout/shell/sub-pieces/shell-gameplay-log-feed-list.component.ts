@@ -11,11 +11,7 @@ import type { GameLogEntry } from "../../../core/services/game-log/log-mapper";
 export class ShellGameplayLogFeedListComponent {
   readonly entries = input.required<readonly GameLogEntry[]>();
 
-  protected trackEntry(index: number, entry: GameLogEntry): string {
-    if (entry.type === "choice") {
-      return `choice:${index}:${entry.options.map((o) => o.label).join("|")}`;
-    }
-
-    return `${entry.type}:${index}:${entry.text}`;
+  protected trackEntry(index: number, _entry: GameLogEntry): number {
+    return index;
   }
 }
