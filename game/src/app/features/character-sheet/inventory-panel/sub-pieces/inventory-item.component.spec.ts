@@ -10,14 +10,22 @@ import {
 import type { InventoryPanelItemView } from "../inventory-panel.types";
 import { InventoryItemComponent } from "./inventory-item.component";
 
+const createBaseItemView = (itemDef: InventoryItemDefinition) => ({
+  id: itemDef.id,
+  name: itemDef.name,
+  category: itemDef.category,
+  rarity: itemDef.rarity,
+  searchTerms: [itemDef.name.toLowerCase()],
+  itemDef
+} satisfies Pick<InventoryPanelItemView, "id" | "name" | "category" | "rarity" | "searchTerms" | "itemDef">);
+
 const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView => {
+  const base = createBaseItemView(itemDef);
+
   switch (itemDef.category) {
     case "equipment":
       return {
-        id: itemDef.id,
-        name: itemDef.name,
-        category: itemDef.category,
-        rarity: itemDef.rarity,
+        ...base,
         itemTypeLabel: `Equipment · ${itemDef.slot.replace("_", " ")}`,
         quantity: null,
         qualityStars: null,
@@ -25,16 +33,11 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: itemDef.slot,
         inspectTooltip: itemDef.name,
         compareSummary: "Slot empty",
-        isEquipped: false,
-        searchTerms: [itemDef.name.toLowerCase()],
-        itemDef
+        isEquipped: false
       };
     case "material":
       return {
-        id: itemDef.id,
-        name: itemDef.name,
-        category: itemDef.category,
-        rarity: itemDef.rarity,
+        ...base,
         itemTypeLabel: "Material",
         quantity: itemDef.quantity,
         qualityStars: itemDef.qualityStars ?? null,
@@ -42,16 +45,11 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: null,
         inspectTooltip: itemDef.name,
         compareSummary: null,
-        isEquipped: false,
-        searchTerms: [itemDef.name.toLowerCase()],
-        itemDef
+        isEquipped: false
       };
     case "quest_item":
       return {
-        id: itemDef.id,
-        name: itemDef.name,
-        category: itemDef.category,
-        rarity: itemDef.rarity,
+        ...base,
         itemTypeLabel: "Quest Item",
         quantity: null,
         qualityStars: null,
@@ -59,16 +57,11 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: null,
         inspectTooltip: itemDef.name,
         compareSummary: null,
-        isEquipped: false,
-        searchTerms: [itemDef.name.toLowerCase()],
-        itemDef
+        isEquipped: false
       };
     case "junk":
       return {
-        id: itemDef.id,
-        name: itemDef.name,
-        category: itemDef.category,
-        rarity: itemDef.rarity,
+        ...base,
         itemTypeLabel: "Junk",
         quantity: null,
         qualityStars: null,
@@ -76,9 +69,7 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: null,
         inspectTooltip: itemDef.name,
         compareSummary: null,
-        isEquipped: false,
-        searchTerms: [itemDef.name.toLowerCase()],
-        itemDef
+        isEquipped: false
       };
   }
 };

@@ -1,29 +1,7 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { computeStatBreakdown, type LabeledModifier } from "@rinner/grayvale-core";
 
-import type { CombatStatRowView } from "./combat-stats.types";
 import { CombatStatsViewComponent } from "./combat-stats-view.component";
-
-const formatDelta = (base: number, final: number): string | null => {
-  const delta = final - base;
-  if (delta === 0) {
-    return null;
-  }
-
-  return `${delta > 0 ? "+" : ""}${delta}`;
-};
-
-const toRow = (label: string, base: number, modifiers: readonly LabeledModifier[]): CombatStatRowView => {
-  const breakdown = computeStatBreakdown(label.toLowerCase(), base, modifiers);
-
-  return {
-    key: breakdown.stat,
-    label,
-    breakdown,
-    formattedValue: `${breakdown.final}`,
-    formattedDelta: formatDelta(breakdown.base, breakdown.final)
-  };
-};
 
 describe("CombatStatsViewComponent", () => {
   let fixture: ComponentFixture<CombatStatsViewComponent>;
@@ -39,7 +17,7 @@ describe("CombatStatsViewComponent", () => {
   });
 
   it("renders buffed and nerfed stat display states", () => {
-    const buffedRow = toRow("Strength", 20, [
+    const buffedBreakdown = computeStatBreakdown("strength", 20, [
       {
         stat: "strength",
         type: "add",
@@ -49,7 +27,7 @@ describe("CombatStatsViewComponent", () => {
         active: true
       }
     ]);
-    const nerfedRow = toRow("Mentality", 30, [
+    const nerfedBreakdown = computeStatBreakdown("mentality", 30, [
       {
         stat: "mentality",
         type: "add",
@@ -61,7 +39,25 @@ describe("CombatStatsViewComponent", () => {
     ]);
 
     fixture.componentRef.setInput("statGroups", [
-      { label: "Primary Stats", stats: [buffedRow, nerfedRow] }
+      {
+        label: "Primary Stats",
+        stats: [
+          {
+            key: "strength",
+            label: "Strength",
+            breakdown: buffedBreakdown,
+            formattedValue: "40",
+            formattedDelta: "+20"
+          },
+          {
+            key: "mentality",
+            label: "Mentality",
+            breakdown: nerfedBreakdown,
+            formattedValue: "10",
+            formattedDelta: "-20"
+          }
+        ]
+      }
     ]);
     fixture.detectChanges();
 
@@ -103,7 +99,7 @@ describe("CombatStatsViewComponent", () => {
             label: "Strength",
             breakdown: strengthBreakdown,
             formattedValue: `${strengthBreakdown.final}`,
-            formattedDelta: formatDelta(strengthBreakdown.base, strengthBreakdown.final)
+            formattedDelta: "+20"
           }
         ]
       }
