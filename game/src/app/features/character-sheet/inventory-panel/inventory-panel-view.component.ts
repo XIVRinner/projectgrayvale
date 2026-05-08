@@ -37,6 +37,9 @@ export class InventoryPanelViewComponent {
   readonly itemUnequipped = output<EquipmentSlot>();
   readonly compareItemChanged = output<string | null>();
 
+  protected readonly equipTooltip = (item: InventoryPanelItemView): string =>
+    item.canEquip ? "Equip to active loadout" : item.equipDisabledReason ?? "Cannot equip";
+
   protected readonly categoryOrder = INVENTORY_CATEGORY_ORDER;
   protected readonly categoryLabels = INVENTORY_CATEGORY_LABELS;
   protected readonly activeCategory = signal<InventoryPanelCategory>("all");

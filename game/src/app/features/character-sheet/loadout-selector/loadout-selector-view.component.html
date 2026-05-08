@@ -64,7 +64,13 @@
             >
               <option value="">— empty —</option>
               @for (item of itemsBySlot()[slot.slotId]; track item.id) {
-                <option [value]="item.id">{{ item.name }}</option>
+                <option
+                  [value]="item.id"
+                  [disabled]="item.disabled"
+                  [title]="optionTitle(item)"
+                >
+                  {{ item.name }}
+                </option>
               }
             </select>
           }

@@ -18,6 +18,7 @@ import type { InventoryEquipEvent, InventoryPanelItemView } from "../inventory-p
 export class InventoryItemComponent {
   readonly item = input.required<InventoryPanelItemView>();
   readonly isCompared = input.required<boolean>();
+  readonly equipTooltip = input<string>("Equip to active loadout");
 
   readonly equipRequested = output<InventoryEquipEvent>();
   readonly unequipRequested = output<EquipmentSlot>();
@@ -32,7 +33,7 @@ export class InventoryItemComponent {
 
   protected onEquip(): void {
     const item = this.item();
-    if (!item.slot) return;
+    if (!item.slot || !item.canEquip) return;
     this.equipRequested.emit({ slot: item.slot, itemId: item.id });
   }
 

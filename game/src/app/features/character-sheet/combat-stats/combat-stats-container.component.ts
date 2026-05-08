@@ -8,27 +8,27 @@ import {
 } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { catchError, combineLatest, map, of } from "rxjs";
-
-import { z } from "zod";
+import { catchError, map, of } from "rxjs";
 
 import {
   computeStatBreakdowns,
   inventoryEquipmentItemSchema,
   sampleLoadoutDefault,
+  type BalanceProfile,
   type InventoryEquipmentItem,
   type LabeledModifier,
   type Loadout,
+  type Player,
   type StatBlock,
   type StatBreakdown
 } from "@rinner/grayvale-core";
 
-// GAP: statBlockSchema
-// Blocked on: @rinner/grayvale-core
-// Needs: a Zod schema for StatBlock (Record<string, number>) exported from modifier.types
-// Do not implement until: StatBlock schema is added to @rinner/grayvale-core
-const statBlockSchema = z.record(z.string(), z.number());
-
+import type { CharacterStatUnlockState } from "../../../core/services/character-roster.service";
+import { GameSettingsService } from "../../../core/services/game-settings.service";
+import {
+  PLAYER_HEALTH_BALANCE_PROFILE_ID,
+  type SaveSlotHealthState
+} from "../../../core/services/health-balance";
 import type { CombatStatGroupView, CombatStatRowView } from "./combat-stats.types";
 import { CombatStatsViewComponent } from "./combat-stats-view.component";
 
@@ -37,11 +37,14 @@ interface StatConfig {
   label: string;
   section: string;
   isPercent: boolean;
+  unlockKind?: "attribute";
 }
 
 const STAT_CONFIG: readonly StatConfig[] = [
-  { key: "strength", label: "Strength", section: "primary", isPercent: false },
-  { key: "mentality", label: "Mentality", section: "primary", isPercent: false },
+  { key: "vitality", label: "Vitality", section: "primary", isPercent: false, unlockKind: "attribute" },
+  { key: "strength", label: "Strength", section: "primary", isPercent: false, unlockKind: "attribute" },
+  { key: "agility", label: "Agility", section: "primary", isPercent: false, unlockKind: "attribute" },
+  { key: "mentality", label: "Mentality", section: "primary", isPercent: false, unlockKind: "attribute" },
   { key: "physical_damage", label: "Physical Damage", section: "combat", isPercent: false },
   { key: "dodge_chance", label: "Dodge", section: "combat", isPercent: true },
   { key: "block_chance", label: "Block", section: "combat", isPercent: true },
@@ -106,7 +109,8 @@ const buildLabeledModifiers = (
 
 const buildStatGroups = (
   baseStats: StatBlock,
-  modifiers: LabeledModifier[]
+  modifiers: LabeledModifier[],
+  statUnlocks: CharacterStatUnlockState | null
 ): CombatStatGroupView[] => {
   const breakdowns = computeStatBreakdowns(baseStats, modifiers);
 
@@ -126,6 +130,7 @@ const buildStatGroups = (
       key: config.key,
       label: config.label,
       breakdown,
+      isLocked: isStatLocked(config, statUnlocks),
       formattedValue: formatValue(breakdown.final, config.isPercent),
       formattedDelta: formatDelta(delta, config.isPercent)
     };
@@ -139,6 +144,49 @@ const buildStatGroups = (
     label: SECTION_LABELS[sectionKey] ?? sectionKey,
     stats
   }));
+};
+
+const buildBaseStats = (
+  player: Player | null,
+  health: SaveSlotHealthState | null,
+  balanceProfile: BalanceProfile | undefined
+): StatBlock => {
+  if (!player) {
+    return {};
+  }
+
+  const vitality = player.attributes["vitality"] ?? 0;
+  const vitalityScalar = balanceProfile?.scalars?.attributes?.["vitality"] ?? 1;
+  const maxHpFlat = balanceProfile?.scalars?.resources?.["maxHpFlat"] ?? 0;
+  const maxHp = health?.maxHp ?? Math.max(0, Math.round(maxHpFlat + vitality * vitalityScalar));
+
+  return {
+    ...player.attributes,
+    physical_damage: 0,
+    dodge_chance: 0,
+    block_chance: 0,
+    armor: 0,
+    fire_resistance: 0,
+    max_hp: maxHp,
+    mana: 0
+  };
+};
+
+const isStatLocked = (
+  config: StatConfig,
+  statUnlocks: CharacterStatUnlockState | null
+): boolean => {
+  if (config.unlockKind !== "attribute") {
+    return false;
+  }
+
+  const unlocked = statUnlocks?.attributes[config.key];
+
+  if (typeof unlocked === "boolean") {
+    return !unlocked;
+  }
+
+  return config.key !== "vitality";
 };
 
 /**
@@ -167,22 +215,31 @@ const buildStatGroups = (
 })
 export class CombatStatsContainerComponent {
   private readonly http = inject(HttpClient);
+  private readonly gameSettings = inject(GameSettingsService);
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
+  readonly player = input<Player | null>(null);
+  readonly health = input<SaveSlotHealthState | null>(null);
+  readonly statUnlocks = input<CharacterStatUnlockState | null>(null);
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
-  private readonly baseStats = signal<StatBlock>({});
   private readonly itemRegistry = signal<Map<string, InventoryEquipmentItem>>(new Map());
 
   protected readonly selectedKey = signal<string | null>(null);
+  private readonly healthProfile = computed(
+    () => this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined
+  );
+  private readonly baseStats = computed<StatBlock>(() =>
+    buildBaseStats(this.player(), this.health(), this.healthProfile())
+  );
 
   protected readonly modifiers = computed<LabeledModifier[]>(() =>
     buildLabeledModifiers(this.activeLoadout(), this.itemRegistry())
   );
 
   protected readonly statGroups = computed<readonly CombatStatGroupView[]>(() =>
-    buildStatGroups(this.baseStats(), this.modifiers())
+    buildStatGroups(this.baseStats(), this.modifiers(), this.statUnlocks())
   );
 
   protected readonly selectedBreakdown = computed<StatBreakdown | null>(() => {
@@ -190,7 +247,7 @@ export class CombatStatsContainerComponent {
     if (!key) return null;
     for (const group of this.statGroups()) {
       const row = group.stats.find((r) => r.key === key);
-      if (row) return row.breakdown;
+      if (row && !row.isLocked) return row.breakdown;
     }
     return null;
   });
@@ -198,18 +255,22 @@ export class CombatStatsContainerComponent {
   protected readonly selectedLabel = computed<string | null>(() => {
     const key = this.selectedKey();
     if (!key) return null;
+    const row = this.statGroups()
+      .flatMap((group) => group.stats)
+      .find((candidate) => candidate.key === key);
+
+    if (row?.isLocked) {
+      return null;
+    }
+
     return STAT_CONFIG.find((c) => c.key === key)?.label ?? key;
   });
 
   constructor() {
-    combineLatest([
-      this.http.get<unknown>("assets/data/base-stats.json"),
-      this.http.get<unknown>("assets/data/equipment-items.json")
-    ])
+    this.http
+      .get<unknown>("assets/data/equipment-items.json")
       .pipe(
-        map(([rawBase, rawItems]) => {
-          const baseStats: StatBlock = statBlockSchema.parse(rawBase);
-
+        map((rawItems) => {
           const items = Array.isArray(rawItems)
             ? rawItems.map((entry: unknown) => inventoryEquipmentItemSchema.parse(entry))
             : [];
@@ -219,7 +280,7 @@ export class CombatStatsContainerComponent {
             registry.set(item.id, item);
           }
 
-          return { baseStats, registry };
+          return registry;
         }),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load combat stats.";
@@ -229,16 +290,24 @@ export class CombatStatsContainerComponent {
         }),
         takeUntilDestroyed()
       )
-      .subscribe((result) => {
-        if (result) {
-          this.baseStats.set(result.baseStats);
-          this.itemRegistry.set(result.registry);
+      .subscribe((registry) => {
+        if (registry) {
+          this.itemRegistry.set(registry);
         }
         this.isLoading.set(false);
       });
   }
 
   protected onStatSelected(key: string): void {
+    const row = this.statGroups()
+      .flatMap((group) => group.stats)
+      .find((candidate) => candidate.key === key);
+
+    if (row?.isLocked) {
+      this.selectedKey.set(null);
+      return;
+    }
+
     this.selectedKey.update((prev) => (prev === key ? null : key));
   }
 

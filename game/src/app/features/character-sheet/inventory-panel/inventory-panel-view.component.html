@@ -41,6 +41,7 @@
         <gv-inventory-item
           [item]="item"
           [isCompared]="activeComparedItemId() === item.id"
+          [equipTooltip]="equipTooltip(item)"
           (equipRequested)="itemEquipped.emit($event)"
           (unequipRequested)="itemUnequipped.emit($event)"
           (compareRequested)="compareItemChanged.emit($event)"

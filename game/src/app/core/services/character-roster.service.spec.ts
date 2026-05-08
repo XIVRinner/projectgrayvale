@@ -101,9 +101,9 @@ describe("CharacterRosterService", () => {
       })
     );
 
-    expect(roster.activeSlot()?.statUnlocks.attributes.vitality).toBe(true);
-    expect(roster.activeSlot()?.statUnlocks.attributes.strength).toBe(false);
-    expect(roster.activeSlot()?.statUnlocks.skills.short_blade).toBe(false);
+    expect(roster.activeSlot()?.statUnlocks.attributes["vitality"]).toBe(true);
+    expect(roster.activeSlot()?.statUnlocks.attributes["strength"]).toBe(false);
+    expect(roster.activeSlot()?.statUnlocks.skills["short_blade"]).toBe(false);
   });
 
   it("defaults missing imported quest log, story state, and activity availability", () => {
@@ -138,6 +138,30 @@ describe("CharacterRosterService", () => {
     expect(roster.activeCharacter()?.activityState).toEqual({
       availability: {},
       activeActivityId: null
+    });
+  });
+
+  it("normalizes missing loadouts from the player's equipped items", () => {
+    const roster = new CharacterRosterService();
+    const player = clonePlayer(samplePlayer);
+
+    delete player.loadouts;
+    delete player.activeLoadoutId;
+    player.equippedItems = {
+      mainHand: "weapon_dagger_rustleaf",
+      head: "armor_hood_rainwoven",
+      body: "armor_mail_graymark",
+      hands: "armor_gloves_irongrip"
+    };
+
+    const slot = roster.createCharacter(player);
+
+    expect(slot.player.activeLoadoutId).toBe("loadout_default");
+    expect(slot.player.loadouts?.["loadout_default"]?.slots).toEqual({
+      main_hand: "weapon_dagger_rustleaf",
+      head: "armor_hood_rainwoven",
+      chest: "armor_mail_graymark",
+      gloves: "armor_gloves_irongrip"
     });
   });
 
@@ -223,8 +247,8 @@ describe("CharacterRosterService", () => {
 
     restoredRoster.importRoster(payload);
 
-    expect(restoredRoster.activeSlot()?.statUnlocks.attributes.strength).toBe(true);
-    expect(restoredRoster.activeSlot()?.statUnlocks.skills.short_blade).toBe(true);
+    expect(restoredRoster.activeSlot()?.statUnlocks.attributes["strength"]).toBe(true);
+    expect(restoredRoster.activeSlot()?.statUnlocks.skills["short_blade"]).toBe(true);
   });
 
   it("persists quest log changes through export and import", () => {

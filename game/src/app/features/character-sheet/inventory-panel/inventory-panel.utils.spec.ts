@@ -1,3 +1,8 @@
+import {
+  sampleEquipmentItem,
+  sampleMaterialItem,
+  sampleQuestItem
+} from "@rinner/grayvale-core";
 import { buildCategoryCounts, filterInventoryItems, toQualityStars } from "./inventory-panel.utils";
 import type { InventoryPanelItemView } from "./inventory-panel.types";
 
@@ -15,7 +20,10 @@ const SAMPLE_ITEMS: readonly InventoryPanelItemView[] = [
     inspectTooltip: "Rustleaf Dagger",
     compareSummary: "Slot empty",
     isEquipped: false,
-    searchTerms: ["rustleaf dagger", "equipment", "uncommon"]
+    canEquip: true,
+    equipDisabledReason: null,
+    searchTerms: ["rustleaf dagger", "equipment", "uncommon"],
+    itemDef: sampleEquipmentItem
   },
   {
     id: "mat_ironore_common",
@@ -30,7 +38,10 @@ const SAMPLE_ITEMS: readonly InventoryPanelItemView[] = [
     inspectTooltip: "Iron Ore",
     compareSummary: null,
     isEquipped: false,
-    searchTerms: ["iron ore", "material", "common"]
+    canEquip: false,
+    equipDisabledReason: null,
+    searchTerms: ["iron ore", "material", "common"],
+    itemDef: sampleMaterialItem
   },
   {
     id: "quest_item_signal_stone",
@@ -45,7 +56,10 @@ const SAMPLE_ITEMS: readonly InventoryPanelItemView[] = [
     inspectTooltip: "Signal Stone",
     compareSummary: null,
     isEquipped: false,
-    searchTerms: ["signal stone", "quest_item", "uncommon"]
+    canEquip: false,
+    equipDisabledReason: null,
+    searchTerms: ["signal stone", "quest_item", "uncommon"],
+    itemDef: sampleQuestItem
   }
 ];
 

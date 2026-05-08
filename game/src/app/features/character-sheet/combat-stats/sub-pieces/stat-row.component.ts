@@ -14,8 +14,13 @@ export class StatRowComponent {
   readonly isSelected = input<boolean>(false);
 
   readonly selected = output<string>();
+  protected readonly lockedLabel = "Locked";
 
   protected onSelect(): void {
+    if (this.row().isLocked) {
+      return;
+    }
+
     this.selected.emit(this.row().key);
   }
 }

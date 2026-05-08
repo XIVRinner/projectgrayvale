@@ -15,13 +15,16 @@ import {
   type EquipmentSlot,
   type InventoryEquipmentItem,
   type Loadout,
+  type Player,
   inventoryEquipmentItemSchema
 } from "@rinner/grayvale-core";
 
+import { checkEquipmentRequirements } from "../character-sheet-equipment-requirements";
 import type {
   LoadoutEquipEvent,
   LoadoutRenameEvent,
   LoadoutRowView,
+  LoadoutSlotEquipOptionView,
   LoadoutSlotRowView
 } from "./loadout-selector.types";
 import { LoadoutSelectorViewComponent } from "./loadout-selector-view.component";
@@ -80,6 +83,7 @@ export class LoadoutSelectorContainerComponent {
   readonly loadoutsRecord = input.required<Readonly<Record<string, Loadout>>>();
   /** ID of the currently active loadout. */
   readonly activeLoadoutId = input.required<string>();
+  readonly player = input<Player | null>(null);
 
   readonly loadoutSelected = output<string>();
   readonly loadoutCreated = output<void>();
@@ -121,9 +125,9 @@ export class LoadoutSelectorContainerComponent {
     });
   });
 
-  protected readonly itemsBySlot = computed<Readonly<Record<EquipmentSlot, readonly InventoryEquipmentItem[]>>>(() => {
+  protected readonly itemsBySlot = computed<Readonly<Record<EquipmentSlot, readonly LoadoutSlotEquipOptionView[]>>>(() => {
     const registry = this.itemRegistry();
-    const result = {} as Record<EquipmentSlot, InventoryEquipmentItem[]>;
+    const result = {} as Record<EquipmentSlot, LoadoutSlotEquipOptionView[]>;
 
     for (const slotId of ALL_SLOTS) {
       result[slotId] = [];
@@ -131,7 +135,14 @@ export class LoadoutSelectorContainerComponent {
 
     for (const item of registry.values()) {
       if (item.slot && (ALL_SLOTS as string[]).includes(item.slot)) {
-        result[item.slot as EquipmentSlot].push(item);
+        const requirementCheck = checkEquipmentRequirements(this.player(), item);
+
+        result[item.slot as EquipmentSlot].push({
+          id: item.id,
+          name: item.name,
+          disabled: !requirementCheck.canEquip,
+          disabledReason: requirementCheck.reason
+        });
       }
     }
 

@@ -65,7 +65,8 @@
           class="gv-inventory-item__action-btn gv-inventory-item__action-btn--accent"
           (click)="onEquip()"
           [attr.aria-label]="'Equip ' + item().name"
-          pTooltip="Equip to active loadout"
+          [disabled]="!item().canEquip"
+          [pTooltip]="equipTooltip()"
           tooltipPosition="left"
         >
           <i class="pi pi-check" aria-hidden="true"></i>

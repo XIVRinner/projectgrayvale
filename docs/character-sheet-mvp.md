@@ -6,8 +6,8 @@ This document describes the Character Sheet MVP **as it is currently implemented
 
 - Target framework: **Angular 21**
 - Current top-level UI: a tabbed character sheet with **Equipment**, **Stats**, and **Inventory** tabs
-- Current data sources: static JSON in `game/src/assets/data/`
-- Current state ownership: local signal state inside `CharacterSheetContainerComponent`
+- Current data sources: the active roster player plus static item/settings JSON in `game/src/assets/data/`
+- Current state ownership: `CharacterRosterService` for player/loadout state, local signals only for view-local UI state such as active tab and compare selection
 
 The current MVP is intentionally focused on loadouts, equipment, combat-stat math, inventory browsing, and item tooltips. It does **not** ship the broader long-term character-sheet vision yet.
 
@@ -59,7 +59,7 @@ UI rules that match the current panel:
 
 ## Loadout Behavior
 
-The current MVP keeps loadouts entirely in local container state.
+The current MVP reads loadouts from the active roster player and writes equipment changes back through the roster service.
 
 Implemented behavior:
 
@@ -128,11 +128,12 @@ The Stats tab is currently combat-stat-only.
 
 Current data flow:
 
-1. load base stats from `assets/data/base-stats.json`
-2. load equipment definitions from `assets/data/equipment-items.json`
-3. gather active loadout item modifiers
-4. build `LabeledModifier[]`
-5. compute `StatBreakdown` records through `computeStatBreakdowns`
+1. read the active player's base attributes from the roster
+2. derive `max_hp` from active health state / health balance profile
+3. load equipment definitions from `assets/data/equipment-items.json`
+4. gather active loadout item modifiers
+5. build `LabeledModifier[]`
+6. compute `StatBreakdown` records through `computeStatBreakdowns`
 
 Current math rules:
 

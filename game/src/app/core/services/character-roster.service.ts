@@ -1,5 +1,12 @@
 import { Injectable, computed, signal } from "@angular/core";
-import { applyDeltas, type Delta, type Player } from "@rinner/grayvale-core";
+import {
+  applyDeltas,
+  createLoadout,
+  selectActiveLoadout,
+  type Delta,
+  type Loadout,
+  type Player
+} from "@rinner/grayvale-core";
 import { Subject } from "rxjs";
 
 import { safeParsePlayer } from "../validation/core-runtime-validation";
@@ -12,6 +19,8 @@ import { type SaveSlotHealthState } from "./health-balance";
 
 const STORAGE_KEY = "grayvale:save-slots:v1";
 const VITALITY_ATTRIBUTE_ID = "vitality";
+const DEFAULT_LOADOUT_ID = "loadout_default";
+const DEFAULT_LOADOUT_NAME = "Default";
 
 export interface CharacterStatUnlockState {
   readonly attributes: Readonly<Record<string, boolean>>;
@@ -196,6 +205,15 @@ export class CharacterRosterService {
     return this.updateActiveSlot((slot) => ({
       ...slot,
       health: cloneHealthState(health)
+    }));
+  }
+
+  updateActiveCharacter(
+    updater: (player: Player) => Player
+  ): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      player: normalizeSaveSlotPlayer(updater(slot.player))
     }));
   }
 
@@ -522,6 +540,10 @@ function buildNextSlotId(slots: readonly CharacterSaveSlot[]): string {
 }
 
 function normalizeSaveSlotPlayer(player: Player): Player {
+  const loadouts = normalizePlayerLoadouts(player);
+  const activeLoadoutId = resolveActiveLoadoutId(loadouts, player.activeLoadoutId);
+  const normalizedLoadouts = selectActiveLoadout(loadouts, activeLoadoutId);
+
   return {
     ...player,
     questLog: {
@@ -539,7 +561,10 @@ function normalizeSaveSlotPlayer(player: Player): Player {
       },
       activeActivityId:
         player.activityState?.activeActivityId ?? null
-    }
+    },
+    equippedItems: syncEquippedItemsFromLoadout(normalizedLoadouts[activeLoadoutId]),
+    loadouts: normalizedLoadouts,
+    activeLoadoutId
   };
 }
 
@@ -570,5 +595,86 @@ function cloneHealthState(
   return {
     currentHp: health.currentHp,
     maxHp: health.maxHp
+  };
+}
+
+function normalizePlayerLoadouts(player: Player): Record<string, Loadout> {
+  const authoredLoadouts = player.loadouts;
+
+  if (authoredLoadouts && Object.keys(authoredLoadouts).length > 0) {
+    return Object.fromEntries(
+      Object.entries(authoredLoadouts).map(([id, loadout]) => [
+        id,
+        {
+          ...loadout,
+          slots: { ...loadout.slots }
+        }
+      ])
+    );
+  }
+
+  const defaultLoadout = createLoadout(DEFAULT_LOADOUT_ID, DEFAULT_LOADOUT_NAME);
+
+  return {
+    [DEFAULT_LOADOUT_ID]: {
+      ...defaultLoadout,
+      slots: buildLoadoutSlotsFromEquippedItems(player)
+    }
+  };
+}
+
+function resolveActiveLoadoutId(
+  loadouts: Readonly<Record<string, Loadout>>,
+  activeLoadoutId: string | undefined
+): string {
+  if (activeLoadoutId && loadouts[activeLoadoutId]) {
+    return activeLoadoutId;
+  }
+
+  return Object.keys(loadouts)[0] ?? DEFAULT_LOADOUT_ID;
+}
+
+function buildLoadoutSlotsFromEquippedItems(player: Player): Loadout["slots"] {
+  const slots: Loadout["slots"] = {};
+
+  if (player.equippedItems.mainHand) {
+    slots.main_hand = player.equippedItems.mainHand;
+  }
+
+  if (player.equippedItems.offHand) {
+    slots.off_hand = player.equippedItems.offHand;
+  }
+
+  if (player.equippedItems.head) {
+    slots.head = player.equippedItems.head;
+  }
+
+  if (player.equippedItems.body) {
+    slots.chest = player.equippedItems.body;
+  }
+
+  if (player.equippedItems.legs) {
+    slots.legs = player.equippedItems.legs;
+  }
+
+  if (player.equippedItems.hands) {
+    slots.gloves = player.equippedItems.hands;
+  }
+
+  return slots;
+}
+
+function syncEquippedItemsFromLoadout(
+  loadout: Loadout | undefined
+): Player["equippedItems"] {
+  const slots = loadout?.slots ?? {};
+
+  return {
+    mainHand: slots.main_hand,
+    offHand: slots.off_hand,
+    head: slots.head,
+    body: slots.chest,
+    legs: slots.legs,
+    hands: slots.gloves
   };
 }

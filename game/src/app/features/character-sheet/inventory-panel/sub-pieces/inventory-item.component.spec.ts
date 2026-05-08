@@ -33,7 +33,9 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: itemDef.slot,
         inspectTooltip: itemDef.name,
         compareSummary: "Slot empty",
-        isEquipped: false
+        isEquipped: false,
+        canEquip: true,
+        equipDisabledReason: null
       };
     case "material":
       return {
@@ -45,7 +47,9 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: null,
         inspectTooltip: itemDef.name,
         compareSummary: null,
-        isEquipped: false
+        isEquipped: false,
+        canEquip: false,
+        equipDisabledReason: null
       };
     case "quest_item":
       return {
@@ -57,7 +61,9 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: null,
         inspectTooltip: itemDef.name,
         compareSummary: null,
-        isEquipped: false
+        isEquipped: false,
+        canEquip: false,
+        equipDisabledReason: null
       };
     case "junk":
       return {
@@ -69,7 +75,9 @@ const toItemView = (itemDef: InventoryItemDefinition): InventoryPanelItemView =>
         slot: null,
         inspectTooltip: itemDef.name,
         compareSummary: null,
-        isEquipped: false
+        isEquipped: false,
+        canEquip: false,
+        equipDisabledReason: null
       };
   }
 };
@@ -129,5 +137,18 @@ describe("InventoryItemComponent", () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector(".gv-junk-tooltip-body")).not.toBeNull();
     expect(element.querySelector(".gv-quest-tooltip-body")).toBeNull();
+  });
+
+  it("disables equip when requirements are not met", () => {
+    fixture.componentRef.setInput("item", {
+      ...toItemView(sampleEquipmentItem),
+      canEquip: false,
+      equipDisabledReason: "Requires level 99."
+    });
+    fixture.detectChanges();
+
+    const equipButton = fixture.nativeElement.querySelector<HTMLButtonElement>("[aria-label^='Equip ']");
+
+    expect(equipButton?.disabled).toBe(true);
   });
 });

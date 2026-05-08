@@ -15,6 +15,13 @@ export interface LoadoutSlotRowView {
   readonly equippedItem: InventoryEquipmentItem | null;
 }
 
+export interface LoadoutSlotEquipOptionView {
+  readonly id: string;
+  readonly name: string;
+  readonly disabled: boolean;
+  readonly disabledReason: string | null;
+}
+
 /** Rename event emitted by a loadout row. */
 export interface LoadoutRenameEvent {
   readonly id: string;

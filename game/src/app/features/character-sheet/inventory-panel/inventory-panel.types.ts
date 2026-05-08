@@ -22,6 +22,8 @@ export interface InventoryPanelItemView {
   readonly inspectTooltip: string;
   readonly compareSummary: string | null;
   readonly isEquipped: boolean;
+  readonly canEquip: boolean;
+  readonly equipDisabledReason: string | null;
   readonly searchTerms: readonly string[];
   /** Full item definition passed through for rich tooltip rendering. */
   readonly itemDef: InventoryItemDefinition;

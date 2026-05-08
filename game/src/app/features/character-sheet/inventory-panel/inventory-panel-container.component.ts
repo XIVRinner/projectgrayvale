@@ -17,9 +17,11 @@ import {
   type EquipmentSlot,
   type InventoryItemDefinition,
   type Loadout,
+  type Player,
   sampleLoadoutDefault
 } from "@rinner/grayvale-core";
 
+import { checkEquipmentRequirements } from "../character-sheet-equipment-requirements";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "./inventory-panel.types";
 import { isEquipmentItem } from "./inventory-panel.types";
 import { InventoryPanelViewComponent } from "./inventory-panel-view.component";
@@ -46,6 +48,7 @@ export class InventoryPanelContainerComponent {
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
   readonly comparedItemId = input<string | null>(null);
+  readonly player = input<Player | null>(null);
 
   readonly itemEquipped = output<InventoryEquipEvent>();
   readonly itemUnequipped = output<EquipmentSlot>();
@@ -82,6 +85,8 @@ export class InventoryPanelContainerComponent {
           inspectTooltip: `${item.name}\n${item.rarity}\nQuantity: ${item.quantity}`,
           compareSummary: null,
           isEquipped: false,
+          canEquip: false,
+          equipDisabledReason: null,
           searchTerms,
           itemDef: item
         } satisfies InventoryPanelItemView;
@@ -102,6 +107,8 @@ export class InventoryPanelContainerComponent {
           inspectTooltip: `${item.name}\n${item.rarity}\nContext: ${item.questContext}`,
           compareSummary: null,
           isEquipped: false,
+          canEquip: false,
+          equipDisabledReason: null,
           searchTerms,
           itemDef: item
         } satisfies InventoryPanelItemView;
@@ -122,11 +129,14 @@ export class InventoryPanelContainerComponent {
           inspectTooltip: `${item.name}\n${item.rarity}\nVendor trash`,
           compareSummary: null,
           isEquipped: false,
+          canEquip: false,
+          equipDisabledReason: null,
           searchTerms,
           itemDef: item
         } satisfies InventoryPanelItemView;
       }
 
+      const requirementCheck = checkEquipmentRequirements(this.player(), item);
       const equippedItemId = loadout.slots[item.slot];
       const equippedItem = equippedItemId ? registry.get(equippedItemId) : null;
       const comparison = compareItemAgainstSlot(loadout, item.slot, item.id);
@@ -158,6 +168,8 @@ export class InventoryPanelContainerComponent {
         ),
         compareSummary,
         isEquipped: comparison.currentItemId === item.id,
+        canEquip: requirementCheck.canEquip,
+        equipDisabledReason: requirementCheck.reason,
         searchTerms,
         itemDef: item
       } satisfies InventoryPanelItemView;

@@ -1,23 +1,27 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal
+} from "@angular/core";
 
 import {
   createLoadout,
   equipItem,
   renameLoadout,
   selectActiveLoadout,
-  sampleLoadouts,
   unequipItem,
   type EquipmentSlot,
   type Loadout
 } from "@rinner/grayvale-core";
 
+import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { CombatStatsContainerComponent } from "./combat-stats/combat-stats-container.component";
 import { EquipmentPanelContainerComponent } from "./equipment-panel/equipment-panel-container.component";
 import { InventoryPanelContainerComponent } from "./inventory-panel/inventory-panel-container.component";
 import { LoadoutSelectorContainerComponent } from "./loadout-selector/loadout-selector-container.component";
 import type { LoadoutEquipEvent, LoadoutRenameEvent } from "./loadout-selector/loadout-selector.types";
-
-let _nextLoadoutIndex = 3;
 
 type CharacterSheetTab = "equipment" | "stats" | "inventory";
 
@@ -32,6 +36,11 @@ const TABS: readonly TabDef[] = [
   { id: "stats", label: "Stats", icon: "pi-chart-bar" },
   { id: "inventory", label: "Inventory", icon: "pi-briefcase" }
 ];
+
+const EMPTY_LOADOUT: Loadout = {
+  ...createLoadout("loadout_default", "Default"),
+  isActive: true
+};
 
 /**
  * Top-level smart container for the Character Sheet feature.
@@ -74,6 +83,7 @@ const TABS: readonly TabDef[] = [
               <gv-loadout-selector-container
                 [loadoutsRecord]="loadoutsRecord()"
                 [activeLoadoutId]="activeLoadoutId()"
+                [player]="activeCharacter()"
                 (loadoutSelected)="onLoadoutSelected($event)"
                 (loadoutCreated)="onLoadoutCreated()"
                 (loadoutRenamed)="onLoadoutRenamed($event)"
@@ -88,12 +98,18 @@ const TABS: readonly TabDef[] = [
             </div>
           }
           @case ('stats') {
-            <gv-combat-stats-container [activeLoadout]="activeLoadout()" />
+            <gv-combat-stats-container
+              [player]="activeCharacter()"
+              [health]="activeHealth()"
+              [statUnlocks]="activeSlot()?.statUnlocks ?? null"
+              [activeLoadout]="activeLoadout()"
+            />
           }
           @case ('inventory') {
             <gv-inventory-panel-container
               [activeLoadout]="activeLoadout()"
               [comparedItemId]="comparedItemId()"
+              [player]="activeCharacter()"
               (itemEquipped)="onItemEquipped($event)"
               (itemUnequipped)="onItemUnequipped($event)"
               (compareItemChanged)="onComparedItemChanged($event)"
@@ -106,69 +122,113 @@ const TABS: readonly TabDef[] = [
   styleUrl: "./character-sheet-container.component.scss"
 })
 export class CharacterSheetContainerComponent {
+  private readonly roster = inject(CharacterRosterService);
+
   protected readonly tabs = TABS;
   protected readonly activeTab = signal<CharacterSheetTab>("equipment");
 
-  protected readonly loadoutsRecord = signal<Record<string, Loadout>>({ ...sampleLoadouts });
-  protected readonly activeLoadoutId = signal<string>("loadout_default");
+  protected readonly activeCharacter = this.roster.activeCharacter;
+  protected readonly activeHealth = this.roster.activeHealth;
+  protected readonly activeSlot = this.roster.activeSlot;
+  protected readonly loadoutsRecord = computed<Readonly<Record<string, Loadout>>>(() =>
+    this.activeCharacter()?.loadouts ?? { [EMPTY_LOADOUT.id]: EMPTY_LOADOUT }
+  );
+  protected readonly activeLoadoutId = computed<string>(
+    () => this.activeCharacter()?.activeLoadoutId ?? EMPTY_LOADOUT.id
+  );
   protected readonly comparedItemId = signal<string | null>(null);
 
   protected readonly activeLoadout = computed<Loadout>(() => {
     const record = this.loadoutsRecord();
     const id = this.activeLoadoutId();
-    return record[id] ?? Object.values(record)[0];
+    return record[id] ?? Object.values(record)[0] ?? EMPTY_LOADOUT;
   });
 
   protected onLoadoutSelected(id: string): void {
-    const updated = selectActiveLoadout(this.loadoutsRecord(), id);
-    this.loadoutsRecord.set(updated);
-    this.activeLoadoutId.set(id);
+    this.roster.updateActiveCharacter((player) => ({
+      ...player,
+      loadouts: selectActiveLoadout(
+        cloneLoadouts(player.loadouts ?? { [EMPTY_LOADOUT.id]: EMPTY_LOADOUT }),
+        id
+      ),
+      activeLoadoutId: id
+    }));
     this.comparedItemId.set(null);
   }
 
   protected onLoadoutCreated(): void {
-    const id = `loadout_custom_${_nextLoadoutIndex++}`;
-    const newLoadout = createLoadout(id, `Loadout ${_nextLoadoutIndex - 1}`);
-    const updated = { ...this.loadoutsRecord(), [id]: newLoadout };
-    this.loadoutsRecord.set(updated);
+    this.roster.updateActiveCharacter((player) => {
+      const loadouts = cloneLoadouts(player.loadouts ?? { [EMPTY_LOADOUT.id]: EMPTY_LOADOUT });
+      const id = buildNextLoadoutId(loadouts);
+      const nextIndex = Object.keys(loadouts).length + 1;
+
+      return {
+        ...player,
+        loadouts: {
+          ...loadouts,
+          [id]: createLoadout(id, `Loadout ${nextIndex}`)
+        }
+      };
+    });
   }
 
   protected onLoadoutRenamed(event: LoadoutRenameEvent): void {
-    const record = this.loadoutsRecord();
-    const target = record[event.id];
+    this.roster.updateActiveCharacter((player) => {
+      const record = cloneLoadouts(player.loadouts ?? { [EMPTY_LOADOUT.id]: EMPTY_LOADOUT });
+      const target = record[event.id];
 
-    if (!target) return;
+      if (!target) {
+        return player;
+      }
 
-    this.loadoutsRecord.set({
-      ...record,
-      [event.id]: renameLoadout(target, event.displayName)
+      return {
+        ...player,
+        loadouts: {
+          ...record,
+          [event.id]: renameLoadout(target, event.displayName)
+        }
+      };
     });
   }
 
   protected onItemEquipped(event: LoadoutEquipEvent): void {
-    const record = this.loadoutsRecord();
-    const activeId = this.activeLoadoutId();
-    const target = record[activeId];
+    this.roster.updateActiveCharacter((player) => {
+      const record = cloneLoadouts(player.loadouts ?? { [EMPTY_LOADOUT.id]: EMPTY_LOADOUT });
+      const activeId = player.activeLoadoutId ?? EMPTY_LOADOUT.id;
+      const target = record[activeId];
 
-    if (!target) return;
+      if (!target) {
+        return player;
+      }
 
-    this.loadoutsRecord.set({
-      ...record,
-      [activeId]: equipItem(target, event.slot, event.itemId)
+      return {
+        ...player,
+        loadouts: {
+          ...record,
+          [activeId]: equipItem(target, event.slot, event.itemId)
+        }
+      };
     });
     this.comparedItemId.set(null);
   }
 
   protected onItemUnequipped(slot: EquipmentSlot): void {
-    const record = this.loadoutsRecord();
-    const activeId = this.activeLoadoutId();
-    const target = record[activeId];
+    this.roster.updateActiveCharacter((player) => {
+      const record = cloneLoadouts(player.loadouts ?? { [EMPTY_LOADOUT.id]: EMPTY_LOADOUT });
+      const activeId = player.activeLoadoutId ?? EMPTY_LOADOUT.id;
+      const target = record[activeId];
 
-    if (!target) return;
+      if (!target) {
+        return player;
+      }
 
-    this.loadoutsRecord.set({
-      ...record,
-      [activeId]: unequipItem(target, slot)
+      return {
+        ...player,
+        loadouts: {
+          ...record,
+          [activeId]: unequipItem(target, slot)
+        }
+      };
     });
     this.comparedItemId.set(null);
   }
@@ -176,4 +236,26 @@ export class CharacterSheetContainerComponent {
   protected onComparedItemChanged(itemId: string | null): void {
     this.comparedItemId.set(itemId);
   }
+}
+
+function cloneLoadouts(loadouts: Readonly<Record<string, Loadout>>): Record<string, Loadout> {
+  return Object.fromEntries(
+    Object.entries(loadouts).map(([id, loadout]) => [
+      id,
+      {
+        ...loadout,
+        slots: { ...loadout.slots }
+      }
+    ])
+  );
+}
+
+function buildNextLoadoutId(loadouts: Readonly<Record<string, Loadout>>): string {
+  let index = Object.keys(loadouts).length + 1;
+
+  while (loadouts[`loadout_custom_${index}`]) {
+    index += 1;
+  }
+
+  return `loadout_custom_${index}`;
 }

@@ -46,6 +46,7 @@ describe("CombatStatsViewComponent", () => {
             key: "strength",
             label: "Strength",
             breakdown: buffedBreakdown,
+            isLocked: false,
             formattedValue: "40",
             formattedDelta: "+20"
           },
@@ -53,6 +54,7 @@ describe("CombatStatsViewComponent", () => {
             key: "mentality",
             label: "Mentality",
             breakdown: nerfedBreakdown,
+            isLocked: false,
             formattedValue: "10",
             formattedDelta: "-20"
           }
@@ -98,6 +100,7 @@ describe("CombatStatsViewComponent", () => {
             key: "strength",
             label: "Strength",
             breakdown: strengthBreakdown,
+            isLocked: false,
             formattedValue: `${strengthBreakdown.final}`,
             formattedDelta: "+20"
           }
@@ -117,5 +120,33 @@ describe("CombatStatsViewComponent", () => {
     expect(element.querySelector(".gv-breakdown-drawer__row--final .gv-breakdown-drawer__value")?.textContent?.trim()).toBe(
       "40"
     );
+  });
+
+  it("renders locked stats as locked and disables interaction", () => {
+    const lockedBreakdown = computeStatBreakdown("strength", 7, []);
+
+    fixture.componentRef.setInput("statGroups", [
+      {
+        label: "Primary Stats",
+        stats: [
+          {
+            key: "strength",
+            label: "Strength",
+            breakdown: lockedBreakdown,
+            isLocked: true,
+            formattedValue: "7",
+            formattedDelta: null
+          }
+        ]
+      }
+    ]);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const row = element.querySelector<HTMLButtonElement>(".gv-stat-row");
+
+    expect(row?.disabled).toBe(true);
+    expect(row?.textContent).toContain("Locked");
+    expect(row?.textContent).not.toContain("7");
   });
 });
