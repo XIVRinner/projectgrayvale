@@ -5,7 +5,7 @@ module.exports = {
   moduleFileExtensions: ["ts", "html", "js", "json", "mjs"],
   moduleNameMapper: {
     "^@rinner/grayvale-core$": "<rootDir>/../core/src/index.ts",
-    "^@rinner/grayvale-dialogue$": "<rootDir>/../dialogue/src/index.ts",
+    "^@rinner/grayvale-dialogue$": "<rootDir>/../dialogue/dist/index.cjs",
     "^@rinner/grayvale-worldgraph$": "<rootDir>/../worldgraph/src/index.ts",
     "^tslib$": "<rootDir>/node_modules/tslib/tslib.js"
   },

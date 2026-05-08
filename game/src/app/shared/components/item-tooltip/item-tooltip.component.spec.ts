@@ -1,15 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-
-jest.mock(
-  "@rinner/grayvale-core",
-  () => ({
-    RARITY_DEFINITIONS: {
-      common: { color: "#9ca3af" },
-      legendary: { color: "#f59e0b" }
-    }
-  }),
-  { virtual: true }
-);
+import { RARITY_DEFINITIONS } from "@rinner/grayvale-core";
 
 import { ItemTooltipComponent } from "./item-tooltip.component";
 
@@ -59,10 +49,10 @@ describe("ItemTooltipComponent", () => {
   });
 
   it("falls back to common rarity color when a definition is unavailable", () => {
-    fixture.componentRef.setInput("item", { ...BASE_ITEM, rarity: "primal" });
+    fixture.componentRef.setInput("item", { ...BASE_ITEM, rarity: "astral" } as any);
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector(".gv-item-tooltip")?.getAttribute("style")).toContain("#9ca3af");
+    expect(element.querySelector(".gv-item-tooltip")?.getAttribute("style")).toContain(RARITY_DEFINITIONS.common.color);
   });
 });
