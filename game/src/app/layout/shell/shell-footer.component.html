@@ -8,15 +8,26 @@
   </div>
 
   <div class="gv-footer__links">
+    <button
+      type="button"
+      class="gv-footer__btn gv-footer__btn--server"
+      [class.gv-footer__btn--server-live]="serverSummary().isConnected"
+      (click)="serverInfoRequested.emit()"
+    >
+      <span class="gv-footer__server-label">{{ serverSummary().label }}</span>
+      <span class="gv-footer__server-detail">{{ serverSummary().detail }}</span>
+    </button>
     <!-- GAP: ChangelogModalService not yet available — button is a visual placeholder -->
-    <button type="button" class="gv-footer__btn gv-footer__btn--version" disabled>
+    <button
+      type="button"
+      class="gv-footer__btn gv-footer__btn--version"
+      disabled
+    >
       v{{ version() }}
     </button>
 
     <!-- GAP: WikiModalService not yet available — button is a visual placeholder -->
-    <button type="button" class="gv-footer__btn" disabled>
-      Game Wiki
-    </button>
+    <button type="button" class="gv-footer__btn" disabled>Game Wiki</button>
 
     <button
       type="button"

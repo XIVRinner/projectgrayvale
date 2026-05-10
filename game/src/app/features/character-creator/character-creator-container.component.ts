@@ -28,6 +28,7 @@ import {
   reconcileHealthState
 } from "../../core/services/health-balance";
 import { safeParsePlayer } from "../../core/validation/core-runtime-validation";
+import { generatePlayerUuid } from "../../core/utils/player-uuid";
 import {
   CHARACTER_CREATOR_DEFAULT_GENDER_ID,
   CHARACTER_CREATOR_DIFFICULTY_DEFAULTS,
@@ -290,7 +291,7 @@ export class CharacterCreatorContainerComponent {
     }
 
     const playerDraft: Player = {
-      id: buildPlayerId(normalizedName),
+      id: generatePlayerUuid(),
       name: normalizedName,
       description: "A newly registered adventurer entering GrayVale.",
       raceId: race.id,
@@ -715,15 +716,6 @@ function resolveAttributeLabel(
 
 function resolveSkillLabel(skillId: string, skillsById: ReadonlyMap<string, Skill>): string {
   return skillsById.get(skillId)?.name ?? prettyLabel(skillId);
-}
-
-function buildPlayerId(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-  return `player_${slug || "new_recruit"}`;
 }
 
 const STARTER_LOADOUT_ID = "loadout_default";

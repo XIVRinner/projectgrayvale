@@ -1,0 +1,49 @@
+@if (open()) {
+  <gv-dialog-shell
+    [open]="open()"
+    variant="character-system"
+    width="standard"
+    eyebrow="Server"
+    title="Grant Admin"
+    subtitle="Validate the shard admin password to elevate this connected character."
+    ariaLabel="Grant server admin"
+    (closed)="closed.emit()"
+  >
+    <form
+      class="gv-server-admin-dialog"
+      (submit)="$event.preventDefault(); submit()"
+    >
+      @if (statusMessage(); as statusMessage) {
+        <p class="gv-server-admin-dialog__status">{{ statusMessage }}</p>
+      }
+
+      <label class="gv-server-admin-dialog__field">
+        <span>Admin Password</span>
+        <input
+          [value]="password()"
+          type="password"
+          placeholder="Server admin password"
+          autocomplete="current-password"
+          (input)="onPasswordInput($event)"
+        />
+      </label>
+
+      <div class="gv-server-admin-dialog__actions">
+        <button
+          type="button"
+          class="gv-server-admin-dialog__btn gv-server-admin-dialog__btn--cancel"
+          (click)="closed.emit()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="gv-server-admin-dialog__btn"
+          [disabled]="!password().trim() || submitting()"
+        >
+          {{ submitting() ? "Granting..." : "Send" }}
+        </button>
+      </div>
+    </form>
+  </gv-dialog-shell>
+}

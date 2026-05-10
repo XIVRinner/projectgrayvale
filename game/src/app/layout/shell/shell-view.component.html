@@ -43,7 +43,9 @@
 
   <gv-shell-footer
     [version]="version()"
+    [serverSummary]="serverFooterSummary()"
     (gegVisualizerRequested)="gegVisualizerOpenRequested.emit()"
+    (serverInfoRequested)="serverInfoRequested.emit()"
   />
 
   <gv-shell-save-manager-modal
@@ -62,6 +64,54 @@
     (transferPayloadChanged)="saveTransferPayloadChanged.emit($event)"
   />
 
+  <gv-shell-server-select-modal
+    [open]="isServerSelectOpen()"
+    [servers]="servers()"
+    [selectedServerId]="selectedServerId()"
+    [activePlayerUuid]="activePlayerUuid()"
+    [statusMessage]="serverStatusMessage()"
+    (closed)="serverSelectCloseRequested.emit()"
+    (selectedServerChanged)="serverChanged.emit($event)"
+    (serverAdded)="serverAdded.emit($event)"
+    (connectRequested)="serverConnectRequested.emit($event)"
+    (giveAdminRequested)="serverGiveAdminRequested.emit($event)"
+  />
+
+  <gv-shell-server-chat-dialog
+    [open]="isServerChatOpen()"
+    [panel]="serverChatPanel()"
+    [players]="serverChatPlayers()"
+    [messages]="serverChatMessages()"
+    [customEmojis]="serverChatCustomEmojis()"
+    [commands]="serverChatCommands()"
+    [currentPlayerUuid]="currentServerChatPlayerUuid()"
+    [statusMessage]="serverChatStatusMessage()"
+    [canSend]="canSendServerChat()"
+    [canModerate]="canModerateServerChat()"
+    [canBlockServerEntry]="canBlockServerEntry()"
+    [isSending]="isServerChatSending()"
+    [sendHint]="serverChatSendHint()"
+    [selectedModerationPlayer]="selectedModerationPlayer()"
+    [moderationStatusMessage]="serverModerationStatusMessage()"
+    [isModerationSubmitting]="isServerModerationSubmitting()"
+    (closed)="serverChatCloseRequested.emit()"
+    (refreshRequested)="serverChatRefreshRequested.emit()"
+    (grantAdminRequested)="serverChatGrantAdminRequested.emit()"
+    (moderatePlayerRequested)="serverChatModeratePlayerRequested.emit($event)"
+    (moderationSubmitted)="serverModerationSubmitted.emit($event)"
+    (moderationCleared)="serverModerationCleared.emit()"
+    (sendRequested)="serverChatSendRequested.emit($event)"
+    (openServerSelectRequested)="serverChatServerSelectRequested.emit()"
+  />
+
+  <gv-shell-server-admin-dialog
+    [open]="isServerAdminOpen()"
+    [statusMessage]="serverAdminStatusMessage()"
+    [submitting]="isServerAdminSubmitting()"
+    (closed)="serverAdminCloseRequested.emit()"
+    (submitted)="serverAdminSubmitted.emit($event)"
+  />
+
   <gv-shell-gameplay-log-dialog
     [open]="isGameplayLogOpen()"
     [entries]="gameplayLogEntries()"
@@ -73,7 +123,9 @@
     [open]="isQuestLogOpen()"
     [quests]="questLogQuests()"
     [trackedQuestIds]="trackedQuestIds()"
-    (openChange)="!$event ? questLogCloseRequested.emit() : questLogOpenRequested.emit()"
+    (openChange)="
+      !$event ? questLogCloseRequested.emit() : questLogOpenRequested.emit()
+    "
     (trackQuestChange)="trackedQuestIdsChanged.emit($event)"
   />
 

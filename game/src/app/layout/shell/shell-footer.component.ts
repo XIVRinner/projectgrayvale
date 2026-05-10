@@ -7,6 +7,8 @@
 
 import { Component, input, output, signal } from "@angular/core";
 
+import { ServerFooterSummaryView } from "../../core/services/server-chat.models";
+
 const TIPS: readonly string[] = [
   "Zero HP is generally considered sub-optimal.",
   "Overconfidence has claimed more heroes than any enemy.",
@@ -15,20 +17,22 @@ const TIPS: readonly string[] = [
   "Not every barrel is your friend.",
   "Some things are best left unburied.",
   "Save often. Regret less.",
-  "Goblin diplomacy: bring snacks."
+  "Goblin diplomacy: bring snacks.",
 ];
 
 @Component({
   selector: "gv-shell-footer",
   standalone: true,
   templateUrl: "./shell-footer.component.html",
-  styleUrl: "./shell-footer.component.scss"
+  styleUrl: "./shell-footer.component.scss",
 })
 export class ShellFooterComponent {
   readonly version = input("0.0.1");
+  readonly serverSummary = input.required<ServerFooterSummaryView>();
   readonly gegVisualizerRequested = output<void>();
+  readonly serverInfoRequested = output<void>();
 
   protected readonly tip = signal(
-    TIPS[Math.floor(Math.random() * TIPS.length)]
+    TIPS[Math.floor(Math.random() * TIPS.length)],
   );
 }

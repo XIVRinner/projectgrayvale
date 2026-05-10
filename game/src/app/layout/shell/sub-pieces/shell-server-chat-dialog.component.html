@@ -1,0 +1,37 @@
+@if (open()) {
+  <gv-dialog-shell
+    [open]="open()"
+    variant="special"
+    width="wide"
+    eyebrow="Server"
+    title="World Relay"
+    subtitle="Presence readout, online players, and shard chat for the selected server."
+    ariaLabel="Server relay"
+    (closed)="closed.emit()"
+  >
+    <gv-server-chat-panel
+      [panel]="panel()"
+      [players]="players()"
+      [messages]="messages()"
+      [customEmojis]="customEmojis()"
+      [commands]="commands()"
+      [currentPlayerUuid]="currentPlayerUuid()"
+      [statusMessage]="statusMessage()"
+      [canSend]="canSend()"
+      [canModerate]="canModerate()"
+      [canBlockServerEntry]="canBlockServerEntry()"
+      [isSending]="isSending()"
+      [sendHint]="sendHint()"
+      [selectedModerationPlayer]="selectedModerationPlayer()"
+      [moderationStatusMessage]="moderationStatusMessage()"
+      [isModerationSubmitting]="isModerationSubmitting()"
+      (refreshRequested)="refreshRequested.emit()"
+      (openServerSelectRequested)="openServerSelectRequested.emit()"
+      (grantAdminRequested)="grantAdminRequested.emit()"
+      (moderatePlayerRequested)="moderatePlayerRequested.emit($event)"
+      (moderationSubmitted)="moderationSubmitted.emit($event)"
+      (moderationCleared)="moderationCleared.emit()"
+      (sendRequested)="sendRequested.emit($event)"
+    />
+  </gv-dialog-shell>
+}

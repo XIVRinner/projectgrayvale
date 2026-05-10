@@ -1,0 +1,107 @@
+:host {
+  display: contents;
+}
+
+.gv-server-moderation-dialog,
+.gv-server-moderation-dialog__field {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-moderation-dialog__summary,
+.gv-server-moderation-dialog__status {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+}
+
+.gv-server-moderation-dialog__summary {
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
+    color-mix(in srgb, var(--gv-color-bg-raised) 94%, black 6%);
+}
+
+.gv-server-moderation-dialog__status {
+  background: color-mix(in srgb, var(--gv-color-danger) 12%, transparent);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-server-moderation-dialog__name,
+.gv-server-moderation-dialog__meta,
+.gv-server-moderation-dialog__status,
+.gv-server-moderation-dialog__field span,
+.gv-server-moderation-dialog__check span {
+  margin: 0;
+}
+
+.gv-server-moderation-dialog__name {
+  color: var(--gv-color-accent-warm);
+  font-family: var(--gv-font-dialogue);
+}
+
+.gv-server-moderation-dialog__meta {
+  color: color-mix(in srgb, var(--gv-color-text-muted) 76%, white 24%);
+  font-size: var(--gv-font-size-xs);
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-server-moderation-dialog__field span {
+  color: var(--gv-color-accent-warm);
+  font-size: var(--gv-font-size-xs);
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-server-moderation-dialog__field input,
+.gv-server-moderation-dialog__field select,
+.gv-server-moderation-dialog__field textarea {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
+    color-mix(in srgb, var(--gv-color-bg-primary) 86%, transparent);
+  color: var(--gv-color-text-primary);
+  font: inherit;
+  padding: calc(var(--gv-space-sm) * 0.95) var(--gv-space-md);
+}
+
+.gv-server-moderation-dialog__field textarea {
+  resize: vertical;
+  min-block-size: 6rem;
+}
+
+.gv-server-moderation-dialog__check {
+  display: flex;
+  align-items: center;
+  gap: var(--gv-space-sm);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-server-moderation-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-moderation-dialog__btn {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent) 18%, transparent);
+  color: var(--gv-color-accent-warm);
+  cursor: pointer;
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 700;
+  padding: calc(var(--gv-space-xs) * 1.4) var(--gv-space-md);
+}
+
+.gv-server-moderation-dialog__btn--cancel {
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-server-moderation-dialog__btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}

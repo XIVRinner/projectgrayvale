@@ -1,0 +1,19 @@
+:host {
+  display: inline;
+}
+
+.gv-server-chat-rich-text__emoji {
+  display: inline-block;
+  inline-size: 1.2em;
+  block-size: 1.2em;
+  margin-inline: calc(var(--gv-space-xs) * 0.35);
+  vertical-align: -0.22em;
+}
+
+.gv-server-chat-rich-text__emoji--custom {
+  inline-size: 1.35em;
+  block-size: 1.35em;
+  border-radius: calc(var(--gv-radius-sm) * 0.8);
+  object-fit: cover;
+  object-position: center;
+}
