@@ -4,10 +4,7 @@
     "composite": true,
     "isolatedModules": true,
     "outDir": "dist",
-    "rootDir": "src",
-    "typeRoots": [
-      "../core/node_modules/@types"
-    ]
+    "rootDir": "src"
   },
   "include": [
     "src/**/*.ts"
