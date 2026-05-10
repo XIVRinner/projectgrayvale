@@ -1,0 +1,44 @@
+[
+  {
+    "id": "grayvale",
+    "name": "Gray Vale",
+    "emojis": [
+      {
+        "id": "grayvale",
+        "name": "Gray Vale Crest",
+        "keywords": ["vale", "crest", "logo", "guild"],
+        "src": "assets/images/gray-vale-1.png"
+      },
+      {
+        "id": "coyote",
+        "name": "Coyote",
+        "keywords": ["beast", "combat", "hunt", "fang"],
+        "src": "assets/images/combat-coyote.png"
+      },
+      {
+        "id": "first_quest",
+        "name": "First Quest",
+        "keywords": ["quest", "progress", "task", "adventure"],
+        "src": "assets/images/achievements/first-quest.png"
+      },
+      {
+        "id": "merchant",
+        "name": "Merchant",
+        "keywords": ["trade", "market", "gold", "shop"],
+        "src": "assets/images/character/talent-icons/merchant.png"
+      },
+      {
+        "id": "spellweaver",
+        "name": "Spellweaver",
+        "keywords": ["magic", "mage", "arcane", "spell"],
+        "src": "assets/images/character/talent-icons/spellweaver.png"
+      },
+      {
+        "id": "warden",
+        "name": "Warden",
+        "keywords": ["guard", "tank", "shield", "protector"],
+        "src": "assets/images/character/talent-icons/warden.png"
+      }
+    ]
+  }
+]

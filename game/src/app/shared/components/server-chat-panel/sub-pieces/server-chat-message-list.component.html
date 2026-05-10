@@ -1,0 +1,60 @@
+<div class="gv-server-chat-message-list" #viewport>
+  @if (messages().length === 0) {
+    <p class="gv-server-chat-message-list__empty">
+      No chat traffic yet. Be the first to speak.
+    </p>
+  } @else {
+    @for (message of messages(); track trackByMessageId($index, message)) {
+      <article
+        class="gv-server-chat-message-list__entry"
+        [class.gv-server-chat-message-list__entry--self]="
+          message.playerUuid === currentPlayerUuid()
+        "
+        [class.gv-server-chat-message-list__entry--focused]="
+          message.playerUuid === selectedPlayerUuid()
+        "
+      >
+        <div
+          class="gv-server-chat-message-list__portrait-box"
+          aria-hidden="true"
+        >
+          @if (message.avatarPath; as avatarPath) {
+            <img
+              class="gv-server-chat-message-list__avatar-image"
+              [src]="avatarPath"
+              [alt]="displayName(message)"
+              loading="lazy"
+            />
+          } @else {
+            <div class="gv-server-chat-message-list__avatar">
+              {{ avatarInitials(message) }}
+            </div>
+          }
+        </div>
+
+        <div class="gv-server-chat-message-list__bubble">
+          <header class="gv-server-chat-message-list__header">
+            <button
+              type="button"
+              class="gv-server-chat-message-list__name"
+              [disabled]="!canSelectPlayers()"
+              (click)="selectPlayer(message)"
+            >
+              {{ displayName(message) }}
+            </button>
+            <p class="gv-server-chat-message-list__meta">
+              {{ message.rank.toUpperCase() }} -
+              {{ formatTime(message.createdAt) }}
+            </p>
+          </header>
+          <p class="gv-server-chat-message-list__body">
+            <gv-server-chat-rich-text
+              [text]="message.message"
+              [customEmojis]="customEmojis()"
+            />
+          </p>
+        </div>
+      </article>
+    }
+  }
+</div>

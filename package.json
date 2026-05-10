@@ -12,6 +12,9 @@
     "server"
   ],
   "scripts": {
+    "audit:all": "npm audit --workspaces --include-workspace-root",
+    "audit:fix:all": "npm audit fix --workspaces --include-workspace-root",
+    "install:all": "npm install --workspaces --include-workspace-root",
     "build": "npm run build:all",
     "build:all": "npm run build --workspace=core --workspace=combat --workspace=worldgraph --workspace=dialogue --workspace=game --workspace=server",
     "build:libs": "npm run build --workspace=core --workspace=combat --workspace=worldgraph --workspace=dialogue --workspace=server",

@@ -52,6 +52,7 @@
   align-items: center;
   gap: var(--gv-space-sm);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .gv-footer__author {
@@ -60,6 +61,9 @@
 }
 
 .gv-footer__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gv-space-xs);
   border: 1px solid var(--gv-color-border-strong);
   border-radius: 999px;
   background: color-mix(in srgb, var(--gv-color-accent) 12%, transparent);
@@ -69,7 +73,49 @@
   font-weight: 600;
   padding: 0.2rem 0.6rem;
   cursor: pointer;
-  transition: background-color var(--gv-anim-fast), transform var(--gv-anim-fast);
+  transition:
+    background-color var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
+
+.gv-footer__btn--server {
+  align-items: flex-start;
+  border-color: color-mix(
+    in srgb,
+    var(--gv-color-accent-cool) 45%,
+    transparent
+  );
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--gv-color-accent-cool) 16%, transparent),
+      transparent 42%
+    ),
+    color-mix(in srgb, var(--gv-color-bg-raised) 88%, transparent);
+  color: var(--gv-color-text-primary);
+  display: grid;
+  gap: 0;
+  padding: 0.35rem 0.85rem;
+  text-align: left;
+}
+
+.gv-footer__btn--server-live {
+  border-color: color-mix(in srgb, var(--gv-color-accent) 56%, transparent);
+}
+
+.gv-footer__server-label,
+.gv-footer__server-detail {
+  display: block;
+}
+
+.gv-footer__server-label {
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-footer__server-detail {
+  color: color-mix(in srgb, var(--gv-color-text-muted) 72%, white 28%);
+  font-size: var(--gv-font-size-xs);
+  font-weight: 500;
 }
 
 .gv-footer__btn:hover:not(:disabled) {
@@ -87,7 +133,11 @@
 }
 
 .gv-footer__btn--debug {
-  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 42%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--gv-color-accent-cool) 42%,
+    transparent
+  );
   background: color-mix(in srgb, var(--gv-color-accent-cool) 20%, transparent);
   color: var(--gv-color-text-primary);
 }
@@ -99,7 +149,9 @@
   font-size: var(--gv-font-size-sm);
   color: var(--gv-color-accent-warm);
   text-decoration: none;
-  transition: color var(--gv-anim-fast), transform var(--gv-anim-fast);
+  transition:
+    color var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
 }
 
 .gv-footer__repo-link:hover {

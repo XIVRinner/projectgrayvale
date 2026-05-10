@@ -1,0 +1,108 @@
+<section class="gv-server-chat-panel">
+  <header class="gv-server-chat-panel__hero">
+    <div class="gv-server-chat-panel__heading">
+      <p class="gv-server-chat-panel__eyebrow">Server Relay</p>
+      <h3>{{ panel().title }}</h3>
+      <p class="gv-server-chat-panel__subtitle">
+        {{ panel().endpointLabel }} - {{ panel().subtitle }}
+      </p>
+    </div>
+    <div class="gv-server-chat-panel__stats">
+      <span class="gv-server-chat-panel__badge"
+        >{{ panel().onlinePlayerCount }} online</span
+      >
+      <span
+        class="gv-server-chat-panel__badge"
+        [class.gv-server-chat-panel__badge--live]="panel().isConnected"
+      >
+        {{ panel().sessionRankLabel ?? "Observer" }}
+      </span>
+      @if (showGrantAdmin()) {
+        <button
+          type="button"
+          class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
+          (click)="grantAdminRequested.emit()"
+        >
+          Grant Admin
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (statusMessage(); as statusMessage) {
+    <p class="gv-server-chat-panel__status">{{ statusMessage }}</p>
+  }
+
+  <div class="gv-server-chat-panel__layout">
+    <section class="gv-server-chat-panel__column">
+      <div class="gv-server-chat-panel__section-header">
+        <h4>Online Players</h4>
+        <button
+          type="button"
+          class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
+          (click)="refreshRequested.emit()"
+        >
+          Refresh
+        </button>
+      </div>
+      <gv-server-chat-player-list
+        [players]="players()"
+        [canModerate]="canModerate()"
+        [currentPlayerUuid]="currentPlayerUuid()"
+        [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
+        (playerSelected)="moderatePlayerRequested.emit($event)"
+      />
+    </section>
+
+    <section
+      class="gv-server-chat-panel__column gv-server-chat-panel__column--chat"
+    >
+      <div class="gv-server-chat-panel__section-header">
+        <h4>World Chat</h4>
+        @if (!canSend()) {
+          <button
+            type="button"
+            class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
+            (click)="openServerSelectRequested.emit()"
+          >
+            Server Select
+          </button>
+        }
+      </div>
+
+      @if (canModerate() && selectedModerationPlayer(); as selectedModerationPlayer) {
+        <gv-server-chat-moderation-banner
+          [player]="selectedModerationPlayer"
+          [canBlockServerEntry]="canBlockServerEntry()"
+          [statusMessage]="moderationStatusMessage()"
+          [submitting]="isModerationSubmitting()"
+          (closed)="moderationCleared.emit()"
+          (submitted)="moderationSubmitted.emit($event)"
+        />
+      } @else if (canModerate()) {
+        <p class="gv-server-chat-panel__moderation-hint">
+          Moderation focus appears here. Use Focus in the player list or click a
+          speaker name in chat.
+        </p>
+      }
+
+      <gv-server-chat-message-list
+        [messages]="messages()"
+        [customEmojis]="customEmojis()"
+        [currentPlayerUuid]="currentPlayerUuid()"
+        [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
+        [canSelectPlayers]="canModerate()"
+        (playerSelected)="focusMessageAuthor($event)"
+      />
+
+      <gv-server-chat-composer
+        [canSend]="canSend()"
+        [isSending]="isSending()"
+        [commands]="commands()"
+        [customEmojis]="customEmojis()"
+        [hint]="sendHint()"
+        (sendRequested)="sendRequested.emit($event)"
+      />
+    </section>
+  </div>
+</section>

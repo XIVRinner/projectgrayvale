@@ -16,6 +16,7 @@ import {
   type SaveSlotWorldState
 } from "./world-state.models";
 import { type SaveSlotHealthState } from "./health-balance";
+import { generatePlayerUuid, isUuid } from "../utils/player-uuid";
 
 const STORAGE_KEY = "grayvale:save-slots:v1";
 const VITALITY_ATTRIBUTE_ID = "vitality";
@@ -559,6 +560,7 @@ function normalizeSaveSlotPlayer(player: Player): Player {
 
   return {
     ...player,
+    id: ensurePlayerUuid(player.id),
     questLog: {
       quests: {
         ...(player.questLog?.quests ?? {})
@@ -579,6 +581,14 @@ function normalizeSaveSlotPlayer(player: Player): Player {
     loadouts: normalizedLoadouts,
     activeLoadoutId
   };
+}
+
+function ensurePlayerUuid(value: string): string {
+  if (isUuid(value)) {
+    return value;
+  }
+
+  return generatePlayerUuid();
 }
 
 function buildDefaultStatUnlocks(player: Player): CharacterStatUnlockState {
