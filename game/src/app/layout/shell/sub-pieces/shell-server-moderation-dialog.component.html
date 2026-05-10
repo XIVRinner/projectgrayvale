@@ -1,0 +1,98 @@
+@if (open()) {
+  <gv-dialog-shell
+    [open]="open()"
+    variant="character-system"
+    width="standard"
+    eyebrow="Server"
+    [title]="title()"
+    subtitle="Apply chat restrictions with a recorded reason. Admins can escalate a chat ban into a full server-entry ban."
+    ariaLabel="Server moderation"
+    (closed)="closed.emit()"
+  >
+    <form
+      class="gv-server-moderation-dialog"
+      (submit)="$event.preventDefault(); submit()"
+    >
+      @if (player(); as player) {
+        <div class="gv-server-moderation-dialog__summary">
+          <p class="gv-server-moderation-dialog__name">
+            {{ player.displayName ?? "Unknown Adventurer" }}
+          </p>
+          <p class="gv-server-moderation-dialog__meta">
+            {{ player.rank.toUpperCase() }} | {{ player.chatAccessLabel }}
+          </p>
+        </div>
+      }
+
+      @if (statusMessage(); as statusMessage) {
+        <p class="gv-server-moderation-dialog__status">{{ statusMessage }}</p>
+      }
+
+      <label class="gv-server-moderation-dialog__field">
+        <span>Action</span>
+        <select [value]="action()" (change)="onActionChange($event)">
+          <option value="timeout">Timeout from chat</option>
+          <option value="ban">Ban from chat</option>
+          <option value="clear">Lift restrictions</option>
+        </select>
+      </label>
+
+      @if (action() === "timeout") {
+        <label class="gv-server-moderation-dialog__field">
+          <span>Duration (minutes)</span>
+          <input
+            [value]="durationMinutes()"
+            type="number"
+            min="1"
+            max="43200"
+            step="1"
+            (input)="onDurationInput($event)"
+          />
+        </label>
+      }
+
+      <label class="gv-server-moderation-dialog__field">
+        <span>Reason</span>
+        <textarea
+          [value]="reason()"
+          rows="4"
+          maxlength="300"
+          placeholder="Explain why this moderation action is being applied."
+          (input)="onReasonInput($event)"
+        ></textarea>
+      </label>
+
+      @if (action() === "ban" && canBlockServerEntry()) {
+        <label class="gv-server-moderation-dialog__check">
+          <input
+            [checked]="blockServerEntry()"
+            type="checkbox"
+            (change)="onBlockServerEntryChange($event)"
+          />
+          <span>Also ban this player from ever entering the server.</span>
+        </label>
+      }
+
+      <div class="gv-server-moderation-dialog__actions">
+        <button
+          type="button"
+          class="gv-server-moderation-dialog__btn gv-server-moderation-dialog__btn--cancel"
+          (click)="closed.emit()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="gv-server-moderation-dialog__btn"
+          [disabled]="
+            submitting() ||
+            ((action() === 'timeout' || action() === 'ban') && reason().trim().length < 3) ||
+            (action() === 'timeout' && !durationMinutes().trim())
+          "
+        >
+          {{ submitting() ? "Applying..." : "Apply" }}
+        </button>
+      </div>
+    </form>
+  </gv-dialog-shell>
+}

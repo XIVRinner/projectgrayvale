@@ -6,12 +6,14 @@ import sqlite3 from "sqlite3";
 
 export type GrayvaleDatabase = Database<sqlite3.Database, sqlite3.Statement>;
 
-export async function openDatabase(filename: string): Promise<GrayvaleDatabase> {
+export async function openDatabase(
+  filename: string,
+): Promise<GrayvaleDatabase> {
   await mkdir(dirname(filename), { recursive: true });
 
   const db = await open({
     filename,
-    driver: sqlite3.Database
+    driver: sqlite3.Database,
   });
 
   await db.exec(`
@@ -117,5 +119,39 @@ export async function openDatabase(filename: string): Promise<GrayvaleDatabase> 
       ON chat_messages (created_at DESC, id DESC);
   `);
 
+  await ensureColumn(db, "allowed_players", "avatar_path", "TEXT");
+  await ensureColumn(db, "allowed_players", "chat_timeout_until", "TEXT");
+  await ensureColumn(db, "allowed_players", "chat_timeout_reason", "TEXT");
+  await ensureColumn(db, "allowed_players", "chat_banned_at", "TEXT");
+  await ensureColumn(db, "allowed_players", "chat_ban_reason", "TEXT");
+  await ensureColumn(db, "allowed_players", "server_banned_at", "TEXT");
+  await ensureColumn(db, "allowed_players", "server_ban_reason", "TEXT");
+  await ensureColumn(
+    db,
+    "allowed_players",
+    "moderated_by_player_uuid",
+    "TEXT",
+  );
+  await ensureColumn(db, "allowed_players", "moderated_at", "TEXT");
+
   return db;
+}
+
+async function ensureColumn(
+  db: GrayvaleDatabase,
+  tableName: string,
+  columnName: string,
+  columnDefinition: string,
+): Promise<void> {
+  const columns = await db.all<Array<{ name: string }>>(
+    `PRAGMA table_info(${tableName})`,
+  );
+
+  if (columns.some((column) => column.name === columnName)) {
+    return;
+  }
+
+  await db.exec(
+    `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`,
+  );
 }

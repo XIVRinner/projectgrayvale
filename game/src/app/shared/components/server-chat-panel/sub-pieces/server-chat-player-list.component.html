@@ -1,0 +1,62 @@
+@if (players().length === 0) {
+  <p class="gv-server-chat-player-list__empty">
+    No players are active on this shard right now.
+  </p>
+} @else {
+  <ul class="gv-server-chat-player-list">
+    @for (player of players(); track trackByPlayerUuid($index, player)) {
+      <li
+        class="gv-server-chat-player-list__item"
+        [class.gv-server-chat-player-list__item--self]="
+          player.playerUuid === currentPlayerUuid()
+        "
+        [class.gv-server-chat-player-list__item--selected]="isSelected(player)"
+      >
+        <div class="gv-server-chat-player-list__identity">
+          <div
+            class="gv-server-chat-player-list__portrait-box"
+            aria-hidden="true"
+          >
+            @if (player.avatarPath; as avatarPath) {
+              <img
+                class="gv-server-chat-player-list__avatar-image"
+                [src]="avatarPath"
+                [alt]="displayName(player)"
+                loading="lazy"
+              />
+            } @else {
+              <div class="gv-server-chat-player-list__avatar">
+                {{ avatarInitials(player) }}
+              </div>
+            }
+          </div>
+          <div>
+            <p class="gv-server-chat-player-list__name">
+              {{ displayName(player) }}
+            </p>
+            <p class="gv-server-chat-player-list__meta">
+              {{ player.rank.toUpperCase() }} | {{ player.chatAccessLabel }}
+            </p>
+          </div>
+        </div>
+        <div class="gv-server-chat-player-list__actions">
+          <time
+            class="gv-server-chat-player-list__time"
+            [attr.datetime]="player.lastSeenAt"
+          >
+            {{ formatTime(player.lastSeenAt) }}
+          </time>
+          @if (canModeratePlayer(player)) {
+            <button
+              type="button"
+              class="gv-server-chat-player-list__action"
+              (click)="playerSelected.emit(player)"
+            >
+              Focus
+            </button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+}

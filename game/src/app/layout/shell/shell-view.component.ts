@@ -6,6 +6,15 @@ import type { GameLogEntry } from "../../core/services/game-log/log-mapper";
 import type { GameplayGraphDebugSnapshot } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
+import type {
+  ServerChatCommandView,
+  ServerChatCustomEmojiView,
+  ServerChatMessageView,
+  ServerModerationRequest,
+  ServerChatPanelView,
+  ServerFooterSummaryView,
+  ServerPresencePlayerView,
+} from "../../core/services/server-chat.models";
 import type { QuestViewModel } from "./quest-log/quest-view-model";
 import { ShellFooterComponent } from "./shell-footer.component";
 import { ShellCharacterPanelComponent } from "./sub-pieces/shell-character-panel.component";
@@ -14,6 +23,8 @@ import { ShellCharacterCreationDialogComponent } from "./sub-pieces/shell-charac
 import { ShellGegVisualizerDialogComponent } from "./sub-pieces/shell-geg-visualizer-dialog.component";
 import { ShellGameplayLogDialogComponent } from "./sub-pieces/shell-gameplay-log-dialog.component";
 import { ShellQuestLogDialogComponent } from "./sub-pieces/shell-quest-log-dialog.component";
+import { ShellServerAdminDialogComponent } from "./sub-pieces/shell-server-admin-dialog.component";
+import { ShellServerChatDialogComponent } from "./sub-pieces/shell-server-chat-dialog.component";
 import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
 import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
 import { ShellQuestTrackerComponent } from "./sub-pieces/shell-quest-tracker.component";
@@ -28,7 +39,7 @@ import {
   ShellSaveSlotSummary,
   ShellStatusItem,
   ShellTopbarAction,
-  ShellTopbarSaveSummary
+  ShellTopbarSaveSummary,
 } from "./shell.types";
 import type { ServerDirectoryEntry } from "../../core/services/server-connection.service";
 
@@ -44,14 +55,16 @@ import type { ServerDirectoryEntry } from "../../core/services/server-connection
     ShellGegVisualizerDialogComponent,
     ShellGameplayLogDialogComponent,
     ShellQuestLogDialogComponent,
+    ShellServerAdminDialogComponent,
+    ShellServerChatDialogComponent,
     ShellTopbarComponent,
     ShellActionPanelComponent,
     ShellQuestTrackerComponent,
     ShellSaveManagerModalComponent,
-    ShellServerSelectModalComponent
+    ShellServerSelectModalComponent,
   ],
   templateUrl: "./shell-view.component.html",
-  styleUrl: "./shell-view.component.scss"
+  styleUrl: "./shell-view.component.scss",
 })
 export class ShellViewComponent {
   readonly title = input.required<string>();
@@ -84,6 +97,30 @@ export class ShellViewComponent {
   readonly activePlayerUuid = input<string | null>(null);
   readonly serverStatusMessage = input<string | null>(null);
   readonly isServerSelectOpen = input.required<boolean>();
+  readonly isServerChatOpen = input.required<boolean>();
+  readonly isServerAdminOpen = input.required<boolean>();
+  readonly serverFooterSummary = input.required<ServerFooterSummaryView>();
+  readonly serverChatPanel = input.required<ServerChatPanelView>();
+  readonly serverChatPlayers =
+    input.required<readonly ServerPresencePlayerView[]>();
+  readonly serverChatMessages =
+    input.required<readonly ServerChatMessageView[]>();
+  readonly serverChatCustomEmojis =
+    input.required<readonly ServerChatCustomEmojiView[]>();
+  readonly serverChatCommands =
+    input.required<readonly ServerChatCommandView[]>();
+  readonly currentServerChatPlayerUuid = input<string | null>(null);
+  readonly selectedModerationPlayer = input<ServerPresencePlayerView | null>(null);
+  readonly serverChatStatusMessage = input<string | null>(null);
+  readonly serverAdminStatusMessage = input<string | null>(null);
+  readonly serverModerationStatusMessage = input<string | null>(null);
+  readonly serverChatSendHint = input<string | null>(null);
+  readonly canSendServerChat = input.required<boolean>();
+  readonly canModerateServerChat = input.required<boolean>();
+  readonly canBlockServerEntry = input.required<boolean>();
+  readonly isServerChatSending = input.required<boolean>();
+  readonly isServerAdminSubmitting = input.required<boolean>();
+  readonly isServerModerationSubmitting = input.required<boolean>();
   readonly gameDialogSession = input<GameDialogSessionView | null>(null);
   readonly version = input.required<string>();
 
@@ -108,10 +145,25 @@ export class ShellViewComponent {
   readonly saveResetRequested = output<void>();
   readonly saveTransferPayloadChanged = output<string>();
   readonly serverSelectCloseRequested = output<void>();
+  readonly serverInfoRequested = output<void>();
+  readonly serverChatCloseRequested = output<void>();
+  readonly serverAdminCloseRequested = output<void>();
   readonly serverChanged = output<string>();
-  readonly serverAdded = output<{ host: string; port: number; clientId: string }>();
+  readonly serverAdded = output<{
+    host: string;
+    port: number;
+    clientId: string;
+  }>();
   readonly serverConnectRequested = output<{ password: string }>();
   readonly serverGiveAdminRequested = output<{ adminPassword: string }>();
+  readonly serverChatRefreshRequested = output<void>();
+  readonly serverChatGrantAdminRequested = output<void>();
+  readonly serverChatModeratePlayerRequested = output<ServerPresencePlayerView>();
+  readonly serverAdminSubmitted = output<string>();
+  readonly serverModerationSubmitted = output<ServerModerationRequest>();
+  readonly serverModerationCleared = output<void>();
+  readonly serverChatSendRequested = output<string>();
+  readonly serverChatServerSelectRequested = output<void>();
   readonly actionSelected = output<string>();
   readonly characterPanelActionSelected = output<string>();
   readonly gameDialogAdvanceRequested = output<void>();
@@ -119,6 +171,6 @@ export class ShellViewComponent {
   readonly gameDialogCloseRequested = output<void>();
 
   protected readonly isCommandCenter = computed(
-    () => this.layoutPreset() === "command-center"
+    () => this.layoutPreset() === "command-center",
   );
 }

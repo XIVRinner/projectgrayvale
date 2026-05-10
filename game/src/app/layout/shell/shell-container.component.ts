@@ -10,25 +10,38 @@ import { DebugLogService } from "../../core/services/game-log/debug-log.service"
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
 import { GameQuestService } from "../../core/services/game-quest.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
+import {
+  formatServerChatHelp,
+  resolveServerModerationCommand,
+  resolveServerChatCommand,
+} from "../../core/services/server-chat-commands";
+import { ServerChatService } from "../../core/services/server-chat.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
+import type {
+  ServerModerationRequest,
+  ServerPresencePlayerView,
+} from "../../core/services/server-chat.models";
 import {
   healthStatesEqual,
   PLAYER_HEALTH_BALANCE_PROFILE_ID,
-  reconcileHealthState
+  reconcileHealthState,
 } from "../../core/services/health-balance";
 import { WorldStateService } from "../../core/services/world-state.service";
 import { GameplayGraphRuntime } from "../../core/execution-graph/gameplay-graph-runtime.service";
 import {
   CharacterCreatorOptions,
-  CharacterCreatorOptionsLoader
+  CharacterCreatorOptionsLoader,
 } from "../../data/loaders/character-creator-options.loader";
 
-import { buildShellCharacterPanel, ShellCharacterMetadata } from "./shell-character-panel.mapper";
+import {
+  buildShellCharacterPanel,
+  ShellCharacterMetadata,
+} from "./shell-character-panel.mapper";
 import {
   buildQuestTrackerPanel,
   buildQuestViewModels,
   DEFAULT_TRACKED_QUEST_COUNT,
-  resolveTrackedQuestIds
+  resolveTrackedQuestIds,
 } from "./shell-quest.mapper";
 import { ShellViewComponent } from "./shell-view.component";
 import {
@@ -40,7 +53,7 @@ import {
   ShellSaveSlotSummary,
   ShellStatusItem,
   ShellTopbarAction,
-  ShellTopbarSaveSummary
+  ShellTopbarSaveSummary,
 } from "./shell.types";
 
 @Component({
@@ -73,15 +86,37 @@ import {
       [gegDebugSnapshot]="gegDebugSnapshot()"
       [transferPayload]="transferPayload()"
       [transferStatusMessage]="transferStatusMessage()"
-      [servers]="serverConnection.servers()"
-      [selectedServerId]="serverConnection.selectedServerId()"
-      [activePlayerUuid]="roster.activeCharacter()?.id ?? null"
+      [servers]="servers()"
+      [selectedServerId]="selectedServerId()"
+      [activePlayerUuid]="activePlayerUuid()"
       [serverStatusMessage]="serverStatusMessage()"
       [isServerSelectOpen]="isServerSelectOpen()"
+      [isServerChatOpen]="isServerChatOpen()"
+      [isServerAdminOpen]="isServerAdminOpen()"
+      [serverFooterSummary]="serverChat.footerSummary()"
+      [serverChatPanel]="serverChat.panel()"
+      [serverChatPlayers]="serverChat.players()"
+      [serverChatMessages]="serverChat.messages()"
+      [serverChatCustomEmojis]="serverChat.customEmojis()"
+      [serverChatCommands]="serverChat.commands()"
+      [currentServerChatPlayerUuid]="serverChat.currentPlayerUuid()"
+      [selectedModerationPlayer]="selectedModerationPlayer()"
+      [serverChatStatusMessage]="serverChat.statusMessage()"
+      [serverAdminStatusMessage]="serverAdminStatusMessage()"
+      [serverModerationStatusMessage]="serverModerationStatusMessage()"
+      [serverChatSendHint]="serverChat.sendHint()"
+      [canSendServerChat]="serverChat.canSend()"
+      [canModerateServerChat]="serverChat.canModerate()"
+      [canBlockServerEntry]="serverChat.canBlockServerEntry()"
+      [isServerChatSending]="serverChat.isSending()"
+      [isServerAdminSubmitting]="isServerAdminSubmitting()"
+      [isServerModerationSubmitting]="isServerModerationSubmitting()"
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
-      (characterPanelActionSelected)="handleCharacterPanelActionSelected($event)"
+      (characterPanelActionSelected)="
+        handleCharacterPanelActionSelected($event)
+      "
       (topbarActionSelected)="handleTopbarActionSelected($event)"
       (gameDialogAdvanceRequested)="advanceGameDialog()"
       (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
@@ -106,12 +141,23 @@ import {
       (saveResetRequested)="resetAllSlots()"
       (saveTransferPayloadChanged)="setTransferPayload($event)"
       (serverSelectCloseRequested)="closeServerSelect()"
+      (serverInfoRequested)="openServerChat()"
+      (serverChatCloseRequested)="closeServerChat()"
+      (serverAdminCloseRequested)="closeServerAdminDialog()"
       (serverChanged)="selectServer($event)"
       (serverAdded)="addServer($event)"
       (serverConnectRequested)="connectServer($event.password)"
       (serverGiveAdminRequested)="giveAdminRights($event.adminPassword)"
+      (serverChatRefreshRequested)="refreshServerChat()"
+      (serverChatGrantAdminRequested)="openServerAdminDialog()"
+      (serverChatModeratePlayerRequested)="openServerModerationDialog($event)"
+      (serverAdminSubmitted)="submitServerAdminDialog($event)"
+      (serverModerationSubmitted)="submitServerModeration($event)"
+      (serverModerationCleared)="closeServerModerationDialog()"
+      (serverChatSendRequested)="sendServerChatMessage($event)"
+      (serverChatServerSelectRequested)="openServerSelectFromChat()"
     />
-  `
+  `,
 })
 export class ShellContainerComponent {
   private readonly roster = inject(CharacterRosterService);
@@ -126,6 +172,7 @@ export class ShellContainerComponent {
   private readonly worldState = inject(WorldStateService);
   private readonly gameplayRuntime = inject(GameplayGraphRuntime);
   private readonly serverConnection = inject(ServerConnectionService);
+  protected readonly serverChat = inject(ServerChatService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
   protected readonly isCharacterSheetOpen = signal(false);
@@ -133,20 +180,32 @@ export class ShellContainerComponent {
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly isQuestLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
-  protected readonly isServerSelectOpen = signal(shouldShowServerSelectOnStartup());
+  protected readonly isServerSelectOpen = signal(
+    shouldShowServerSelectOnStartup(),
+  );
+  protected readonly isServerChatOpen = signal(false);
+  protected readonly isServerAdminOpen = signal(false);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
   protected readonly serverStatusMessage = signal<string | null>(null);
+  protected readonly serverAdminStatusMessage = signal<string | null>(null);
+  protected readonly serverModerationStatusMessage = signal<string | null>(null);
+  protected readonly isServerAdminSubmitting = signal(false);
+  protected readonly isServerModerationSubmitting = signal(false);
+  protected readonly selectedModerationPlayer =
+    signal<ServerPresencePlayerView | null>(null);
   protected readonly trackedQuestIdsState = signal<readonly string[]>([]);
-  private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
+  private readonly creatorOptions = signal<CharacterCreatorOptions | null>(
+    null,
+  );
   protected readonly gameplayLogEntries = toSignal(this.gameplayLog.log$, {
-    initialValue: []
+    initialValue: [],
   });
   protected readonly debugLogEntries = toSignal(this.debugLog.entries$, {
-    initialValue: []
+    initialValue: [],
   });
   private readonly debugErrorCount = toSignal(this.debugLog.errorCount$, {
-    initialValue: 0
+    initialValue: 0,
   });
 
   readonly version = "0.0.1";
@@ -165,16 +224,17 @@ export class ShellContainerComponent {
   readonly layoutPreset = signal<ShellLayoutPreset>("command-center");
 
   readonly isCharacterCreationRequired = computed(
-    () => this.saveSlots().length === 0
+    () => this.saveSlots().length === 0,
   );
 
   readonly isCharacterCreationOpen = computed(
-    () => this.isCharacterCreationRequired() || this.isCharacterCreationOpenState()
+    () =>
+      this.isCharacterCreationRequired() || this.isCharacterCreationOpenState(),
   );
 
   readonly navItems = signal<readonly ShellNavItem[]>([
     { label: "Home", route: "/" },
-    { label: "Creator Lab", route: "/creator" }
+    { label: "Creator Lab", route: "/creator" },
   ]);
 
   readonly statusItems = computed<readonly ShellStatusItem[]>(() => {
@@ -185,14 +245,14 @@ export class ShellContainerComponent {
     if (locationLabel) {
       items.push({
         label: "Location",
-        value: locationLabel
+        value: locationLabel,
       });
     }
 
     if (sublocationLabel) {
       items.push({
         label: "Sublocation",
-        value: sublocationLabel
+        value: sublocationLabel,
       });
     }
 
@@ -204,9 +264,11 @@ export class ShellContainerComponent {
 
     return {
       racesById: new Map(options?.races.map((race) => [race.id, race]) ?? []),
-      classesById: new Map(options?.classes.map((option) => [option.id, option]) ?? []),
+      classesById: new Map(
+        options?.classes.map((option) => [option.id, option]) ?? [],
+      ),
       attributesById: this.gameSettings.attributesById(),
-      skillsById: this.gameSettings.skillsById()
+      skillsById: this.gameSettings.skillsById(),
     };
   });
 
@@ -220,7 +282,7 @@ export class ShellContainerComponent {
         },
         error: () => {
           this.creatorOptions.set(null);
-        }
+        },
       });
 
     effect(() => {
@@ -236,7 +298,8 @@ export class ShellContainerComponent {
     effect(() => {
       const activeSlot = this.roster.activeSlot();
       const healthProfile =
-        this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined;
+        this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ??
+        undefined;
 
       if (!activeSlot || !healthProfile) {
         return;
@@ -245,7 +308,7 @@ export class ShellContainerComponent {
       const reconciledHealth = reconcileHealthState(
         activeSlot.player,
         activeSlot.health,
-        healthProfile
+        healthProfile,
       );
 
       if (healthStatesEqual(activeSlot.health, reconciledHealth)) {
@@ -266,11 +329,39 @@ export class ShellContainerComponent {
         this.roster.updateActiveHealth(reconciledHealth);
       });
     });
+
+    effect(
+      () => {
+        const selectedPlayer = this.selectedModerationPlayer();
+
+        if (!selectedPlayer) {
+          return;
+        }
+
+        const refreshedPlayer =
+          this.serverChat
+            .players()
+            .find((player) => player.playerUuid === selectedPlayer.playerUuid) ??
+          null;
+
+        if (!refreshedPlayer) {
+          this.selectedModerationPlayer.set(null);
+          return;
+        }
+
+        if (refreshedPlayer !== selectedPlayer) {
+          this.selectedModerationPlayer.set(refreshedPlayer);
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   readonly saveSlots = computed<readonly ShellSaveSlotSummary[]>(() => {
     const activeSlotId = this.roster.activeSlotId();
-    const racesById = new Map(this.creatorOptions()?.races.map((race) => [race.id, race]) ?? []);
+    const racesById = new Map(
+      this.creatorOptions()?.races.map((race) => [race.id, race]) ?? [],
+    );
 
     return this.roster.slots().map((slot) => ({
       id: slot.id,
@@ -287,7 +378,7 @@ export class ShellContainerComponent {
       portraitAlt: `${slot.player.name} portrait`,
       createdAt: formatSaveTimestamp(slot.createdAt),
       updatedAt: formatSaveTimestamp(slot.updatedAt),
-      isActive: slot.id === activeSlotId
+      isActive: slot.id === activeSlotId,
     }));
   });
 
@@ -297,14 +388,14 @@ export class ShellContainerComponent {
     if (!activeSlot) {
       return {
         lead: "Unknown Adventurer",
-        lastSaved: "—"
+        lastSaved: "—",
       };
     }
 
     return {
       lead: activeSlot.player.name,
       characterName: activeSlot.player.name,
-      lastSaved: formatSaveTimestamp(activeSlot.updatedAt)
+      lastSaved: formatSaveTimestamp(activeSlot.updatedAt),
     };
   });
 
@@ -312,44 +403,52 @@ export class ShellContainerComponent {
     const errorCount = this.debugErrorCount();
 
     return [
-    {
-      id: TOPBAR_GAMEPLAY_LOG_ACTION_ID,
-      label: "Gameplay Log",
-      icon: "pi pi-list",
-      badge: errorCount > 0 ? errorCount : undefined,
-      tone: "default"
-    },
-    // GAP: AchievementModalService not yet available
-    {
-      id: TOPBAR_ACHIEVEMENTS_ACTION_ID,
-      label: "Achievements",
-      icon: "pi pi-trophy",
-      tone: "accent",
-      disabled: true
-    },
-    // GAP: WikiModalService not yet available
-    {
-      id: TOPBAR_GALLERY_ACTION_ID,
-      label: "Gallery",
-      icon: "pi pi-images",
-      tone: "cool",
-      disabled: true
-    },
-    {
-      id: TOPBAR_SETTINGS_ACTION_ID,
-      label: "Settings",
-      icon: "pi pi-cog",
-      tone: "default"
-    }
+      {
+        id: TOPBAR_GAMEPLAY_LOG_ACTION_ID,
+        label: "Gameplay Log",
+        icon: "pi pi-list",
+        badge: errorCount > 0 ? errorCount : undefined,
+        tone: "default",
+      },
+      // GAP: AchievementModalService not yet available
+      {
+        id: TOPBAR_ACHIEVEMENTS_ACTION_ID,
+        label: "Achievements",
+        icon: "pi pi-trophy",
+        tone: "accent",
+        disabled: true,
+      },
+      // GAP: WikiModalService not yet available
+      {
+        id: TOPBAR_GALLERY_ACTION_ID,
+        label: "Gallery",
+        icon: "pi pi-images",
+        tone: "cool",
+        disabled: true,
+      },
+      {
+        id: TOPBAR_SETTINGS_ACTION_ID,
+        label: "Settings",
+        icon: "pi pi-cog",
+        tone: "default",
+      },
     ];
   });
 
-  readonly actionGroups = computed<readonly ShellActionGroup[]>(
-    () => this.gameplayRuntime.actionGroups()
+  readonly actionGroups = computed<readonly ShellActionGroup[]>(() =>
+    this.gameplayRuntime.actionGroups(),
   );
 
-  readonly gegDebugSnapshot = computed(
-    () => this.gameplayRuntime.debugSnapshot()
+  readonly servers = this.serverConnection.servers;
+
+  readonly selectedServerId = this.serverConnection.selectedServerId;
+
+  readonly activePlayerUuid = computed(
+    () => this.roster.activeCharacter()?.id ?? null,
+  );
+
+  readonly gegDebugSnapshot = computed(() =>
+    this.gameplayRuntime.debugSnapshot(),
   );
 
   readonly characterPanel = computed<ShellCharacterPanel>(() => {
@@ -362,24 +461,25 @@ export class ShellContainerComponent {
       this.characterMetadata(),
       activeSlot?.statUnlocks,
       this.roster.activeHealth(),
-      this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ?? undefined,
-      this.gameSettings.difficultyCurveFor(difficultyMode) ?? undefined
+      this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ??
+        undefined,
+      this.gameSettings.difficultyCurveFor(difficultyMode) ?? undefined,
     );
   });
 
   readonly questViewModels = computed(() =>
     buildQuestViewModels(
       this.gameQuests.authoredQuests(),
-      this.roster.activeCharacter()?.questLog
-    )
+      this.roster.activeCharacter()?.questLog,
+    ),
   );
 
   readonly effectiveTrackedQuestIds = computed(() =>
     resolveTrackedQuestIds(
       this.questViewModels(),
       this.trackedQuestIdsState(),
-      DEFAULT_TRACKED_QUEST_COUNT
-    )
+      DEFAULT_TRACKED_QUEST_COUNT,
+    ),
   );
 
   readonly questTrackerPanel = computed<ShellQuestTrackerPanel>(() =>
@@ -387,12 +487,13 @@ export class ShellContainerComponent {
       this.questViewModels(),
       this.gameQuests.runtimeStates(),
       this.effectiveTrackedQuestIds(),
-      DEFAULT_TRACKED_QUEST_COUNT
-    )
+      DEFAULT_TRACKED_QUEST_COUNT,
+    ),
   );
 
   protected openCharacterCreation(): void {
     this.logUi("Opening character creation dialog.");
+    this.closeServerChat();
     this.transferStatusMessage.set(null);
     this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
@@ -404,11 +505,14 @@ export class ShellContainerComponent {
 
   protected openCharacterSheet(): void {
     if (!this.roster.activeCharacter()) {
-      this.logUi("Ignored character sheet open because there is no active character.");
+      this.logUi(
+        "Ignored character sheet open because there is no active character.",
+      );
       return;
     }
 
     this.logUi("Opening character sheet dialog.");
+    this.closeServerChat();
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
     this.isGameplayLogOpen.set(false);
@@ -424,7 +528,9 @@ export class ShellContainerComponent {
 
   protected closeCharacterCreation(): void {
     if (this.isCharacterCreationRequired()) {
-      this.logUi("Ignored character creation close because a character is still required.");
+      this.logUi(
+        "Ignored character creation close because a character is still required.",
+      );
       return;
     }
 
@@ -440,6 +546,7 @@ export class ShellContainerComponent {
 
   protected openSaveManager(): void {
     this.logUi("Opening save manager.");
+    this.closeServerChat();
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isGameplayLogOpen.set(false);
@@ -456,6 +563,7 @@ export class ShellContainerComponent {
 
   protected openServerSelect(): void {
     this.logUi("Opening server select.");
+    this.closeServerChat();
     this.isServerSelectOpen.set(true);
     persistServerSelectPreference(true);
   }
@@ -466,15 +574,149 @@ export class ShellContainerComponent {
     persistServerSelectPreference(false);
   }
 
+  protected openServerChat(): void {
+    this.logUi("Opening server relay dialog.");
+    this.isCharacterSheetOpen.set(false);
+    this.isCharacterCreationOpenState.set(false);
+    this.isSaveManagerOpen.set(false);
+    this.isGameplayLogOpen.set(false);
+    this.isQuestLogOpen.set(false);
+    this.isGegVisualizerOpen.set(false);
+    this.isServerChatOpen.set(true);
+    this.serverChat.openPanel();
+  }
+
+  protected closeServerChat(): void {
+    if (!this.isServerChatOpen()) {
+      return;
+    }
+
+    this.logUi("Closing server relay dialog.");
+    this.closeServerAdminDialog();
+    this.closeServerModerationDialog();
+    this.isServerChatOpen.set(false);
+    this.serverChat.closePanel();
+  }
+
+  protected refreshServerChat(): void {
+    this.logUi("Refreshing server relay data.");
+    void this.serverChat.refreshAll();
+  }
+
+  protected async sendServerChatMessage(message: string): Promise<void> {
+    this.logUi("Sending server chat message.");
+    const moderationCommand = resolveServerModerationCommand(message);
+
+    if (moderationCommand) {
+      await this.handleServerModerationCommand(moderationCommand);
+      return;
+    }
+
+    const command = resolveServerChatCommand(message);
+
+    if (command) {
+      switch (command.id) {
+        case "help":
+          this.serverChat.showStatusMessage(formatServerChatHelp());
+          return;
+        case "who":
+          this.serverChat.showStatusMessage(
+            "Refreshing relay presence and recent messages...",
+          );
+          await this.serverChat.refreshAll();
+          return;
+        case "server":
+          this.openServerSelectFromChat();
+          return;
+        case "admin":
+          this.openServerAdminDialog();
+          return;
+      }
+    }
+
+    await this.serverChat.sendMessage(message);
+  }
+
+  protected openServerSelectFromChat(): void {
+    this.logUi("Opening server select from server relay dialog.");
+    this.closeServerChat();
+    this.openServerSelect();
+    this.serverChat.openServerSelectHint();
+  }
+
+  protected openServerAdminDialog(): void {
+    this.logUi("Opening server admin dialog.");
+    this.closeServerModerationDialog();
+    this.serverAdminStatusMessage.set(null);
+    this.isServerAdminOpen.set(true);
+  }
+
+  protected closeServerAdminDialog(): void {
+    this.isServerAdminOpen.set(false);
+    this.isServerAdminSubmitting.set(false);
+  }
+
+  protected openServerModerationDialog(player: ServerPresencePlayerView): void {
+    this.logUi("Focusing server moderation target.", {
+      playerUuid: player.playerUuid,
+    });
+    this.closeServerAdminDialog();
+    this.selectedModerationPlayer.set(player);
+    this.serverModerationStatusMessage.set(null);
+  }
+
+  protected closeServerModerationDialog(): void {
+    this.isServerModerationSubmitting.set(false);
+    this.serverModerationStatusMessage.set(null);
+    this.selectedModerationPlayer.set(null);
+  }
+
+  protected async submitServerAdminDialog(
+    adminPassword: string,
+  ): Promise<void> {
+    await this.grantAdminRights(adminPassword, "relay");
+  }
+
+  protected async submitServerModeration(
+    request: ServerModerationRequest,
+  ): Promise<void> {
+    this.isServerModerationSubmitting.set(true);
+
+    try {
+      await this.serverChat.moderatePlayer(request);
+      this.serverModerationStatusMessage.set("Moderation action applied.");
+      const refreshedPlayer =
+        this.serverChat
+          .players()
+          .find((player) => player.playerUuid === request.targetUuid) ?? null;
+
+      this.selectedModerationPlayer.set(refreshedPlayer);
+    } catch (error) {
+      const message = errorToMessage(error);
+      this.serverModerationStatusMessage.set(message);
+      this.logUi("Server moderation failed.", message, "error");
+    } finally {
+      this.isServerModerationSubmitting.set(false);
+    }
+  }
+
   protected selectServer(serverId: string): void {
     this.logUi("Selecting server.", { serverId });
     this.serverConnection.selectServer(serverId);
     this.serverStatusMessage.set(`Selected ${serverId}.`);
   }
 
-  protected addServer(server: { host: string; port: number; clientId: string }): void {
+  protected addServer(server: {
+    host: string;
+    port: number;
+    clientId: string;
+  }): void {
     try {
-      this.serverConnection.addServer(server.host, server.port, server.clientId);
+      this.serverConnection.addServer(
+        server.host,
+        server.port,
+        server.clientId,
+      );
       this.serverStatusMessage.set(`Added ${server.host}:${server.port}.`);
       this.logUi("Added server endpoint.", server);
     } catch (error) {
@@ -485,24 +727,38 @@ export class ShellContainerComponent {
   }
 
   protected async connectServer(password: string): Promise<void> {
-    const playerUuid = this.roster.activeCharacter()?.id;
+    const activeCharacter = this.roster.activeCharacter();
+    const playerUuid = activeCharacter?.id;
 
     if (!playerUuid) {
       this.serverStatusMessage.set(
-        "Create or load a character first so the server can track its UUID."
+        "Create or load a character first so the server can track its UUID.",
       );
       return;
     }
 
     if (!password.trim()) {
-      this.serverStatusMessage.set("Enter a player password before connecting.");
+      this.serverStatusMessage.set(
+        "Enter a player password before connecting.",
+      );
       return;
     }
 
     try {
-      const session = await this.serverConnection.connectPlayer(playerUuid, password);
+      const avatarPath = activeCharacter
+        ? resolveSaveSlotPortraitPath(
+            activeCharacter,
+            this.characterMetadata().racesById,
+          )
+        : undefined;
+      const session = await this.serverConnection.connectPlayer(
+        playerUuid,
+        password,
+        activeCharacter?.name,
+        avatarPath,
+      );
       this.serverStatusMessage.set(
-        `Connected ${session.playerUuid} as ${session.rank.toUpperCase()}.`
+        `Connected ${session.playerUuid} as ${session.rank.toUpperCase()}.`,
       );
       this.logUi("Connected player to server.", session);
     } catch (error) {
@@ -512,37 +768,128 @@ export class ShellContainerComponent {
     }
   }
 
+  private async handleServerModerationCommand(
+    parsedCommand: ReturnType<typeof resolveServerModerationCommand>,
+  ): Promise<void> {
+    if (!parsedCommand) {
+      return;
+    }
+
+    if (!this.serverChat.canModerate()) {
+      this.serverChat.showStatusMessage(
+        "Moderation commands require moderator or admin rank on this shard.",
+      );
+      return;
+    }
+
+    const targetPlayer = resolveModerationTarget(
+      this.serverChat.players(),
+      parsedCommand.targetQuery,
+    );
+
+    if (!targetPlayer) {
+      this.serverChat.showStatusMessage(
+        parsedCommand.targetQuery
+          ? `Could not resolve "${parsedCommand.targetQuery}" to one online player.`
+          : parsedCommand.usage,
+      );
+      return;
+    }
+
+    if (
+      parsedCommand.request.blockServerEntry &&
+      !this.serverChat.canBlockServerEntry()
+    ) {
+      this.serverChat.showStatusMessage(
+        "Only admins can escalate a chat ban into a full server-entry ban.",
+      );
+      return;
+    }
+
+    if (
+      (parsedCommand.request.action === "timeout" ||
+        parsedCommand.request.action === "ban") &&
+      (!parsedCommand.request.reason ||
+        parsedCommand.request.reason.trim().length < 3)
+    ) {
+      this.serverChat.showStatusMessage(parsedCommand.usage);
+      return;
+    }
+
+    if (
+      parsedCommand.request.action === "timeout" &&
+      (!parsedCommand.request.durationMinutes ||
+        parsedCommand.request.durationMinutes <= 0)
+    ) {
+      this.serverChat.showStatusMessage(parsedCommand.usage);
+      return;
+    }
+
+    this.openServerModerationDialog(targetPlayer);
+    await this.submitServerModeration({
+      ...parsedCommand.request,
+      targetUuid: targetPlayer.playerUuid,
+    });
+  }
+
   protected async giveAdminRights(adminPassword: string): Promise<void> {
+    await this.grantAdminRights(adminPassword, "server-select");
+  }
+
+  private async grantAdminRights(
+    adminPassword: string,
+    source: "server-select" | "relay",
+  ): Promise<void> {
     const playerUuid = this.roster.activeCharacter()?.id;
 
     if (!playerUuid) {
-      this.serverStatusMessage.set("Create or load a character before granting admin.");
+      const message = "Create or load a character before granting admin.";
+      this.serverStatusMessage.set(message);
+      this.serverAdminStatusMessage.set(message);
       return;
     }
 
     if (!adminPassword.trim()) {
-      this.serverStatusMessage.set("Enter the server admin password.");
+      const message = "Enter the server admin password.";
+      this.serverStatusMessage.set(message);
+      this.serverAdminStatusMessage.set(message);
       return;
     }
 
+    if (source === "relay") {
+      this.isServerAdminSubmitting.set(true);
+    }
+
     try {
-      const session = await this.serverConnection.grantAdmin(playerUuid, adminPassword);
-      this.serverStatusMessage.set(
-        `Granted ${session.playerUuid} admin rights on the selected server.`
+      const session = await this.serverConnection.grantAdmin(
+        playerUuid,
+        adminPassword,
       );
+      const message = `Granted ${session.playerUuid} admin rights on the selected server.`;
+      this.serverStatusMessage.set(message);
+      this.serverAdminStatusMessage.set(message);
       this.logUi("Granted admin rights.", session);
+      if (source === "relay") {
+        this.closeServerAdminDialog();
+      }
     } catch (error) {
       const message = errorToMessage(error);
       this.serverStatusMessage.set(message);
+      this.serverAdminStatusMessage.set(message);
       this.logUi("Grant admin rights failed.", message, "error");
+    } finally {
+      if (source === "relay") {
+        this.isServerAdminSubmitting.set(false);
+      }
     }
   }
 
   protected openGameplayLog(): void {
     this.logUi("Opening gameplay log dialog.", {
       gameplayEntries: this.gameplayLogEntries().length,
-      debugEntries: this.debugLogEntries().length
+      debugEntries: this.debugLogEntries().length,
     });
+    this.closeServerChat();
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
@@ -559,8 +906,9 @@ export class ShellContainerComponent {
   protected openQuestLog(): void {
     this.logUi("Opening quest log dialog.", {
       questCount: this.questViewModels().length,
-      trackedQuestIds: this.effectiveTrackedQuestIds()
+      trackedQuestIds: this.effectiveTrackedQuestIds(),
     });
+    this.closeServerChat();
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
@@ -581,6 +929,7 @@ export class ShellContainerComponent {
 
   protected openGegVisualizer(): void {
     this.logUi("Opening GEG visualizer dialog.");
+    this.closeServerChat();
     this.isCharacterSheetOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
     this.isSaveManagerOpen.set(false);
@@ -612,7 +961,9 @@ export class ShellContainerComponent {
 
     if (!deleted) {
       this.logUi("Save slot delete failed.", { slotId }, "error");
-      this.transferStatusMessage.set(`Could not delete ${formatSlotLabel(slotId)}.`);
+      this.transferStatusMessage.set(
+        `Could not delete ${formatSlotLabel(slotId)}.`,
+      );
       return;
     }
 
@@ -626,16 +977,20 @@ export class ShellContainerComponent {
 
     if (!payload) {
       this.logUi("Save slot export failed.", { slotId }, "error");
-      this.transferStatusMessage.set(`Could not export ${formatSlotLabel(slotId)}.`);
+      this.transferStatusMessage.set(
+        `Could not export ${formatSlotLabel(slotId)}.`,
+      );
       return;
     }
 
     this.logUi("Save slot exported.", {
       slotId,
-      payloadLength: payload.length
+      payloadLength: payload.length,
     });
     this.transferPayload.set(payload);
-    this.transferStatusMessage.set(`Prepared export for ${formatSlotLabel(slotId)}.`);
+    this.transferStatusMessage.set(
+      `Prepared export for ${formatSlotLabel(slotId)}.`,
+    );
   }
 
   protected exportAllSlots(): void {
@@ -643,7 +998,7 @@ export class ShellContainerComponent {
 
     this.logUi("Exporting all save slots.", {
       payloadLength: payload.length,
-      slotCount: this.saveSlots().length
+      slotCount: this.saveSlots().length,
     });
     this.transferPayload.set(payload);
     this.transferStatusMessage.set("Prepared export for all save slots.");
@@ -662,7 +1017,7 @@ export class ShellContainerComponent {
       const importedCount = this.roster.importRoster(payload);
       this.logUi("Imported save payload.", {
         importedCount,
-        payloadLength: payload.length
+        payloadLength: payload.length,
       });
       this.transferStatusMessage.set(`Imported ${importedCount} save slot(s).`);
     } catch (error) {
@@ -673,7 +1028,7 @@ export class ShellContainerComponent {
 
   protected resetAllSlots(): void {
     this.logUi("Resetting all save slots.", {
-      previousSlotCount: this.saveSlots().length
+      previousSlotCount: this.saveSlots().length,
     });
     this.roster.resetAll();
     this.transferPayload.set("");
@@ -682,7 +1037,7 @@ export class ShellContainerComponent {
 
   protected setTransferPayload(value: string): void {
     this.logUi("Updated save transfer payload.", {
-      payloadLength: value.length
+      payloadLength: value.length,
     });
     this.transferPayload.set(value);
   }
@@ -692,10 +1047,14 @@ export class ShellContainerComponent {
     const result = this.gameplayRuntime.executeAction(actionId);
 
     if (!result.ok) {
-      this.logUi("Action execution returned a failure.", {
-        actionId,
-        reason: result.reason
-      }, "error");
+      this.logUi(
+        "Action execution returned a failure.",
+        {
+          actionId,
+          reason: result.reason,
+        },
+        "error",
+      );
     }
   }
 
@@ -743,7 +1102,11 @@ export class ShellContainerComponent {
     }
   }
 
-  private logUi(message: string, details?: unknown, level: "info" | "error" = "info"): void {
+  private logUi(
+    message: string,
+    details?: unknown,
+    level: "info" | "error" = "info",
+  ): void {
     this.debugLog.logMessage("shell", message, details, level);
   }
 }
@@ -773,7 +1136,8 @@ function errorToMessage(error: unknown): string {
     typeof error === "object" &&
     error !== null &&
     "error" in error &&
-    typeof (error as { error?: { message?: unknown } }).error?.message === "string"
+    typeof (error as { error?: { message?: unknown } }).error?.message ===
+      "string"
   ) {
     return (error as { error: { message: string } }).error.message;
   }
@@ -787,7 +1151,7 @@ function errorToMessage(error: unknown): string {
 
 function resolveSaveSlotPortraitPath(
   player: Player,
-  racesById: ReadonlyMap<string, Race>
+  racesById: ReadonlyMap<string, Race>,
 ): string | undefined {
   const race = racesById.get(player.raceId);
   const appearance = player.selectedAppearance;
@@ -796,7 +1160,8 @@ function resolveSaveSlotPortraitPath(
     return undefined;
   }
 
-  const portraitFile = race.variants?.[appearance.variant]?.[appearance.imageIndex];
+  const portraitFile =
+    race.variants?.[appearance.variant]?.[appearance.imageIndex];
 
   if (!portraitFile) {
     return undefined;
@@ -816,10 +1181,52 @@ function shouldShowServerSelectOnStartup(): boolean {
 
 function persistServerSelectPreference(open: boolean): void {
   try {
-    localStorage.setItem(SERVER_SELECT_STARTUP_KEY, open ? "visible" : "hidden");
+    localStorage.setItem(
+      SERVER_SELECT_STARTUP_KEY,
+      open ? "visible" : "hidden",
+    );
   } catch {
     // Ignore persistence failures.
   }
 }
 
 const SERVER_SELECT_STARTUP_KEY = "grayvale:server-select:start-up";
+
+function resolveModerationTarget(
+  players: readonly ServerPresencePlayerView[],
+  rawTarget: string,
+): ServerPresencePlayerView | null {
+  const normalizedTarget = normalizeModerationTarget(rawTarget);
+
+  if (!normalizedTarget) {
+    return null;
+  }
+
+  const exactDisplayNameMatches = players.filter(
+    (player) => normalizeModerationTarget(player.displayName) === normalizedTarget,
+  );
+
+  if (exactDisplayNameMatches.length === 1) {
+    return exactDisplayNameMatches[0] ?? null;
+  }
+
+  const exactUuidMatch =
+    players.find(
+      (player) => normalizeModerationTarget(player.playerUuid) === normalizedTarget,
+    ) ?? null;
+
+  if (exactUuidMatch) {
+    return exactUuidMatch;
+  }
+
+  const partialMatches = players.filter((player) => {
+    const displayName = normalizeModerationTarget(player.displayName);
+    return displayName.includes(normalizedTarget);
+  });
+
+  return partialMatches.length === 1 ? (partialMatches[0] ?? null) : null;
+}
+
+function normalizeModerationTarget(value: string | undefined): string {
+  return (value ?? "").trim().replace(/^@/u, "").toLowerCase();
+}

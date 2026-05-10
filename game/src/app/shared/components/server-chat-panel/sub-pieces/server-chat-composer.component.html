@@ -1,0 +1,79 @@
+<div class="gv-server-chat-composer">
+  @if (suggestions().length > 0) {
+    <div class="gv-server-chat-composer__suggestions" role="listbox">
+      @for (
+        suggestion of suggestions();
+        track trackBySuggestion($index, suggestion);
+        let index = $index
+      ) {
+        <button
+          type="button"
+          class="gv-server-chat-composer__suggestion"
+          [class.gv-server-chat-composer__suggestion--active]="
+            index === activeSuggestionIndex()
+          "
+          (click)="chooseSuggestion(index)"
+        >
+          <span
+            class="gv-server-chat-composer__suggestion-preview"
+            aria-hidden="true"
+          >
+            @if (suggestion.kind === "emoji" && suggestion.imageSrc) {
+              <img [src]="suggestion.imageSrc" [alt]="suggestion.title" loading="lazy" />
+            } @else {
+              {{ suggestion.preview }}
+            }
+          </span>
+          <span class="gv-server-chat-composer__suggestion-copy">
+            <strong>{{ suggestion.title }}</strong>
+            <small>{{ suggestion.detail }}</small>
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  @if (pickerOpen()) {
+    <div class="gv-server-chat-composer__picker-shell">
+      <div class="gv-server-chat-composer__picker" #pickerHost></div>
+    </div>
+  }
+
+  <label class="gv-server-chat-composer__field">
+    <span>Message</span>
+    <textarea
+      #textarea
+      [value]="draft()"
+      rows="3"
+      maxlength="500"
+      placeholder="Trade routes, dungeon chatter, bad ideas..."
+      (input)="onDraftInput($event)"
+      (click)="onDraftClick($event)"
+      (keyup)="onDraftKeyup($event)"
+      (keydown)="onDraftKeydown($event)"
+    ></textarea>
+  </label>
+
+  <div class="gv-server-chat-composer__footer">
+    <div class="gv-server-chat-composer__meta">
+      <button
+        type="button"
+        class="gv-server-chat-composer__tool"
+        [disabled]="isSending()"
+        (click)="togglePicker()"
+      >
+        Emotes
+      </button>
+      <p class="gv-server-chat-composer__hint">{{ composerHint() }}</p>
+    </div>
+
+    <button
+      type="button"
+      class="gv-server-chat-composer__send"
+      [disabled]="!draft().trim() || !canSend() || isSending()"
+      (click)="send()"
+    >
+      {{ isSending() ? "Sending..." : "Send" }}
+    </button>
+  </div>
+</div>

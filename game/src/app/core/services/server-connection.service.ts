@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { setApiOriginOverride } from "../../data/api-paths";
+import { type ServerChatAccessState } from "./server-chat.models";
 import { generatePlayerUuid } from "../utils/player-uuid";
 
 export type ServerPlayerRank = "player" | "vip" | "moderator" | "admin";
@@ -22,17 +23,31 @@ export interface ServerSessionState {
   readonly playerUuid: string;
   readonly rank: ServerPlayerRank;
   readonly rankColor: string;
+  readonly chatAccess: ServerChatAccessState;
+  readonly chatAccessLabel: string;
+  readonly chatTimeoutUntil?: string;
+  readonly chatReason?: string;
   readonly connectedAt: string;
+}
+
+export interface ServerSessionModerationState {
+  readonly chatAccess: ServerChatAccessState;
+  readonly chatAccessLabel: string;
+  readonly chatTimeoutUntil?: string;
+  readonly chatReason?: string;
 }
 
 interface PersistedDirectory {
   readonly selectedServerId: string;
+  readonly lastConnectedServerId?: string | null;
   readonly customServers: readonly Omit<ServerDirectoryEntry, "isDefault">[];
 }
 
 const DEFAULT_SERVER_ID = "dev-local";
+const CLOUD_SERVER_ID = "grayvale-cloud-dev";
 const STORAGE_KEY = "grayvale:servers:v1";
 export const DEFAULT_SERVER_CLIENT_ID = "grayvale-local-client";
+const AUTO_CLIENT_ID = "auto";
 const DEFAULT_SERVER: ServerDirectoryEntry = {
   id: DEFAULT_SERVER_ID,
   label: "Dev (Singleplayer)",
@@ -40,39 +55,63 @@ const DEFAULT_SERVER: ServerDirectoryEntry = {
   host: "localhost",
   port: 3000,
   clientId: DEFAULT_SERVER_CLIENT_ID,
-  isDefault: true
+  isDefault: true,
 };
+const CLOUD_SERVER = createCloudServer();
+const BUILT_IN_SERVERS = CLOUD_SERVER
+  ? [DEFAULT_SERVER, CLOUD_SERVER]
+  : [DEFAULT_SERVER];
+const INITIAL_SERVER_ID = resolveInitialSelectedServerId(CLOUD_SERVER);
 
 @Injectable({ providedIn: "root" })
 export class ServerConnectionService {
   private readonly http = inject(HttpClient);
 
-  private readonly customServersState = signal<readonly ServerDirectoryEntry[]>([]);
-  private readonly selectedServerIdState = signal<string>(DEFAULT_SERVER_ID);
+  private readonly customServersState = signal<readonly ServerDirectoryEntry[]>(
+    [],
+  );
+  private readonly selectedServerIdState = signal<string>(INITIAL_SERVER_ID);
   private readonly sessionState = signal<ServerSessionState | null>(null);
+  private readonly lastConnectedServerIdState = signal<string | null>(null);
 
   readonly servers = computed<readonly ServerDirectoryEntry[]>(() => [
-    DEFAULT_SERVER,
-    ...this.customServersState()
+    ...BUILT_IN_SERVERS,
+    ...this.customServersState(),
   ]);
 
   readonly selectedServerId = this.selectedServerIdState.asReadonly();
   readonly selectedServer = computed(
-    () => this.servers().find((entry) => entry.id === this.selectedServerIdState()) ?? DEFAULT_SERVER
+    () =>
+      this.servers().find(
+        (entry) => entry.id === this.selectedServerIdState(),
+      ) ?? DEFAULT_SERVER,
   );
   readonly session = this.sessionState.asReadonly();
   readonly isConnected = computed(() => this.sessionState() !== null);
+  readonly canModerate = computed(() => {
+    const rank = this.sessionState()?.rank;
+    return rank === "moderator" || rank === "admin";
+  });
+  readonly canBlockServerEntry = computed(
+    () => this.sessionState()?.rank === "admin",
+  );
 
   constructor() {
     this.hydrate();
     this.syncApiOrigin();
+    queueMicrotask(() => void this.tryRestoreSelectedServerSession());
   }
 
   addServer(host: string, port: number, clientId: string): void {
     const endpoint = parseEndpoint(host.trim());
     const normalizedClientId = clientId.trim();
 
-    if (!endpoint || !normalizedClientId || !Number.isInteger(port) || port <= 0) {
+    if (
+      !endpoint ||
+      !normalizedClientId ||
+      !Number.isInteger(port) ||
+      port <= 0
+    ) {
       throw new Error("Server host, client id, and a valid port are required.");
     }
 
@@ -83,7 +122,7 @@ export class ServerConnectionService {
       host: endpoint.host,
       port,
       clientId: normalizedClientId,
-      isDefault: false
+      isDefault: false,
     };
 
     this.customServersState.update((entries) => {
@@ -108,25 +147,46 @@ export class ServerConnectionService {
     this.sessionState.set(null);
     this.syncApiOrigin();
     this.persist();
+    void this.tryRestoreSelectedServerSession();
   }
 
-  async connectPlayer(playerUuid: string, password: string): Promise<ServerSessionState> {
+  async connectPlayer(
+    playerUuid: string,
+    password: string,
+    displayName?: string,
+    avatarPath?: string,
+  ): Promise<ServerSessionState> {
     const selected = this.selectedServer();
+    const clientId = await this.resolveClientId(selected);
     const payload = {
       playerUuid,
       password,
-      clientId: selected.clientId
+      clientId,
+      displayName,
+      avatarPath,
     };
-    const joinUrl = `${this.serverBaseUrl(selected)}/api/server/join`;
+    const joinUrl = this.serverApiUrl("/api/server/join");
     let response: JoinResponse;
 
     try {
-      response = await firstValueFrom(this.http.post<JoinResponse>(joinUrl, payload));
+      response = await firstValueFrom(
+        this.http.post<JoinResponse>(joinUrl, payload, {
+          withCredentials: true,
+        }),
+      );
     } catch (error) {
       if (isNotRegisteredError(error)) {
-        const registerUrl = `${this.serverBaseUrl(selected)}/api/server/register`;
-        await firstValueFrom(this.http.post(registerUrl, payload));
-        response = await firstValueFrom(this.http.post<JoinResponse>(joinUrl, payload));
+        const registerUrl = this.serverApiUrl("/api/server/register");
+        await firstValueFrom(
+          this.http.post(registerUrl, payload, {
+            withCredentials: true,
+          }),
+        );
+        response = await firstValueFrom(
+          this.http.post<JoinResponse>(joinUrl, payload, {
+            withCredentials: true,
+          }),
+        );
       } else {
         throw error;
       }
@@ -137,7 +197,55 @@ export class ServerConnectionService {
       playerUuid: response.player.playerUuid,
       rank: response.player.rank,
       rankColor: rankColorFor(response.player.rank),
-      connectedAt: response.session.connectedAt
+      chatAccess: response.player.chatAccess,
+      chatAccessLabel: response.player.chatAccessLabel,
+      chatTimeoutUntil: response.player.chatTimeoutUntil,
+      chatReason: response.player.chatReason,
+      connectedAt: response.session.connectedAt,
+    };
+
+    this.sessionState.set(nextSession);
+    this.lastConnectedServerIdState.set(selected.id);
+    this.persist();
+
+    return nextSession;
+  }
+
+  async grantAdmin(
+    playerUuid: string,
+    adminPassword: string,
+  ): Promise<ServerSessionState> {
+    const currentSession = this.sessionState();
+
+    if (!currentSession) {
+      throw new Error("Join the selected server before changing rank.");
+    }
+
+    const url = this.serverApiUrl("/api/server/admin/grant");
+    const response = await firstValueFrom(
+      this.http.post<AdminGrantResponse>(
+        url,
+        {
+          sessionId: currentSession.sessionId,
+          targetUuid: playerUuid,
+          rank: "admin",
+          adminPassword,
+        },
+        {
+          withCredentials: true,
+        },
+      ),
+    );
+
+    const nextSession: ServerSessionState = {
+      ...currentSession,
+      playerUuid: response.player.playerUuid,
+      rank: response.player.rank,
+      rankColor: rankColorFor(response.player.rank),
+      chatAccess: response.player.chatAccess,
+      chatAccessLabel: response.player.chatAccessLabel,
+      chatTimeoutUntil: response.player.chatTimeoutUntil,
+      chatReason: response.player.chatReason,
     };
 
     this.sessionState.set(nextSession);
@@ -146,35 +254,58 @@ export class ServerConnectionService {
     return nextSession;
   }
 
-  async grantAdmin(playerUuid: string, adminPassword: string): Promise<ServerSessionState> {
-    const currentSession = this.sessionState();
-
-    if (!currentSession) {
-      throw new Error("Join the selected server before changing rank.");
-    }
-
-    const selected = this.selectedServer();
-    const url = `${this.serverBaseUrl(selected)}/api/server/admin/grant`;
+  async restoreSessionFromCookie(): Promise<ServerSessionState | null> {
     const response = await firstValueFrom(
-      this.http.post<AdminGrantResponse>(url, {
-        sessionId: currentSession.sessionId,
-        targetUuid: playerUuid,
-        rank: "admin",
-        adminPassword
-      })
+      this.http.get<JoinResponse>(this.serverApiUrl("/api/server/session"), {
+        withCredentials: true,
+      }),
     );
 
     const nextSession: ServerSessionState = {
-      ...currentSession,
+      sessionId: response.session.sessionId,
       playerUuid: response.player.playerUuid,
       rank: response.player.rank,
-      rankColor: rankColorFor(response.player.rank)
+      rankColor: rankColorFor(response.player.rank),
+      chatAccess: response.player.chatAccess,
+      chatAccessLabel: response.player.chatAccessLabel,
+      chatTimeoutUntil: response.player.chatTimeoutUntil,
+      chatReason: response.player.chatReason,
+      connectedAt: response.session.connectedAt,
     };
 
     this.sessionState.set(nextSession);
+    this.lastConnectedServerIdState.set(this.selectedServer().id);
     this.persist();
 
     return nextSession;
+  }
+
+  syncSessionModeration(
+    playerUuid: string,
+    moderation: ServerSessionModerationState,
+  ): void {
+    const session = this.sessionState();
+
+    if (!session || session.playerUuid !== playerUuid) {
+      return;
+    }
+
+    if (
+      session.chatAccess === moderation.chatAccess &&
+      session.chatAccessLabel === moderation.chatAccessLabel &&
+      session.chatTimeoutUntil === moderation.chatTimeoutUntil &&
+      session.chatReason === moderation.chatReason
+    ) {
+      return;
+    }
+
+    this.sessionState.set({
+      ...session,
+      chatAccess: moderation.chatAccess,
+      chatAccessLabel: moderation.chatAccessLabel,
+      chatTimeoutUntil: moderation.chatTimeoutUntil,
+      chatReason: moderation.chatReason,
+    });
   }
 
   currentApiOrigin(): string | null {
@@ -185,6 +316,12 @@ export class ServerConnectionService {
     }
 
     return this.serverBaseUrl(selected);
+  }
+
+  serverApiUrl(path: `/api/${string}`): string {
+    const origin = this.currentApiOrigin();
+
+    return origin ? `${origin}${path}` : path;
   }
 
   private hydrate(): void {
@@ -203,37 +340,76 @@ export class ServerConnectionService {
         : [];
       const selectedServerId =
         typeof parsed.selectedServerId === "string" &&
-        (parsed.selectedServerId === DEFAULT_SERVER_ID ||
+          (isBuiltInServerId(parsed.selectedServerId) ||
           customServers.some((entry) => entry.id === parsed.selectedServerId))
           ? parsed.selectedServerId
-          : DEFAULT_SERVER_ID;
+            : INITIAL_SERVER_ID;
+      const lastConnectedServerId =
+        typeof parsed.lastConnectedServerId === "string" &&
+          (isBuiltInServerId(parsed.lastConnectedServerId) ||
+          customServers.some(
+            (entry) => entry.id === parsed.lastConnectedServerId,
+          ))
+          ? parsed.lastConnectedServerId
+          : null;
 
       this.customServersState.set(customServers);
       this.selectedServerIdState.set(selectedServerId);
+      this.lastConnectedServerIdState.set(lastConnectedServerId);
     } catch {
       this.customServersState.set([]);
-      this.selectedServerIdState.set(DEFAULT_SERVER_ID);
+      this.selectedServerIdState.set(INITIAL_SERVER_ID);
+      this.lastConnectedServerIdState.set(null);
     }
   }
 
   private persist(): void {
     const payload: PersistedDirectory = {
       selectedServerId: this.selectedServerIdState(),
+      lastConnectedServerId: this.lastConnectedServerIdState(),
       customServers: this.customServersState().map((entry) => ({
         id: entry.id,
         label: entry.label,
         protocol: entry.protocol,
         host: entry.host,
         port: entry.port,
-        clientId: entry.clientId
-      }))
+        clientId: entry.clientId,
+      })),
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }
 
+  private async tryRestoreSelectedServerSession(): Promise<void> {
+    if (this.sessionState() !== null) {
+      return;
+    }
+
+    if (this.lastConnectedServerIdState() !== this.selectedServerIdState()) {
+      return;
+    }
+
+    try {
+      await this.restoreSessionFromCookie();
+    } catch {
+      // Ignore missing/expired cookies and leave the connection disconnected.
+    }
+  }
+
   private syncApiOrigin(): void {
     setApiOriginOverride(this.currentApiOrigin());
+  }
+
+  private async resolveClientId(server: ServerDirectoryEntry): Promise<string> {
+    if (server.clientId !== AUTO_CLIENT_ID) {
+      return server.clientId;
+    }
+
+    const serverInfo = await firstValueFrom(
+      this.http.get<ServerInfoResponse>(`${this.serverBaseUrl(server)}/api/server/info`),
+    );
+
+    return serverInfo.defaultClientId;
   }
 
   private serverBaseUrl(server: ServerDirectoryEntry): string {
@@ -249,6 +425,10 @@ interface JoinResponse {
   readonly player: {
     readonly playerUuid: string;
     readonly rank: ServerPlayerRank;
+    readonly chatAccess: ServerChatAccessState;
+    readonly chatAccessLabel: string;
+    readonly chatTimeoutUntil?: string;
+    readonly chatReason?: string;
   };
 }
 
@@ -256,7 +436,15 @@ interface AdminGrantResponse {
   readonly player: {
     readonly playerUuid: string;
     readonly rank: ServerPlayerRank;
+    readonly chatAccess: ServerChatAccessState;
+    readonly chatAccessLabel: string;
+    readonly chatTimeoutUntil?: string;
+    readonly chatReason?: string;
   };
+}
+
+interface ServerInfoResponse {
+  readonly defaultClientId: string;
 }
 
 function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
@@ -266,8 +454,7 @@ function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
 
   const record = raw as Record<string, unknown>;
 
-  const protocol =
-    record["protocol"] === "https" ? "https" : "http";
+  const protocol = record["protocol"] === "https" ? "https" : "http";
 
   if (
     typeof record["id"] !== "string" ||
@@ -288,11 +475,14 @@ function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
     host: record["host"],
     port: record["port"],
     clientId: record["clientId"],
-    isDefault: false
+    isDefault: false,
   };
 }
 
-function isSameEndpoint(left: ServerDirectoryEntry, right: ServerDirectoryEntry): boolean {
+function isSameEndpoint(
+  left: ServerDirectoryEntry,
+  right: ServerDirectoryEntry,
+): boolean {
   return (
     left.protocol === right.protocol &&
     left.host.toLowerCase() === right.host.toLowerCase() &&
@@ -337,7 +527,80 @@ function rankColorFor(rank: ServerPlayerRank): string {
   return "var(--gv-color-text-primary)";
 }
 
-function parseEndpoint(value: string): { protocol: "http" | "https"; host: string } | null {
+function isBuiltInServerId(serverId: string): boolean {
+  return BUILT_IN_SERVERS.some((entry) => entry.id === serverId);
+}
+
+function resolveInitialSelectedServerId(
+  cloudServer: ServerDirectoryEntry | null,
+): string {
+  if (!cloudServer) {
+    return DEFAULT_SERVER_ID;
+  }
+
+  if (typeof window === "undefined") {
+    return cloudServer.id;
+  }
+
+  return isLocalHostname(window.location.hostname)
+    ? DEFAULT_SERVER_ID
+    : cloudServer.id;
+}
+
+function createCloudServer(): ServerDirectoryEntry | null {
+  const endpoint = parseAbsoluteUrl("https://grayvale-cloud-dev.vercel.app");
+
+  if (!endpoint) {
+    return null;
+  }
+
+  return {
+    id: CLOUD_SERVER_ID,
+    label: "GrayVale Cloud",
+    protocol: endpoint.protocol,
+    host: endpoint.host,
+    port: endpoint.port,
+    clientId: AUTO_CLIENT_ID,
+    isDefault: false,
+  };
+}
+
+function parseAbsoluteUrl(
+  value: string,
+): { protocol: "http" | "https"; host: string; port: number } | null {
+  try {
+    const url = new URL(value);
+    const protocol = url.protocol === "https:" ? "https" : url.protocol === "http:" ? "http" : null;
+
+    if (!protocol || !url.hostname) {
+      return null;
+    }
+
+    const port = Number(url.port || (protocol === "https" ? 443 : 80));
+
+    if (!Number.isInteger(port) || port <= 0) {
+      return null;
+    }
+
+    return {
+      protocol,
+      host: url.hostname,
+      port,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isLocalHostname(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+
+  return normalized === "localhost" || normalized === "127.0.0.1";
+}
+
+function parseEndpoint(
+  value: string,
+): { protocol: "http" | "https"; host: string } | null {
   const trimmed = value.trim();
 
   if (!trimmed) {
@@ -353,7 +616,7 @@ function parseEndpoint(value: string): { protocol: "http" | "https"; host: strin
 
     return {
       protocol: "http",
-      host
+      host,
     };
   }
 
@@ -366,7 +629,7 @@ function parseEndpoint(value: string): { protocol: "http" | "https"; host: strin
 
     return {
       protocol: "https",
-      host
+      host,
     };
   }
 

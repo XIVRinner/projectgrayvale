@@ -1,0 +1,14 @@
+@for (segment of segments(); track trackBySegment($index, segment)) {
+  @if (segment.kind === "text") {
+    <span>{{ segment.text }}</span>
+  } @else {
+    <img
+      class="gv-server-chat-rich-text__emoji"
+      [class.gv-server-chat-rich-text__emoji--custom]="segment.custom"
+      [src]="segment.src"
+      [alt]="segment.alt"
+      [title]="segment.title"
+      loading="lazy"
+    />
+  }
+}

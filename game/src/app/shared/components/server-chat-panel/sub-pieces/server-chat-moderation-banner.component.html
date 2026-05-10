@@ -1,0 +1,90 @@
+@if (player(); as player) {
+  <form
+    class="gv-server-chat-moderation-banner"
+    (submit)="$event.preventDefault(); submit()"
+  >
+    <div class="gv-server-chat-moderation-banner__header">
+      <div>
+        <p class="gv-server-chat-moderation-banner__eyebrow">
+          {{ title() }}
+        </p>
+        <p class="gv-server-chat-moderation-banner__meta">
+          {{ player.rank.toUpperCase() }} | {{ player.chatAccessLabel }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="gv-server-chat-moderation-banner__close"
+        (click)="closed.emit()"
+      >
+        Clear Focus
+      </button>
+    </div>
+
+    @if (statusMessage(); as statusMessage) {
+      <p class="gv-server-chat-moderation-banner__status">{{ statusMessage }}</p>
+    }
+
+    <div class="gv-server-chat-moderation-banner__fields">
+      <label class="gv-server-chat-moderation-banner__field">
+        <span>Action</span>
+        <select [value]="action()" (change)="onActionChange($event)">
+          <option value="timeout">Timeout from chat</option>
+          <option value="ban">Ban from chat</option>
+          <option value="clear">Lift restrictions</option>
+        </select>
+      </label>
+
+      @if (action() === "timeout") {
+        <label class="gv-server-chat-moderation-banner__field">
+          <span>Minutes</span>
+          <input
+            [value]="durationMinutes()"
+            type="number"
+            min="1"
+            max="43200"
+            step="1"
+            (input)="onDurationInput($event)"
+          />
+        </label>
+      }
+
+      <label class="gv-server-chat-moderation-banner__field gv-server-chat-moderation-banner__field--reason">
+        <span>Reason</span>
+        <textarea
+          [value]="reason()"
+          rows="2"
+          maxlength="300"
+          placeholder="Reason required for timeout and ban."
+          (input)="onReasonInput($event)"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="gv-server-chat-moderation-banner__footer">
+      @if (action() === "ban" && canBlockServerEntry()) {
+        <label class="gv-server-chat-moderation-banner__check">
+          <input
+            [checked]="blockServerEntry()"
+            type="checkbox"
+            (change)="onBlockServerEntryChange($event)"
+          />
+          <span>Also block server entry.</span>
+        </label>
+      }
+
+      <button
+        type="submit"
+        class="gv-server-chat-moderation-banner__submit"
+        [disabled]="
+          submitting() ||
+          ((action() === 'timeout' || action() === 'ban') &&
+            reason().trim().length < 3) ||
+          (action() === 'timeout' && !durationMinutes().trim())
+        "
+      >
+        {{ submitting() ? "Applying..." : "Apply Moderation" }}
+      </button>
+    </div>
+  </form>
+}

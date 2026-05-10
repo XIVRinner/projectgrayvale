@@ -1,4 +1,9 @@
-import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import express, {
+  type Express,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import cors from "cors";
 
 import type { ServerConfig } from "./config";
@@ -14,7 +19,7 @@ import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
 
 export async function createApp(
   config: ServerConfig,
-  db: GrayvaleDatabase
+  db: GrayvaleDatabase,
 ): Promise<Express> {
   const app = express();
   const seededResources = await seedJsonResources(db, config.contentRoot);
@@ -23,7 +28,12 @@ export async function createApp(
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+    }),
+  );
   app.use(express.json({ limit: "1mb" }));
 
   app.get("/api/health", (_request, response) => {
@@ -31,26 +41,64 @@ export async function createApp(
       name: config.name,
       status: "ok",
       seededResourceCount: seededResources.length,
-      seededEntityCount: seededEntities.length
+      seededEntityCount: seededEntities.length,
     });
   });
 
   app.use("/api/data", createContentRouter(repository));
-  app.use("/api/server", createMultiplayerRouter(multiplayerRepository, config));
+  app.use(
+    "/api/server",
+    createMultiplayerRouter(multiplayerRepository, config),
+  );
   registerEntityRoutes(app, "/api/activities", "activity", entityRepository);
   registerEntityRoutes(app, "/api/attributes", "attribute", entityRepository);
-  registerEntityRoutes(app, "/api/balance-profiles", "balance-profile", entityRepository);
-  registerEntityRoutes(app, "/api/dialogue-actors", "dialogue-actor", entityRepository);
+  registerEntityRoutes(
+    app,
+    "/api/balance-profiles",
+    "balance-profile",
+    entityRepository,
+  );
+  registerEntityRoutes(
+    app,
+    "/api/dialogue-actors",
+    "dialogue-actor",
+    entityRepository,
+  );
   registerEntityRoutes(app, "/api/dialogues", "dialogue", entityRepository);
-  registerEntityRoutes(app, "/api/difficulty-curves", "difficulty-curve", entityRepository);
-  registerEntityRoutes(app, "/api/equipment-items", "equipment-item", entityRepository);
+  registerEntityRoutes(
+    app,
+    "/api/difficulty-curves",
+    "difficulty-curve",
+    entityRepository,
+  );
+  registerEntityRoutes(
+    app,
+    "/api/equipment-items",
+    "equipment-item",
+    entityRepository,
+  );
   registerEntityRoutes(app, "/api/items", "item", entityRepository);
   registerEntityRoutes(app, "/api/quests", "quest", entityRepository);
   registerEntityRoutes(app, "/api/skills", "skill", entityRepository);
   registerEntityRoutes(app, "/api/weapons", "weapon", entityRepository);
-  registerEntityRoutes(app, "/api/world-default-state", "world-default-state", entityRepository);
-  registerEntityRoutes(app, "/api/world-guards", "world-guard", entityRepository);
-  registerEntityRoutes(app, "/api/world-locations", "world-location", entityRepository);
+  registerEntityRoutes(
+    app,
+    "/api/world-default-state",
+    "world-default-state",
+    entityRepository,
+  );
+  registerEntityRoutes(
+    app,
+    "/api/world-guards",
+    "world-guard",
+    entityRepository,
+  );
+  registerEntityRoutes(
+    app,
+    "/api/world-locations",
+    "world-location",
+    entityRepository,
+  );
 
   app.use(notFoundHandler);
   app.use(errorHandler);
@@ -61,7 +109,7 @@ export async function createApp(
 function notFoundHandler(_request: Request, response: Response): void {
   response.status(404).json({
     error: "not_found",
-    message: "Route not found."
+    message: "Route not found.",
   });
 }
 
@@ -69,12 +117,13 @@ function errorHandler(
   error: unknown,
   _request: Request,
   response: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void {
-  const message = error instanceof Error ? error.message : "Unexpected server error.";
+  const message =
+    error instanceof Error ? error.message : "Unexpected server error.";
 
   response.status(500).json({
     error: "internal_error",
-    message
+    message,
   });
 }
