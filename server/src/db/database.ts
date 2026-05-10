@@ -1,7 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import { createClient, type Client, type InValue } from "@libsql/client";
+import {
+  createClient,
+  type Client,
+  type InValue,
+  type Transaction,
+} from "@libsql/client";
 import { open, type Database } from "sqlite";
 import sqlite3 from "sqlite3";
 
@@ -225,21 +230,69 @@ async function ensureColumn(
 }
 
 class TursoDatabase implements GrayvaleDatabase {
+  private transaction: Transaction | null = null;
+
   constructor(private readonly client: Client) {}
 
   async exec(sql: string): Promise<void> {
-    const statements = splitSqlStatements(sql);
+    const command = parseTransactionCommand(sql);
 
-    for (const statement of statements) {
-      await this.client.execute(statement);
+    if (command === "begin") {
+      if (this.transaction && !this.transaction.closed) {
+        throw new Error("Transaction already active.");
+      }
+
+      this.transaction = await this.client.transaction("write");
+      return;
     }
+
+    if (command === "commit") {
+      if (!this.transaction) {
+        return;
+      }
+
+      const activeTransaction = this.transaction;
+      this.transaction = null;
+
+      try {
+        await activeTransaction.commit();
+      } finally {
+        activeTransaction.close();
+      }
+
+      return;
+    }
+
+    if (command === "rollback") {
+      if (!this.transaction) {
+        return;
+      }
+
+      const activeTransaction = this.transaction;
+      this.transaction = null;
+
+      try {
+        await activeTransaction.rollback();
+      } finally {
+        activeTransaction.close();
+      }
+
+      return;
+    }
+
+    if (this.transaction) {
+      await this.transaction.executeMultiple(sql);
+      return;
+    }
+
+    await this.client.executeMultiple(sql);
   }
 
   async run(
     sql: string,
     ...params: readonly unknown[]
   ): Promise<{ readonly lastID?: number; readonly changes?: number }> {
-    const result = await this.client.execute(sql, normalizeParams(params));
+    const result = await this.executeStatement(sql, params);
 
     return {
       lastID: toSafeNumber(result.lastInsertRowid),
@@ -248,16 +301,26 @@ class TursoDatabase implements GrayvaleDatabase {
   }
 
   async get<T>(sql: string, ...params: readonly unknown[]): Promise<T | undefined> {
-    const result = await this.client.execute(sql, normalizeParams(params));
+    const result = await this.executeStatement(sql, params);
     const firstRow = result.rows[0];
 
     return firstRow ? (firstRow as T) : undefined;
   }
 
   async all<T>(sql: string, ...params: readonly unknown[]): Promise<T> {
-    const result = await this.client.execute(sql, normalizeParams(params));
+    const result = await this.executeStatement(sql, params);
 
     return result.rows as T;
+  }
+
+  private executeStatement(sql: string, params: readonly unknown[]) {
+    const args = normalizeParams(params);
+
+    if (this.transaction) {
+      return this.transaction.execute({ sql, args });
+    }
+
+    return this.client.execute(sql, args);
   }
 }
 
@@ -293,11 +356,22 @@ function normalizeParam(param: unknown): InValue {
   return String(param);
 }
 
-function splitSqlStatements(sql: string): readonly string[] {
-  return sql
-    .split(";")
-    .map((statement) => statement.trim())
-    .filter((statement) => statement.length > 0);
+function parseTransactionCommand(sql: string): "begin" | "commit" | "rollback" | undefined {
+  const normalized = sql.trim().replace(/;+/g, "").toUpperCase();
+
+  if (normalized === "BEGIN" || normalized === "BEGIN TRANSACTION" || normalized === "BEGIN IMMEDIATE") {
+    return "begin";
+  }
+
+  if (normalized === "COMMIT" || normalized === "END") {
+    return "commit";
+  }
+
+  if (normalized === "ROLLBACK") {
+    return "rollback";
+  }
+
+  return undefined;
 }
 
 function toSafeNumber(value: unknown): number {
