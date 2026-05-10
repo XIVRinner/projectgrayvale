@@ -1,0 +1,87 @@
+name: vercel-deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-server:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write deployment server.properties
+        shell: bash
+        run: |
+          mkdir -p server/config
+          cat > server/config/server.properties <<'EOF'
+          ${{ secrets.GRAYVALE_SERVER_PROPERTIES }}
+          EOF
+          test -s server/config/server.properties
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Pull server project settings
+        run: vercel pull --cwd server --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Express server
+        run: |
+          vercel deploy --cwd server --prod \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --regions sfo1
+
+  deploy-client:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build shared workspace libraries
+        run: npm run build:libs
+
+      - name: Build Angular client
+        run: npm run build:game
+
+      - name: Prepare Angular dist for static hosting
+        shell: bash
+        run: |
+          mkdir -p game/dist/grayvale-game/browser/.vercel
+          cat > game/dist/grayvale-game/browser/vercel.json <<'EOF'
+          {
+            "rewrites": [
+              {
+                "source": "/(.*)",
+                "destination": "/index.html"
+              }
+            ]
+          }
+          EOF
+          cat > game/dist/grayvale-game/browser/.vercel/project.json <<EOF
+          {
+            "orgId": "${{ secrets.VERCEL_ORG_ID }}",
+            "projectId": "${{ secrets.VERCEL_CLIENT_ID }}"
+          }
+          EOF
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Deploy Angular client
+        run: vercel deploy --cwd game/dist/grayvale-game/browser --prod --token=${{ secrets.VERCEL_TOKEN }}

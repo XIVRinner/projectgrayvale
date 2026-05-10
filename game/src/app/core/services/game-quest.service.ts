@@ -892,7 +892,7 @@ function buildActivityRewardDelta(
   attachActivityMeta: boolean
 ): Delta {
   if (typeof reward.targetId !== "string" || reward.targetId.trim().length === 0) {
-    throw new Error(`Activity "${activity.id}" reward is missing a targetId.`);
+    throw new Error("Activity reward is missing a targetId.");
   }
 
   const meta = attachActivityMeta
