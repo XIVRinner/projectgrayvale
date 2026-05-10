@@ -1,0 +1,46 @@
+.gv-combat-log {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background: var(--gv-color-bg-surface);
+  padding: var(--gv-space-lg);
+}
+
+.gv-combat-log__title {
+  margin: 0 0 var(--gv-space-md);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-combat-log__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-combat-log__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  border-radius: var(--gv-radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-combat-log__item[data-type="damage"],
+.gv-combat-log__item[data-type="death"],
+.gv-combat-log__item[data-type="outcome"] {
+  background: rgba(255, 85, 119, 0.09);
+}
+
+.gv-combat-log__item[data-type="effect_applied"],
+.gv-combat-log__item[data-type="effect_tick"] {
+  background: rgba(180, 138, 255, 0.09);
+}
+
+.gv-combat-log__tick,
+.gv-combat-log__empty {
+  color: var(--gv-color-text-muted);
+}

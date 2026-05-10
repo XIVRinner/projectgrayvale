@@ -10,11 +10,21 @@ export type TickEvent = {
   readonly at: number;
 };
 
+export type TickChannelOptions = {
+  /**
+   * When false, missed time is collapsed into a single emitted tick so
+   * presentation-driven channels do not fast-forward through multiple visible
+   * states in one heartbeat.
+   */
+  readonly catchUp?: boolean;
+};
+
 type TickChannelState = {
   readonly type: TickType;
   rateMs: number;
   elapsedMs: number;
   tickCount: number;
+  catchUp: boolean;
   readonly events: Subject<TickEvent>;
 };
 
@@ -68,7 +78,11 @@ export class TickService implements OnDestroy {
     this.channels.clear();
   }
 
-  registerTickType(type: TickType, rateMs = 1000): void {
+  registerTickType(
+    type: TickType,
+    rateMs = 1000,
+    options: TickChannelOptions = {}
+  ): void {
     if (this.channels.has(type)) {
       return;
     }
@@ -78,6 +92,7 @@ export class TickService implements OnDestroy {
       rateMs: normalizeRate(rateMs),
       elapsedMs: 0,
       tickCount: 0,
+      catchUp: options.catchUp ?? true,
       events: new Subject<TickEvent>()
     });
   }
@@ -107,7 +122,13 @@ export class TickService implements OnDestroy {
       channel.elapsedMs += elapsedMs;
 
       while (channel.elapsedMs >= channel.rateMs) {
-        channel.elapsedMs -= channel.rateMs;
+        if (!channel.catchUp) {
+          // Drop any backlog after one visual tick so channels like combat do
+          // not skip over intermediate states in a single browser frame.
+          channel.elapsedMs = 0;
+        } else {
+          channel.elapsedMs -= channel.rateMs;
+        }
         channel.tickCount += 1;
 
         channel.events.next({
@@ -116,6 +137,10 @@ export class TickService implements OnDestroy {
           elapsedMs: channel.rateMs,
           at: now
         });
+
+        if (!channel.catchUp) {
+          break;
+        }
       }
     }
   }
@@ -132,6 +157,7 @@ export class TickService implements OnDestroy {
       rateMs: 1000,
       elapsedMs: 0,
       tickCount: 0,
+      catchUp: true,
       events: new Subject<TickEvent>()
     };
 

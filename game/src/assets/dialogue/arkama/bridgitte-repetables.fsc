@@ -1,9 +1,4 @@
 chapter BRIDGITTE_REPEATABLE_TALK:
-    if bridgitte_lore_unlocked == false:
-        bridgitte "Rest first."
-        bridgitte "Questions are easier to answer when you're not swaying on your feet."
-        return
-
     narrator "Bridgitte is outside her house, checking the edge on a skinning knife."
     narrator "She glances up as you approach."
 

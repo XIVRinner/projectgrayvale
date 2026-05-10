@@ -163,6 +163,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         label: sublocation.entryActionLabel ?? `Enter ${sublocation.label}`,
         groupKind: "movement",
         hiddenByDefault: false,
+        disabledReason: sublocation.entryDisabledReason,
         visibleWhen: sublocation.entryGuards?.length ? [...sublocation.entryGuards] : undefined,
         execution: {
           kind: "movement",
@@ -325,7 +326,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       id: buildActivityActionId(activity.id),
       contextId: activityContextId,
       label: activity.name,
-      groupKind: "activity",
+      groupKind: activity.questSignal?.type === "kill" ? "combat" : "activity",
       hiddenByDefault: false,
       visibleWhen: [
         { type: "activity_available", params: { activityId: activity.id } }
@@ -424,6 +425,12 @@ const STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID = "village-arkama:default";
 
 const STORY_BRIDGITTE_HOUSE_ACTION_ID = "story:bridgitte-house";
 const STORY_BRIDGITTE_HOUSE_CONTEXT_ID = "village-arkama:bridgitte-house";
+const STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_ACTION_ID = "story:bridgitte-repeatables:pre-hunt";
+const STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_CONTEXT_ID = "village-arkama:bridgitte-house";
+const STORY_BRIDGITTE_REPORT_BACK_ACTION_ID = "story:bridgitte-report-back";
+const STORY_BRIDGITTE_REPORT_BACK_CONTEXT_ID = "village-arkama:bridgitte-house";
+const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_ACTION_ID = "story:bridgitte-repeatables:post-coyote";
+const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_CONTEXT_ID = "village-arkama:bridgitte-house";
 
 function buildStoryActions(
   contextMap: Map<ContextId, ContextNode>,
@@ -525,10 +532,62 @@ function buildStoryActions(
       label: "Speak to Bridgitte",
       groupKind: "talk",
       hiddenByDefault: false,
-      visibleWhen: [{ type: "quest_completed", params: { questId: "quest_chief_labour" } }],
+      visibleWhen: [
+        { type: "quest_completed", params: { questId: "quest_chief_labour" } },
+        { type: "quest_not_started", params: { questId: "cull_arkama_coyote" } }
+      ],
       execution: {
         kind: "dialogue",
         dialogueTarget: "bridgitte-house"
+      }
+    });
+
+    actions.push({
+      id: STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_ACTION_ID,
+      contextId: STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_CONTEXT_ID,
+      label: "Speak to Bridgitte",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [
+        {
+          type: "quest_step_active",
+          params: { questId: "cull_arkama_coyote", stepId: "cull_the_coyote" }
+        }
+      ],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "bridgitte-repeatables"
+      }
+    });
+
+    actions.push({
+      id: STORY_BRIDGITTE_REPORT_BACK_ACTION_ID,
+      contextId: STORY_BRIDGITTE_REPORT_BACK_CONTEXT_ID,
+      label: "Report to Bridgitte",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [
+        {
+          type: "quest_step_active",
+          params: { questId: "cull_arkama_coyote", stepId: "report_back_to_bridgitte" }
+        }
+      ],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "bridgitte-report-back"
+      }
+    });
+
+    actions.push({
+      id: STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_ACTION_ID,
+      contextId: STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_CONTEXT_ID,
+      label: "Speak to Bridgitte",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [{ type: "quest_completed", params: { questId: "cull_arkama_coyote" } }],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "bridgitte-repeatables"
       }
     });
   }

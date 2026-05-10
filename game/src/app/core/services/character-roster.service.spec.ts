@@ -251,6 +251,56 @@ describe("CharacterRosterService", () => {
     expect(restoredRoster.activeSlot()?.statUnlocks.skills["short_blade"]).toBe(true);
   });
 
+  it("seeds a newly unlocked skill into the player skill map when it was previously missing", () => {
+    const roster = new CharacterRosterService();
+    const player = clonePlayer(samplePlayer);
+
+    delete player.skills["short_blade"];
+
+    roster.createCharacter(player);
+    roster.setActiveSkillUnlocked("short_blade", true);
+
+    expect(roster.activeCharacter()?.skills["short_blade"]).toBe(0);
+    expect(roster.activeSlot()?.statUnlocks.skills["short_blade"]).toBe(true);
+  });
+
+  it("hydrates unlocked skills back into the player skill map when old saves are missing the entry", () => {
+    const roster = new CharacterRosterService();
+    const player = clonePlayer(samplePlayer);
+
+    delete player.skills["short_blade"];
+
+    roster.importRoster(
+      JSON.stringify({
+        activeSlotId: "slot_1",
+        slots: [
+          {
+            id: "slot_1",
+            createdAt: "2026-05-01T08:00:00.000Z",
+            updatedAt: "2026-05-01T08:00:00.000Z",
+            player,
+            statUnlocks: {
+              attributes: {
+                vitality: true,
+                strength: false,
+                agility: false,
+                mentality: false
+              },
+              skills: {
+                short_blade: true,
+                bow: false,
+                blacksmithing: false
+              }
+            }
+          }
+        ]
+      })
+    );
+
+    expect(roster.activeCharacter()?.skills["short_blade"]).toBe(0);
+    expect(roster.activeSlot()?.statUnlocks.skills["short_blade"]).toBe(true);
+  });
+
   it("persists quest log changes through export and import", () => {
     const roster = new CharacterRosterService();
 

@@ -151,11 +151,10 @@ chapter BRIDGITTE_FIRST_MEETING:
             narrator "The village air is cool. Somewhere nearby, livestock shift and mutter behind their fences."
             narrator "Your hand closes around the old dagger."
 
-            call unlockCombatClass("ruffian")
+            call logEvent("Classes are still WIP")
+            call unlockSkillById("short_blade")
             call giveItem("old_dagger")
             call startQuest("cull_arkama_coyote")
-            call unlockLocation("forest_edge")
-            call unlockActivity("coyote_culling")
 
             set bridgitte_intro_done = true
             set bridgitte_lore_unlocked = true
@@ -180,11 +179,10 @@ chapter BRIDGITTE_FIRST_MEETING:
             bridgitte "Keep it close. Keep your wrist alive. Never show the point unless you mean to use it."
             bridgitte "And if you ever think a fight is fair, assume you missed something."
 
-            call unlockCombatClass("ruffian")
+            call logEvent("Classes are still WIP")
+            call unlockSkillById("short_blade")
             call giveItem("old_dagger")
             call startQuest("cull_arkama_coyote")
-            call unlockLocation("forest_edge")
-            call unlockActivity("coyote_culling")
 
             set bridgitte_intro_done = true
             set bridgitte_lore_unlocked = true
@@ -212,11 +210,10 @@ chapter BRIDGITTE_FIRST_MEETING:
             bridgitte "Keep it close. Keep your wrist alive. Never show the point unless you mean to use it."
             bridgitte "And if you ever think a fight is fair, assume you missed something."
 
-            call unlockCombatClass("ruffian")
+            call logEvent("Classes are still WIP")
+            call unlockSkillById("short_blade")
             call giveItem("old_dagger")
             call startQuest("cull_arkama_coyote")
-            call unlockLocation("forest_edge")
-            call unlockActivity("coyote_culling")
 
             set bridgitte_intro_done = true
             set bridgitte_lore_unlocked = true

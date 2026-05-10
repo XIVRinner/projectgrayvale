@@ -294,6 +294,24 @@ describe("GameplayLogService", () => {
     ]);
   });
 
+  it("records scripted dialogue log events as system entries", () => {
+    const { gameplayLog } = createFixture();
+    let latestLog: unknown[] = [];
+
+    gameplayLog.log$.subscribe((entries) => {
+      latestLog = entries;
+    });
+
+    gameplayLog.processDialogEvent({
+      type: "log-event",
+      text: "Classes are still WIP"
+    });
+
+    expect(latestLog).toEqual([
+      { type: "system", text: "Classes are still WIP" }
+    ]);
+  });
+
   it("records quest lifecycle events without duplicating tagged quest deltas", () => {
     const { gameplayLog } = createFixture();
     let latestLog: unknown[] = [];

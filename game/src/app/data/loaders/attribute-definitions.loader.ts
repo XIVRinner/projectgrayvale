@@ -1,6 +1,8 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, Observable } from "rxjs";
+
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 
 export interface AttributeDefinition {
   readonly id: string;
@@ -12,10 +14,13 @@ export interface AttributeDefinition {
 
 @Injectable({ providedIn: "root" })
 export class AttributeDefinitionsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<readonly AttributeDefinition[]> {
-    return this.http.get<unknown>("assets/data/attributes.json").pipe(
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("attributes"), dataApiPath("attributes")],
+      { cacheKey: apiPath("attributes") }
+    ).pipe(
       map((raw) => parseAttributeDefinitions(raw))
     );
   }

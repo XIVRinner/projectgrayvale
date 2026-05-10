@@ -1,318 +1,49 @@
-declare narrator = Actor("Narrator")
-declare player = Actor("Player")
-declare bridgitte = Actor("Bridgitte")
-
-declare global quest_cull_coyote_started = false
-declare global quest_cull_coyote_done = false
-declare global quest_cull_coyote_reported = false
-
-declare global quest_five_finger_fillet_unlocked = false
-declare global quest_smithing_intro_unlocked = false
-declare global quest_shopkeep_gathering_unlocked = false
-
-declare global activity_five_finger_fillet_unlocked = false
-declare global skill_agility_unlocked = false
-
-chapter BRIDGITTE_REPORT_COYOTE:
-    if quest_cull_coyote_done == false:
-        bridgitte "The coyote is still out there."
-        bridgitte "Don't rush, but don't ignore it either."
-        bridgitte "Predators get bold when nobody answers them."
-        return
-
-    if quest_cull_coyote_reported == true:
-        goto BRIDGITTE_AFTER_COYOTE_REPEAT
-
-    narrator "Bridgitte is standing near the fence outside her house, repairing a leather strap."
-    narrator "She looks up before you say anything."
+chapter BRIDGITTE_REPORT_BACK:
+    narrator "Bridgitte is outside her house, tightening a leather wrap around a practice post."
+    narrator "She looks up as you approach, then studies you for a long beat."
 
     bridgitte "You're back."
 
     player "The coyote is dead."
 
-    bridgitte "I can see that."
+    bridgitte "I know."
+    bridgitte "You came back straighter."
+    bridgitte "That happens when fear gets used and not obeyed."
 
-    player "You can?"
+    player "It still felt ugly."
 
-    bridgitte "Your shoulders are lower."
-    bridgitte "Your hands stopped shaking."
-    bridgitte "And you came back through the open road instead of cutting behind the houses."
+    bridgitte "Most real fights do."
+    bridgitte "That does not make the work less necessary."
 
-    player "I didn't think you would notice that."
+    player "So what now?"
 
-    bridgitte "That's why I noticed it."
+    bridgitte "Now you stop pretending an adventurer's life is only monsters."
+    bridgitte "You need hands that can gather, eyes that can notice, and enough patience to respect the tools keeping you alive."
 
-    narrator "She sets the strap aside and studies you more carefully."
+    bridgitte "If you want quicker hands, ask around in the tavern about five finger fillet."
+    bridgitte "Foolish game. Useful lesson."
 
-    bridgitte "Any bites?"
+    bridgitte "If you want foundation, go mine brittle copper and then visit Lydia at the smithy."
+    bridgitte "Bring ten pieces."
+    bridgitte "She respects effort more than introductions."
 
-    player "No."
+    bridgitte "If you want coin, gather ten medicine herbs and ten flax for the shopkeep."
+    bridgitte "The shop is not ready to deal with you yet, but the work itself is."
 
-    bridgitte "Scratches?"
+    bridgitte "And if you want to keep hunting, the forest edge has more than one coyote in it."
+    bridgitte "The next one will not be the same lesson twice."
 
-    player "A few."
-
-    bridgitte "Deep?"
-
-    player "No."
-
-    bridgitte "Good."
-    bridgitte "Then you did better than I expected."
-
-    player "You expected me to get hurt?"
-
-    bridgitte "I expected you to learn."
-    bridgitte "Learning usually comes with bruises."
-
-    player "It was faster than I thought."
-
-    bridgitte "Most fights are."
-    bridgitte "People imagine long duels, clever footwork, heroic turns."
-    bridgitte "Then something lunges, someone panics, and the whole thing is over before your breath catches up."
-
-    player "I almost froze."
-
-    bridgitte "Almost is fine."
-    bridgitte "Almost means you didn't."
-
-    player "So that was the lesson?"
-
-    bridgitte "Part of it."
-    bridgitte "The first part."
-    bridgitte "You held the blade, faced something that wanted to hurt you, and came back alive."
-    bridgitte "That matters."
-
-    player "I don't feel stronger."
-
-    bridgitte "You aren't."
-    bridgitte "Not much."
-    bridgitte "But now your body knows the difference between practice and danger."
-    bridgitte "That's a beginning."
-
-    narrator "Bridgitte gives a small nod toward the village."
-
-    bridgitte "There are a few things left for you to do here before you start thinking about roads, borders, and the Duchy of Beta."
-
-    player "More monster work?"
-
-    bridgitte "Not all of it."
-    bridgitte "You need more than a dagger hand."
-    bridgitte "An adventurer who only knows how to stab things is a problem waiting to happen."
-
-    player "What should I do?"
-
-    bridgitte "Depends on what you want to strengthen first."
-
-    bridgitte "If you want quicker hands, go to the tavern."
-    bridgitte "They play five finger fillet there."
-    bridgitte "Stupid game. Useful reflexes."
-    bridgitte "Try not to lose a finger. The tavernkeeper hates blood on the tables."
-
-    bridgitte "If you want useful hands, visit Lydia at the smithy."
-    bridgitte "She might teach you the start of proper craftsmanship."
-    bridgitte "But don't go empty-handed."
-    bridgitte "Mine ten copper ore first. Smiths respect work more than questions."
-
-    bridgitte "And if you want coin, the shopkeep pays for supplies from the forest."
-    bridgitte "Medicinal herbs and flax, mostly."
-    bridgitte "Bring ten of each, and she'll make it worth your time."
-
-    player "Which one matters most?"
-
-    narrator "Bridgitte pauses."
+    player "What do you recommend first?"
 
     bridgitte "Lydia."
-    bridgitte "The smithing work."
-    bridgitte "Not because swinging a hammer is glamorous."
-    bridgitte "Because learning how equipment is made teaches you how much your life depends on things other people forged, stitched, boiled, carved, and carried."
-    bridgitte "If you mean to become an adventurer, understand your tools."
+    bridgitte "Copper first. Smithy second."
+    bridgitte "Learn what a blade is before you trust one with your life."
 
-    player "And the others?"
-
-    bridgitte "Still useful."
-    bridgitte "The tavern teaches speed and nerve."
-    bridgitte "The forest teaches attention."
-    bridgitte "The smithy teaches foundation."
-
-    player "So I should do all of them."
-
-    bridgitte "You should do what you can."
-    bridgitte "But if you ask me where to start, start with copper and Lydia."
-
-    call completeQuest("cull_arkama_coyote")
+    call resolveQuestStep("cull_arkama_coyote", "report_back_to_bridgitte")
     call startQuest("learn_five_finger_fillet")
     call startQuest("lydia_smithing_intro")
     call startQuest("shopkeep_forest_supplies")
 
-    call markQuestAsSide("learn_five_finger_fillet")
-    call markQuestAsMain("lydia_smithing_intro")
-    call markQuestAsSide("shopkeep_forest_supplies")
-
-    call setQuestObjective("learn_five_finger_fillet", "Visit the tavern and ask about five finger fillet.")
-    call setQuestObjective("lydia_smithing_intro", "Mine 10 copper ore, then visit Lydia at the smithy.")
-    call setQuestObjective("shopkeep_forest_supplies", "Gather 10 medicinal herbs and 10 flax, then visit the shopkeep.")
-
-    set quest_cull_coyote_reported = true
-    set quest_five_finger_fillet_unlocked = true
-    set quest_smithing_intro_unlocked = true
-    set quest_shopkeep_gathering_unlocked = true
-
-    bridgitte "Go on."
-    bridgitte "You survived your first bit of work."
-    bridgitte "Now learn how people survive the quieter parts."
-
-
-chapter BRIDGITTE_AFTER_COYOTE_REPEAT:
-    narrator "Bridgitte folds her arms as you approach."
-
-    bridgitte "Looking for direction?"
-
-    choice:
-        "Ask about the tavern." -> BRIDGITTE_AFTER_COYOTE_TAVERN
-        "Ask about Lydia and the smithy." -> BRIDGITTE_AFTER_COYOTE_SMITHY
-        "Ask about forest scavenging." -> BRIDGITTE_AFTER_COYOTE_FOREST
-        "Ask what she recommends." -> BRIDGITTE_AFTER_COYOTE_RECOMMEND
-        "Leave." -> BRIDGITTE_AFTER_COYOTE_END
-
-
-chapter BRIDGITTE_AFTER_COYOTE_TAVERN:
-    player "You mentioned the tavern."
-
-    bridgitte "Five finger fillet."
-    bridgitte "Someone will offer to show you if you ask around."
-    bridgitte "It's a foolish game with a useful lesson."
-
-    player "Not cutting myself?"
-
-    bridgitte "That is the first useful lesson, yes."
-    bridgitte "The second is rhythm."
-    bridgitte "The third is nerve."
-    bridgitte "The fourth is knowing when your hand is too tired to keep playing."
-
-    player "And that helps with fighting?"
-
-    bridgitte "It helps with your hands."
-    bridgitte "Quick hands save lives."
-    bridgitte "Sometimes yours. Sometimes someone else's."
-
-    if quest_five_finger_fillet_unlocked == false:
-        call startQuest("learn_five_finger_fillet")
-        call markQuestAsSide("learn_five_finger_fillet")
-        call setQuestObjective("learn_five_finger_fillet", "Visit the tavern and ask about five finger fillet.")
-        set quest_five_finger_fillet_unlocked = true
-
-    goto BRIDGITTE_AFTER_COYOTE_REPEAT
-
-chapter BRIDGITTE_AFTER_COYOTE_SMITHY:
-    player "Tell me about Lydia."
-
-    bridgitte "Lydia runs the smithy."
-    bridgitte "She's a high goblin."
-
-    player "A high goblin?"
-
-    bridgitte "Looks like a goblin to anyone who doesn't know better."
-    bridgitte "That is usually where the trouble starts."
-    bridgitte "High goblins are different."
-    bridgitte "Sharper minds. Better speech. More patience for rules, trade, and doors that don't need kicking in."
-    bridgitte "They can live in sapient society, if sapient society remembers to act sapient."
-
-    player "So people accept her?"
-
-    bridgitte "Here? Mostly."
-    bridgitte "Lydia has worked that forge long enough that half the village owns something she repaired."
-    bridgitte "A hinge, a pot, a plowhead, a knife, a buckle."
-    bridgitte "People get less philosophical about goblins when their roof latch works because of one."
-
-    player "Will she teach me?"
-
-    bridgitte "Maybe."
-    bridgitte "Lydia likes effort."
-    bridgitte "Bring her ten copper ore, and she'll know you didn't come asking for free wisdom with clean hands."
-
-    player "Why is this more important than the others?"
-
-    bridgitte "Because adventurers live and die by their equipment."
-    bridgitte "A bad edge fails."
-    bridgitte "A loose rivet tears."
-    bridgitte "A cheap buckle snaps at the worst possible moment."
-    bridgitte "If you learn even a little craftsmanship, you stop treating gear like magic that appears in shops."
-
-    player "So I mine first, then visit Lydia."
-
-    bridgitte "Right."
-    bridgitte "Ten copper ore."
-    bridgitte "Then the smithy."
-    bridgitte "And be polite."
-    bridgitte "Lydia has heard enough foolish comments to last three lifetimes."
-
-    if quest_smithing_intro_unlocked == false:
-        call startQuest("lydia_smithing_intro")
-        call markQuestAsMain("lydia_smithing_intro")
-        call setQuestObjective("lydia_smithing_intro", "Mine 10 copper ore, then visit Lydia at the smithy.")
-        set quest_smithing_intro_unlocked = true
-
-    goto BRIDGITTE_AFTER_COYOTE_REPEAT
-
-chapter BRIDGITTE_AFTER_COYOTE_FOREST:
-    player "The shopkeep needs herbs and flax?"
-
-    bridgitte "Needs, buys, complains about the price, then buys again."
-    bridgitte "Medicinal herbs are always useful."
-    bridgitte "Flax too. Thread, cloth, bindings, simple repairs."
-    bridgitte "Not exciting, but neither is bleeding through a torn sleeve because nobody gathered fiber."
-
-    player "Where should I look?"
-
-    bridgitte "Forest edge."
-    bridgitte "Don't wander deep."
-    bridgitte "Herbs grow where light breaks through the trees."
-    bridgitte "Flax favors open patches and disturbed ground."
-
-    player "Ten of each?"
-
-    bridgitte "Ten medicinal herbs."
-    bridgitte "Ten flax."
-    bridgitte "Bring them to the shopkeep."
-    bridgitte "She'll pay you, and you'll learn to keep your eyes open while walking."
-
-    if quest_shopkeep_gathering_unlocked == false:
-        call startQuest("shopkeep_forest_supplies")
-        call markQuestAsSide("shopkeep_forest_supplies")
-        call setQuestObjective("shopkeep_forest_supplies", "Gather 10 medicinal herbs and 10 flax, then visit the shopkeep.")
-        set quest_shopkeep_gathering_unlocked = true
-
-    goto BRIDGITTE_AFTER_COYOTE_REPEAT
-
-
-chapter BRIDGITTE_AFTER_COYOTE_RECOMMEND:
-    player "What do you think I should do first?"
-
-    bridgitte "Lydia."
-    bridgitte "Mine the copper and visit the smithy."
-
-    player "Because it's main work?"
-
-    bridgitte "Because it's foundation."
-    bridgitte "The tavern can teach your hands to move."
-    bridgitte "The forest can teach your eyes to search."
-    bridgitte "But the smithy teaches respect for the things keeping you alive."
-
-    player "You sound sure."
-
-    bridgitte "I am."
-    bridgitte "A blade is not just a blade."
-    bridgitte "A tool is not just a tool."
-    bridgitte "The sooner you understand that, the fewer mistakes you'll make when mistakes start costing more than bruises."
-
-    goto BRIDGITTE_AFTER_COYOTE_REPEAT
-
-
-chapter BRIDGITTE_AFTER_COYOTE_END:
-    player "I'll get started."
-
-    bridgitte "Good."
-    bridgitte "And remember, none of this is beneath you."
-    bridgitte "The road to becoming an adventurer starts with small work done properly."
-
-    return
+    bridgitte "Go on, then."
+    bridgitte "You survived the loud lesson."
+    bridgitte "Now start learning the quieter ones."

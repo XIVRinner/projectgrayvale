@@ -1,0 +1,23 @@
+<article class="gv-combat-actor" [attr.data-role]="actor().role">
+  <header class="gv-combat-actor__header">
+    <p class="gv-combat-actor__role">{{ actor().role }}</p>
+    <h2 class="gv-combat-actor__name">{{ actor().name }}</h2>
+  </header>
+
+  <progress class="gv-combat-actor__meter" [value]="actor().hpPercent" max="100">
+    {{ actor().hpPercent }}%
+  </progress>
+
+  <div class="gv-combat-actor__status">
+    <strong>{{ actor().statusLabel }}</strong>
+    <span>{{ actor().hpPercent }}%</span>
+  </div>
+
+  @if (actor().effectLabels.length > 0) {
+    <ul class="gv-combat-actor__effects" aria-label="Active effects">
+      @for (effect of actor().effectLabels; track effect) {
+        <li>{{ effect }}</li>
+      }
+    </ul>
+  }
+</article>

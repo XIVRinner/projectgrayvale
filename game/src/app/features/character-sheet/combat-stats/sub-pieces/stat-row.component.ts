@@ -17,7 +17,7 @@ export class StatRowComponent {
   protected readonly lockedLabel = "Locked";
 
   protected onSelect(): void {
-    if (this.row().isLocked) {
+    if (this.row().isLocked || this.row().isInspectable === false) {
       return;
     }
 

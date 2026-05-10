@@ -27,7 +27,7 @@
   {
     "id": "village-labour",
     "name": "Help with Village Labour",
-    "description": "Carry timber, pull bent nails, and patch floors — whatever the village needs.",
+    "description": "Carry timber, pull bent nails, and patch floors - whatever the village needs.",
     "location": {
       "locationId": "village-arkama"
     },
@@ -41,6 +41,233 @@
         "value": {
           "type": "flat",
           "amount": 0.5
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "coyote_culling",
+    "name": "Cull the Coyote",
+    "description": "Push through the nerves and deal with the lone coyote stalking the lower path.",
+    "location": {
+      "locationId": "forest_edge"
+    },
+    "questSignal": {
+      "type": "kill",
+      "target": "arkama_coyote",
+      "count": 1
+    },
+    "tags": ["forest", "quest", "special", "tutorial"],
+    "governingAttributes": ["agility", "vitality"],
+    "difficulty": 6,
+    "rewards": [
+      {
+        "type": "attribute",
+        "targetId": "agility",
+        "value": {
+          "type": "flat",
+          "amount": 0.5
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "gather_medicine_herb_t1",
+    "name": "Gather Medicine Herb",
+    "description": "Work the lit edges of the brush for fresh medicine herbs.",
+    "location": {
+      "locationId": "forest_edge"
+    },
+    "tags": ["forest", "gathering", "herb", "repeatable", "t1"],
+    "governingAttributes": ["agility", "vitality"],
+    "difficulty": 4,
+    "rewards": [
+      {
+        "type": "item",
+        "targetId": "mat_medicine_herb_t1",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      },
+      {
+        "type": "attribute",
+        "targetId": "agility",
+        "value": {
+          "type": "flat",
+          "amount": 0.15
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "harvest_flax_t1",
+    "name": "Harvest Flax",
+    "description": "Pull usable flax from the open patches near the village path.",
+    "location": {
+      "locationId": "forest_edge"
+    },
+    "tags": ["forest", "gathering", "fiber", "repeatable", "t1"],
+    "governingAttributes": ["agility", "strength"],
+    "difficulty": 4,
+    "rewards": [
+      {
+        "type": "item",
+        "targetId": "mat_flax_t1",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      },
+      {
+        "type": "attribute",
+        "targetId": "strength",
+        "value": {
+          "type": "flat",
+          "amount": 0.15
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "mine_brittle_copper",
+    "name": "Mine Brittle Copper",
+    "description": "Chip loose brittle copper out of the shallow stone seams.",
+    "location": {
+      "locationId": "forest_edge"
+    },
+    "tags": ["forest", "mining", "resource", "repeatable", "t1"],
+    "governingAttributes": ["strength", "vitality"],
+    "difficulty": 5,
+    "rewards": [
+      {
+        "type": "item",
+        "targetId": "mat_brittle_copper_t1",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      },
+      {
+        "type": "attribute",
+        "targetId": "strength",
+        "value": {
+          "type": "flat",
+          "amount": 0.2
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "chop_brittle_oak_log",
+    "name": "Cut Brittle Oak",
+    "description": "Trim salvageable brittle oak from the deadfall near the treeline.",
+    "location": {
+      "locationId": "forest_edge"
+    },
+    "tags": ["forest", "logging", "resource", "repeatable", "t1"],
+    "governingAttributes": ["strength", "vitality"],
+    "difficulty": 5,
+    "rewards": [
+      {
+        "type": "item",
+        "targetId": "mat_brittle_oak_log_t1",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      },
+      {
+        "type": "attribute",
+        "targetId": "strength",
+        "value": {
+          "type": "flat",
+          "amount": 0.2
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      }
+    ]
+  },
+  {
+    "id": "hunt_coyote",
+    "name": "Hunt Coyote",
+    "description": "Track a meaner coyote through the brush and bring back something useful.",
+    "location": {
+      "locationId": "forest_edge"
+    },
+    "tags": ["forest", "combat", "repeatable", "hunting", "t1"],
+    "governingAttributes": ["agility", "vitality"],
+    "difficulty": 7,
+    "rewards": [
+      {
+        "type": "item",
+        "targetId": "mat_coyote_hide_t1",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      },
+      {
+        "type": "item",
+        "targetId": "mat_coyote_meat_t1",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "deterministic"
+        }
+      },
+      {
+        "type": "item",
+        "targetId": "weapon_dagger_coyote_fang",
+        "value": {
+          "type": "flat",
+          "amount": 1
+        },
+        "distribution": {
+          "type": "random",
+          "chance": 0.08
+        }
+      },
+      {
+        "type": "attribute",
+        "targetId": "agility",
+        "value": {
+          "type": "flat",
+          "amount": 0.35
         },
         "distribution": {
           "type": "deterministic"

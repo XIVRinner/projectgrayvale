@@ -21,6 +21,10 @@ const catalog: WorldGuardCatalog = {
     {
       type: "story_chapter_at_least",
       failureMessageTemplate: "Advance the story to chapter {minimumChapter} before traveling there."
+    },
+    {
+      type: "quest_started",
+      failureMessageTemplate: "Begin the assigned quest before continuing."
     }
   ]
 };
@@ -90,6 +94,40 @@ describe("world guard evaluator", () => {
         catalog
       )
     ).toEqual({ passes: true });
+  });
+
+  it("treats active and completed quests as started", () => {
+    const activeContext = createContext({
+      questLog: {
+        quests: {
+          cull_arkama_coyote: {
+            currentStep: "cull_the_coyote",
+            status: "active",
+            completedSteps: []
+          }
+        }
+      }
+    });
+    const completedContext = createContext({
+      questLog: {
+        quests: {
+          cull_arkama_coyote: {
+            currentStep: "cull_the_coyote",
+            status: "completed",
+            completedSteps: ["cull_the_coyote"]
+          }
+        }
+      }
+    });
+    const guard = {
+      type: "quest_started",
+      params: {
+        questId: "cull_arkama_coyote"
+      }
+    };
+
+    expect(evaluateWorldGuard(guard, activeContext, catalog)).toEqual({ passes: true });
+    expect(evaluateWorldGuard(guard, completedContext, catalog)).toEqual({ passes: true });
   });
 
   it("fails safely for unknown guards in the resolver contract", () => {

@@ -51,6 +51,28 @@ describe("TickService", () => {
     expect(gatherTicks).toEqual([1, 2]);
   });
 
+  it("can disable catch-up bursts for visual channels like combat", () => {
+    const service = new TickService();
+    const combatTicks: number[] = [];
+
+    service.registerTickType("combat", 1000, { catchUp: false });
+    service.tick$("combat").subscribe((event) => {
+      combatTicks.push(event.tickNumber);
+    });
+
+    service.start();
+
+    const startedAt = Date.now();
+    service.pulse(startedAt + 2500);
+    expect(combatTicks).toEqual([1]);
+
+    service.pulse(startedAt + 3000);
+    expect(combatTicks).toEqual([1]);
+
+    service.pulse(startedAt + 3500);
+    expect(combatTicks).toEqual([1, 2]);
+  });
+
   it("applies updated rate for future ticks", () => {
     const service = new TickService();
     const received: number[] = [];

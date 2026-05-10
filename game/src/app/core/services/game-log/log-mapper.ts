@@ -156,6 +156,14 @@ export function mapDialogEventToGameplayLogEntry(
     case "session-started":
     case "session-ended":
       return null;
+    case "log-event":
+      return {
+        entry: {
+          type: "system",
+          text: event.text
+        },
+        mergeState: null
+      };
     case "line-shown":
       return {
         entry: {

@@ -113,6 +113,15 @@ function evaluateKnownGuard(guard: Guard, context: GuardContext): boolean {
       const status = context.player.questLog?.quests[questId]?.status;
       return status === undefined;
     }
+    case "quest_started": {
+      const questId = readOptionalStringParam(guard.params, "questId");
+
+      if (!questId) {
+        return false;
+      }
+
+      return context.player.questLog?.quests[questId] !== undefined;
+    }
     case "quest_active": {
       const questId = readOptionalStringParam(guard.params, "questId");
 

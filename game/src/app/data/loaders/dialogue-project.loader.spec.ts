@@ -3,6 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { TextDecoder } from "node:util";
 import { firstValueFrom, of } from "rxjs";
 
+import { GameApiCacheService } from "../game-api-cache.service";
 import { DialogueProjectLoader } from "./dialogue-project.loader";
 
 describe("DialogueProjectLoader", () => {
@@ -15,7 +16,7 @@ describe("DialogueProjectLoader", () => {
 
   it("loads the project manifest and decodes each dialogue asset to text", async () => {
     const loader = createDialogueProjectLoader({
-      "assets/data/dialogue-project.json": {
+      "/api/data/dialogue-project": {
         files: ["assets/dialogue/globals.fsc", "assets/dialogue/prologue/valeflow-prologue.fsc"]
       },
       "assets/dialogue/globals.fsc": encodeDialogueSource(
@@ -42,6 +43,17 @@ describe("DialogueProjectLoader", () => {
 function createDialogueProjectLoader(
   responses: Record<string, unknown>
 ): DialogueProjectLoader {
+  const apiCache = {
+    getJson: jest.fn((url: string) => {
+      const response = responses[url];
+
+      if (response === undefined) {
+        throw new Error(`Unexpected request for ${url}.`);
+      }
+
+      return of(response);
+    })
+  };
   const http = {
     get: jest.fn((url: string) => {
       const response = responses[url];
@@ -54,7 +66,10 @@ function createDialogueProjectLoader(
     })
   };
   const injector = Injector.create({
-    providers: [{ provide: HttpClient, useValue: http }]
+    providers: [
+      { provide: HttpClient, useValue: http },
+      { provide: GameApiCacheService, useValue: apiCache }
+    ]
   });
 
   return runInInjectionContext(injector, () => new DialogueProjectLoader());

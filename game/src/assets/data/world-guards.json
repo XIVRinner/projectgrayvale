@@ -21,6 +21,10 @@
       "failureMessageTemplate": "This place is no longer available."
     },
     {
+      "type": "quest_started",
+      "failureMessageTemplate": "Begin the assigned quest before continuing."
+    },
+    {
       "type": "quest_active",
       "failureMessageTemplate": "Progress the required quest before continuing."
     },

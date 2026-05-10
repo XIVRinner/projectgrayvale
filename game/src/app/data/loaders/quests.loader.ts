@@ -1,15 +1,20 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import * as GrayvaleCore from "@rinner/grayvale-core";
 import type { Quest } from "@rinner/grayvale-core";
 import { map, type Observable } from "rxjs";
 
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
+
 @Injectable({ providedIn: "root" })
 export class QuestsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<readonly Quest[]> {
-    return this.http.get<unknown>("assets/data/quests.json").pipe(
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("quests"), dataApiPath("quests")],
+      { cacheKey: apiPath("quests") }
+    ).pipe(
       map((raw) => parseQuests(raw))
     );
   }

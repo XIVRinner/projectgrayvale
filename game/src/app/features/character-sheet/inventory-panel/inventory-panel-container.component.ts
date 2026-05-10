@@ -1,4 +1,3 @@
-import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
   ChangeDetectionStrategy,
@@ -21,11 +20,13 @@ import {
   sampleLoadoutDefault
 } from "@rinner/grayvale-core";
 
-import { parseItemArrayWithIconPath } from "../character-sheet-item-assets";
+import { parseInventoryItemArrayWithGameFields } from "../character-sheet-item-assets";
 import {
   buildEquipmentRequirementStatuses,
   checkEquipmentRequirements
 } from "../character-sheet-equipment-requirements";
+import { apiPath, dataApiPath } from "../../../data/api-paths";
+import { GameApiCacheService } from "../../../data/game-api-cache.service";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "./inventory-panel.types";
 import { isEquipmentItem } from "./inventory-panel.types";
 import { InventoryPanelViewComponent } from "./inventory-panel-view.component";
@@ -48,7 +49,7 @@ import { InventoryPanelViewComponent } from "./inventory-panel-view.component";
   `
 })
 export class InventoryPanelContainerComponent {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
   readonly comparedItemId = input<string | null>(null);
@@ -64,12 +65,27 @@ export class InventoryPanelContainerComponent {
 
   protected readonly items = computed<readonly InventoryPanelItemView[]>(() => {
     const loadout = this.activeLoadout();
+    const player = this.player();
     const registry = new Map<string, InventoryItemDefinition>();
+
+    if (!player) {
+      return [];
+    }
+
     for (const item of this.inventoryItems()) {
       registry.set(item.id, item);
     }
 
-    return this.inventoryItems().map((item) => {
+    const ownedItemCounts = player.inventory.items;
+    const visibleItemIds = Object.entries(ownedItemCounts)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([itemId]) => itemId);
+
+    return visibleItemIds
+      .map((itemId) => registry.get(itemId))
+      .filter((item): item is InventoryItemDefinition => item !== undefined)
+      .map((item) => {
+      const ownedQuantity = ownedItemCounts[item.id] ?? 0;
       const searchTerms = [item.name, item.rarity, item.category, ...(item.tags ?? [])].map((term) =>
         term.toLowerCase()
       );
@@ -82,11 +98,11 @@ export class InventoryPanelContainerComponent {
           rarity: item.rarity,
           specialRarity: item.specialRarity,
           itemTypeLabel: "Material",
-          quantity: item.quantity,
+          quantity: ownedQuantity,
           qualityStars: item.qualityStars ?? null,
           itemLevel: null,
           slot: null,
-          inspectTooltip: `${item.name}\n${item.rarity}\nQuantity: ${item.quantity}`,
+          inspectTooltip: `${item.name}\n${item.rarity}\nQuantity: ${ownedQuantity}`,
           compareSummary: null,
           isEquipped: false,
           canEquip: false,
@@ -105,7 +121,7 @@ export class InventoryPanelContainerComponent {
           rarity: item.rarity,
           specialRarity: item.specialRarity,
           itemTypeLabel: "Quest Item",
-          quantity: null,
+          quantity: ownedQuantity,
           qualityStars: null,
           itemLevel: null,
           slot: null,
@@ -128,7 +144,7 @@ export class InventoryPanelContainerComponent {
           rarity: item.rarity,
           specialRarity: item.specialRarity,
           itemTypeLabel: "Junk",
-          quantity: null,
+          quantity: ownedQuantity,
           qualityStars: null,
           itemLevel: null,
           slot: null,
@@ -186,10 +202,17 @@ export class InventoryPanelContainerComponent {
   });
 
   constructor() {
-    this.http
-      .get<unknown>("assets/data/inventory-items.json")
+    this.apiCache
+      .getJsonWithFallback<unknown>(
+        [apiPath("items"), dataApiPath("inventory-items")],
+        { cacheKey: apiPath("items") }
+      )
       .pipe(
-        map((raw) => parseItemArrayWithIconPath(raw, (entry) => inventoryItemDefinitionSchema.parse(entry))),
+        map((raw) =>
+          parseInventoryItemArrayWithGameFields(raw, (entry) =>
+            inventoryItemDefinitionSchema.parse(entry)
+          )
+        ),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load inventory items.";
           this.error.set(message);

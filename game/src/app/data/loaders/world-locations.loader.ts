@@ -1,8 +1,9 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
-import { map, type Observable } from "rxjs";
+import { forkJoin, map, type Observable } from "rxjs";
 import type { Guard } from "@rinner/grayvale-worldgraph";
 
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 import {
   cloneSaveSlotWorldState,
   type SaveSlotWorldState
@@ -17,6 +18,7 @@ export interface WorldSublocationMetadata {
   readonly isReturnable: boolean;
   readonly entryActionLabel?: string;
   readonly exitActionLabel?: string;
+  readonly entryDisabledReason?: string;
   readonly entryGuards?: readonly Guard[];
   readonly exitGuards?: readonly Guard[];
 }
@@ -37,24 +39,53 @@ export interface WorldLocationsCatalog {
 
 @Injectable({ providedIn: "root" })
 export class WorldLocationsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<WorldLocationsCatalog> {
-    return this.http
-      .get<unknown>("assets/data/world-locations.json")
-      .pipe(map((raw) => parseWorldLocationsCatalog(raw)));
+    return forkJoin({
+      defaultState: this.apiCache.getJsonWithFallback<unknown>(
+        [apiPath("world-default-state/default"), dataApiPath("world-locations")],
+        { cacheKey: apiPath("world-default-state/default") }
+      ),
+      locations: this.apiCache.getJsonWithFallback<unknown>(
+        [apiPath("world-locations"), dataApiPath("world-locations")],
+        { cacheKey: apiPath("world-locations") }
+      )
+    }).pipe(
+      map(({ defaultState, locations }) => parseWorldLocationsCatalog(defaultState, locations))
+    );
   }
 }
 
-function parseWorldLocationsCatalog(raw: unknown): WorldLocationsCatalog {
-  const record = ensureRecord(raw, "world locations");
-
+function parseWorldLocationsCatalog(
+  defaultStateRaw: unknown,
+  locationsRaw: unknown
+): WorldLocationsCatalog {
   return {
-    defaultState: parseWorldState(record["defaultState"], "world locations.defaultState"),
-    locations: ensureArray(record["locations"], "world locations.locations").map((entry, index) =>
-      parseLocationMetadata(entry, `world locations.locations[${index}]`)
+    defaultState: parseWorldState(normalizeDefaultStateRaw(defaultStateRaw), "world default state"),
+    locations: normalizeLocationsRaw(locationsRaw).map((entry, index) =>
+      parseLocationMetadata(entry, `world locations[${index}]`)
     )
   };
+}
+
+function normalizeDefaultStateRaw(raw: unknown): unknown {
+  const record = ensureRecord(raw, "world default state response");
+
+  if ("currentLocation" in record) {
+    return raw;
+  }
+
+  return record["defaultState"];
+}
+
+function normalizeLocationsRaw(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+
+  const record = ensureRecord(raw, "world locations response");
+  return ensureArray(record["locations"], "world locations");
 }
 
 function parseLocationMetadata(raw: unknown, label: string): WorldLocationMetadata {
@@ -84,6 +115,10 @@ function parseSublocationMetadata(raw: unknown, label: string): WorldSublocation
     isReturnable: ensureBoolean(record["isReturnable"], `${label}.isReturnable`),
     entryActionLabel: parseOptionalString(record["entryActionLabel"], `${label}.entryActionLabel`),
     exitActionLabel: parseOptionalString(record["exitActionLabel"], `${label}.exitActionLabel`),
+    entryDisabledReason: parseOptionalString(
+      record["entryDisabledReason"],
+      `${label}.entryDisabledReason`
+    ),
     entryGuards: parseOptionalGuards(record["entryGuards"], `${label}.entryGuards`),
     exitGuards: parseOptionalGuards(record["exitGuards"], `${label}.exitGuards`)
   };

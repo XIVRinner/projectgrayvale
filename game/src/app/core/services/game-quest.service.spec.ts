@@ -316,6 +316,30 @@ describe("GameQuestService", () => {
     });
     expect(service.latestQuestMessage()).toBe("Quest received: reach 10.0 Vitality.");
   });
+
+  it("applies item rewards from authored activities", () => {
+    const { roster, service } = createFixture();
+    const player = clonePlayer(samplePlayer);
+
+    player.questLog = {
+      quests: {}
+    };
+    player.activityState = {
+      availability: {
+        gather_medicine_herb_t1: {
+          status: "enabled"
+        }
+      },
+      activeActivityId: null
+    };
+    player.inventory.items = {};
+
+    roster.createCharacter(player);
+
+    expect(service.executeActivityById("gather_medicine_herb_t1")).toBe(true);
+    expect(roster.activeCharacter()?.inventory.items["mat_medicine_herb_t1"]).toBe(1);
+    expect(roster.activeCharacter()?.attributes["agility"]).toBeGreaterThan(samplePlayer.attributes["agility"]);
+  });
 });
 
 function createFixture(): {
@@ -375,6 +399,39 @@ function createFixture(options?: {
           value: {
             type: "flat",
             amount: 1
+          },
+          distribution: {
+            type: "deterministic"
+          }
+        }
+      ]
+    },
+    {
+      id: "gather_medicine_herb_t1",
+      name: "Gather Medicine Herb",
+      description: "Work the lit edges of the brush for fresh medicine herbs.",
+      location: { locationId: "forest_edge" },
+      tags: ["forest", "gathering", "herb", "repeatable", "t1"],
+      governingAttributes: ["agility", "vitality"],
+      difficulty: 4,
+      rewards: [
+        {
+          type: "item",
+          targetId: "mat_medicine_herb_t1",
+          value: {
+            type: "flat",
+            amount: 1
+          },
+          distribution: {
+            type: "deterministic"
+          }
+        },
+        {
+          type: "attribute",
+          targetId: "agility",
+          value: {
+            type: "flat",
+            amount: 0.15
           },
           distribution: {
             type: "deterministic"

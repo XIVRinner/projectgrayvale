@@ -4,6 +4,7 @@ import { type Player, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { ActivityService } from "../../core/services/activity.service";
+import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
@@ -78,7 +79,7 @@ import {
       (topbarActionSelected)="handleTopbarActionSelected($event)"
       (gameDialogAdvanceRequested)="advanceGameDialog()"
       (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
-      (gameDialogCloseRequested)="stopActivityDialog()"
+      (gameDialogCloseRequested)="handleGameDialogCloseRequested()"
       (characterSheetCloseRequested)="closeCharacterSheet()"
       (characterCreationOpenRequested)="openCharacterCreation()"
       (characterCreationCloseRequested)="closeCharacterCreation()"
@@ -106,6 +107,7 @@ export class ShellContainerComponent {
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   protected readonly gameDialog = inject(GameDialogService);
   private readonly activityService = inject(ActivityService);
+  private readonly combatEncounter = inject(CombatEncounterService);
   private readonly debugLog = inject(DebugLogService);
   private readonly gameplayLog = inject(GameplayLogService);
   private readonly gameQuests = inject(GameQuestService);
@@ -626,9 +628,18 @@ export class ShellContainerComponent {
     this.gameDialog.choose(index);
   }
 
-  protected stopActivityDialog(): void {
-    this.logUi("Activity dialog close requested from shell.");
-    this.activityService.stopActivity();
+  protected handleGameDialogCloseRequested(): void {
+    const mode = this.gameDialog.session()?.mode ?? null;
+    this.logUi("Game dialog close requested from shell.", { mode });
+
+    if (mode === "activity") {
+      this.activityService.stopActivity();
+      return;
+    }
+
+    if (mode === "combat") {
+      this.combatEncounter.closeSummary();
+    }
   }
 
   private logUi(message: string, details?: unknown, level: "info" | "error" = "info"): void {

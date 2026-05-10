@@ -1,0 +1,8 @@
+<div class="gv-weapon-profile" aria-label="Weapon damage profile">
+  @for (row of rows(); track row.key) {
+    <div class="gv-weapon-profile__row">
+      <span class="gv-weapon-profile__label">{{ row.label }}</span>
+      <span class="gv-weapon-profile__value">{{ row.intervalLabel }}</span>
+    </div>
+  }
+</div>

@@ -55,6 +55,44 @@ test("world actions persist world state and button interaction deltas", async ({
   });
 });
 
+test("coyote encounter runs through the combat presentation layer", async ({ page }) => {
+  await page.addInitScript(
+    ({ key, payload }) => {
+      window.localStorage.setItem(key, payload);
+    },
+    {
+      key: "grayvale:save-slots:v1",
+      payload: buildCombatRosterPayload()
+    }
+  );
+
+  await page.goto("/");
+
+  await expect(page.getByRole("button", { name: "Cull the Coyote" })).toBeVisible();
+  await page.getByRole("button", { name: "Cull the Coyote" }).click();
+
+  const combatDialog = page.getByRole("dialog", { name: "Cull the Coyote" });
+  await expect(combatDialog).toBeVisible();
+  await expect(combatDialog.getByRole("heading", { level: 1, name: "Cull the Coyote" })).toBeVisible();
+  await expect(combatDialog.getByText("Compiled Rotation")).toBeVisible();
+
+  await expect(page.locator(".gv-combat__outcome")).toBeVisible({ timeout: 15000 });
+
+  const persistedRoster = await page.evaluate(() =>
+    JSON.parse(window.localStorage.getItem("grayvale:save-slots:v1") ?? "null")
+  );
+  const player = persistedRoster?.slots?.[0]?.player;
+
+  expect(player?.attributes?.agility).toBeGreaterThan(10);
+  expect(player?.progression?.experience).toBeGreaterThan(145);
+  expect(player?.skills?.short_blade).toBeGreaterThan(2);
+  expect(player?.questLog?.quests?.cull_arkama_coyote).toMatchObject({
+    currentStep: "cull_the_coyote",
+    status: "completed"
+  });
+  expect(player?.activityState?.activeActivityId).toBeNull();
+});
+
 function buildRosterPayload(): string {
   const player = cloneValue(samplePlayer);
   delete player.interactionState;
@@ -70,6 +108,47 @@ function buildRosterPayload(): string {
         world: {
           currentLocation: "village-arkama",
           sublocations: ["chief-house"]
+        }
+      }
+    ]
+  });
+}
+
+function buildCombatRosterPayload(): string {
+  const player = cloneValue(samplePlayer);
+
+  player.questLog = {
+    quests: {
+      ...player.questLog?.quests,
+      cull_arkama_coyote: {
+        currentStep: "cull_the_coyote",
+        status: "active",
+        completedSteps: []
+      }
+    }
+  };
+  player.activityState = {
+    availability: {
+      ...player.activityState?.availability,
+      coyote_culling: {
+        status: "enabled"
+      }
+    },
+    activeActivityId: null
+  };
+  delete player.interactionState;
+
+  return JSON.stringify({
+    activeSlotId: "slot_1",
+    slots: [
+      {
+        id: "slot_1",
+        createdAt: "2026-05-01T08:00:00.000Z",
+        updatedAt: "2026-05-01T08:00:00.000Z",
+        player,
+        world: {
+          currentLocation: "forest_edge",
+          sublocations: []
         }
       }
     ]

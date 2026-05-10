@@ -6,15 +6,16 @@ import {
   input,
   signal
 } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { catchError, map, of } from "rxjs";
 
 import {
   computeStatBreakdowns,
+  type DamageType,
   inventoryEquipmentItemSchema,
   sampleLoadoutDefault,
   type BalanceProfile,
+  type DamageInterval,
   type InventoryEquipmentItem,
   type LabeledModifier,
   type Loadout,
@@ -23,14 +24,20 @@ import {
   type StatBreakdown
 } from "@rinner/grayvale-core";
 
-import { parseItemArrayWithIconPath } from "../character-sheet-item-assets";
+import { apiPath, dataApiPath } from "../../../data/api-paths";
+import { GameApiCacheService } from "../../../data/game-api-cache.service";
+import { parseEquipmentItemArrayWithGameFields } from "../character-sheet-item-assets";
 import type { CharacterStatUnlockState } from "../../../core/services/character-roster.service";
 import { GameSettingsService } from "../../../core/services/game-settings.service";
 import {
   PLAYER_HEALTH_BALANCE_PROFILE_ID,
   type SaveSlotHealthState
 } from "../../../core/services/health-balance";
-import type { CombatStatGroupView, CombatStatRowView } from "./combat-stats.types";
+import type {
+  CombatStatGroupView,
+  CombatStatRowView,
+  CombatWeaponDamageRowView
+} from "./combat-stats.types";
 import { CombatStatsViewComponent } from "./combat-stats-view.component";
 
 interface StatConfig {
@@ -132,6 +139,7 @@ const buildStatGroups = (
       label: config.label,
       breakdown,
       isLocked: isStatLocked(config, statUnlocks),
+      isInspectable: true,
       formattedValue: formatValue(breakdown.final, config.isPercent),
       formattedDelta: formatDelta(delta, config.isPercent)
     };
@@ -146,6 +154,50 @@ const buildStatGroups = (
     stats
   }));
 };
+
+const DAMAGE_TYPE_ORDER: readonly DamageType[] = [
+  "piercing",
+  "slashing",
+  "thrusting",
+  "blunt",
+  "nature"
+] as const;
+
+const buildWeaponDamageRows = (
+  loadout: Loadout,
+  registry: Map<string, InventoryEquipmentItem>
+): readonly CombatWeaponDamageRowView[] => {
+  const mainHandId = loadout.slots.main_hand;
+
+  if (!mainHandId) {
+    return [];
+  }
+
+  const weapon = registry.get(mainHandId);
+
+  if (!weapon?.damage) {
+    return [];
+  }
+
+  return DAMAGE_TYPE_ORDER.flatMap((damageType) => {
+    const interval = weapon.damage?.[damageType];
+
+    if (!interval) {
+      return [];
+    }
+
+    return [toWeaponDamageRow(damageType, interval)];
+  });
+};
+
+const toWeaponDamageRow = (
+  damageType: DamageType,
+  interval: DamageInterval
+): CombatWeaponDamageRowView => ({
+  key: `weapon-damage:${damageType}`,
+  label: `${toTitleCase(damageType)} Damage`,
+  intervalLabel: `${interval.min}-${interval.max}`
+});
 
 const buildBaseStats = (
   player: Player | null,
@@ -190,6 +242,9 @@ const isStatLocked = (
   return config.key !== "vitality";
 };
 
+const toTitleCase = (value: string): string =>
+  value.charAt(0).toUpperCase() + value.slice(1);
+
 /**
  * Smart container for the combat stats panel.
  * Loads base stats and equipment items, computes labeled modifiers from the active
@@ -209,13 +264,14 @@ const isStatLocked = (
       [selectedLabel]="selectedLabel()"
       [isLoading]="isLoading()"
       [error]="error()"
+      [weaponDamageRows]="weaponDamageRows()"
       (statSelected)="onStatSelected($event)"
       (drawerClosed)="onDrawerClosed()"
     />
   `
 })
 export class CombatStatsContainerComponent {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
   private readonly gameSettings = inject(GameSettingsService);
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
@@ -241,6 +297,9 @@ export class CombatStatsContainerComponent {
 
   protected readonly statGroups = computed<readonly CombatStatGroupView[]>(() =>
     buildStatGroups(this.baseStats(), this.modifiers(), this.statUnlocks())
+  );
+  protected readonly weaponDamageRows = computed<readonly CombatWeaponDamageRowView[]>(() =>
+    buildWeaponDamageRows(this.activeLoadout(), this.itemRegistry())
   );
 
   protected readonly selectedBreakdown = computed<StatBreakdown | null>(() => {
@@ -268,11 +327,17 @@ export class CombatStatsContainerComponent {
   });
 
   constructor() {
-    this.http
-      .get<unknown>("assets/data/equipment-items.json")
+    this.apiCache
+      .getJsonWithFallback<unknown>(
+        [apiPath("equipment-items"), dataApiPath("equipment-items")],
+        { cacheKey: apiPath("equipment-items") }
+      )
       .pipe(
         map((rawItems) => {
-          const items = parseItemArrayWithIconPath(rawItems, (entry) => inventoryEquipmentItemSchema.parse(entry));
+          const items = parseEquipmentItemArrayWithGameFields(
+            rawItems,
+            (entry) => inventoryEquipmentItemSchema.parse(entry)
+          );
 
           const registry = new Map<string, InventoryEquipmentItem>();
           for (const item of items) {

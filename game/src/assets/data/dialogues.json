@@ -26,5 +26,19 @@
     "title": "Bridgitte",
     "eyebrowFallback": "Bridgitte's House",
     "subtitleFallback": "A retired adventurer finally opens her door to you."
+  },
+  {
+    "id": "bridgitte-report-back",
+    "entryFile": "arkama/bridgitte-report-back.fsc",
+    "title": "Bridgitte",
+    "eyebrowFallback": "Bridgitte's House",
+    "subtitleFallback": "Your first contract is done, and Bridgitte has more direction for you."
+  },
+  {
+    "id": "bridgitte-repeatables",
+    "entryFile": "arkama/bridgitte-repetables.fsc",
+    "title": "Bridgitte",
+    "eyebrowFallback": "Bridgitte's House",
+    "subtitleFallback": "A retired adventurer answers what she is willing to share."
   }
 ]

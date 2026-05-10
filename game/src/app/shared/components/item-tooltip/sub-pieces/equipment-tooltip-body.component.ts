@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from "@angular/core";
 
-import type { InventoryEquipmentItem } from "@rinner/grayvale-core";
+import type { DamageType, InventoryEquipmentItem } from "@rinner/grayvale-core";
 
 // GAP: skill association
 // Blocked on: design
@@ -37,6 +37,14 @@ import type { InventoryEquipmentItem } from "@rinner/grayvale-core";
 export class EquipmentTooltipBodyComponent {
   readonly item = input.required<InventoryEquipmentItem>();
 
+  private static readonly DAMAGE_TYPE_ORDER: readonly DamageType[] = [
+    "piercing",
+    "slashing",
+    "thrusting",
+    "blunt",
+    "nature"
+  ];
+
   protected readonly slotLabel = computed(() =>
     this.item().slot.replace(/_/g, " ")
   );
@@ -53,6 +61,28 @@ export class EquipmentTooltipBodyComponent {
     () => (this.item().combatStats?.length ?? 0) > 0
   );
 
+  protected readonly damageEntries = computed(() =>
+    EquipmentTooltipBodyComponent.DAMAGE_TYPE_ORDER.flatMap((damageType) => {
+      const interval = this.item().damage?.[damageType];
+
+      if (!interval) {
+        return [];
+      }
+
+      return [
+        {
+          type: damageType,
+          label: `${toTitleCase(damageType)} Damage`,
+          value: `${interval.min}-${interval.max}`
+        }
+      ];
+    })
+  );
+
+  protected readonly hasDamageProfile = computed(
+    () => this.damageEntries().length > 0
+  );
+
   protected readonly hasSpecialEffects = computed(
     () => (this.item().specialEffects?.length ?? 0) > 0
   );
@@ -66,4 +96,8 @@ export class EquipmentTooltipBodyComponent {
     }
     return value >= 0 ? `+${value}` : `${value}`;
   };
+}
+
+function toTitleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

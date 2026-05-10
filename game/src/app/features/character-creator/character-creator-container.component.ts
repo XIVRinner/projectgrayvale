@@ -319,7 +319,9 @@ export class CharacterCreatorContainerComponent {
       inventory: {
         items: {}
       },
-      equippedItems: {}
+      equippedItems: buildStarterEquippedItems(),
+      loadouts: buildStarterLoadouts(),
+      activeLoadoutId: STARTER_LOADOUT_ID
     };
 
     const validation = safeParsePlayer(playerDraft);
@@ -722,6 +724,32 @@ function buildPlayerId(name: string): string {
     .replace(/^_+|_+$/g, "");
 
   return `player_${slug || "new_recruit"}`;
+}
+
+const STARTER_LOADOUT_ID = "loadout_default";
+
+function buildStarterEquippedItems(): Player["equippedItems"] {
+  return {
+    head: "armor_head_travel_rags",
+    body: "armor_chest_travel_rags",
+    legs: "armor_legs_travel_rags"
+  };
+}
+
+function buildStarterLoadouts(): NonNullable<Player["loadouts"]> {
+  return {
+    [STARTER_LOADOUT_ID]: {
+      id: STARTER_LOADOUT_ID,
+      displayName: "Default",
+      isActive: true,
+      slots: {
+        head: "armor_head_travel_rags",
+        chest: "armor_chest_travel_rags",
+        legs: "armor_legs_travel_rags",
+        boots: "armor_boots_travel_rags"
+      }
+    }
+  };
 }
 
 function randomIndex(length: number): number {

@@ -32,6 +32,13 @@ export const routes: Routes = [
           )
       },
       {
+        path: "combat",
+        loadChildren: () =>
+          import("./features/combat/combat.routes").then(
+            (m) => m.COMBAT_ROUTES
+          )
+      },
+      {
         path: "home",
         redirectTo: ""
       }

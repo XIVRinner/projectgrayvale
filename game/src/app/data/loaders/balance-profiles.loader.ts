@@ -1,4 +1,3 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import {
   type BalanceOverrides,
@@ -8,12 +7,18 @@ import {
 } from "@rinner/grayvale-core";
 import { map, Observable } from "rxjs";
 
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
+
 @Injectable({ providedIn: "root" })
 export class BalanceProfilesLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<readonly BalanceProfile[]> {
-    return this.http.get<unknown>("assets/data/balance-profiles.json").pipe(
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("balance-profiles"), dataApiPath("balance-profiles")],
+      { cacheKey: apiPath("balance-profiles") }
+    ).pipe(
       map((raw) => parseBalanceProfiles(raw))
     );
   }

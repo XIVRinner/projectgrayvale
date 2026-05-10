@@ -62,8 +62,48 @@
               "params": { "questId": "quest_chief_labour" }
             }
           ]
+        },
+        {
+          "id": "smithy",
+          "label": "Smithy",
+          "subtitle": "A hot forge where Lydia keeps tools, hinges, and tempers in working order.",
+          "sceneImagePath": "assets/images/location-backgrounds/smithy.png",
+          "availableNpcIds": ["lydia"],
+          "isReturnable": true,
+          "entryActionLabel": "Visit the smithy",
+          "exitActionLabel": "Leave the smithy",
+          "entryGuards": [
+            {
+              "type": "quest_started",
+              "params": { "questId": "lydia_smithing_intro" }
+            }
+          ]
+        },
+        {
+          "id": "shopkeep",
+          "label": "Shop",
+          "subtitle": "A tidy supply shop that has not opened up to gameplay yet.",
+          "sceneImagePath": "assets/images/location-backgrounds/village.png",
+          "availableNpcIds": ["shopkeeper"],
+          "isReturnable": true,
+          "entryActionLabel": "Visit the shop",
+          "exitActionLabel": "Leave the shop",
+          "entryDisabledReason": "Shop UI and trade mechanics are not implemented yet.",
+          "entryGuards": [
+            {
+              "type": "quest_started",
+              "params": { "questId": "shopkeep_forest_supplies" }
+            }
+          ]
         }
       ]
+    },
+    {
+      "id": "forest_edge",
+      "label": "Forest Edge",
+      "subtitle": "Brush, roots, and animal trails press close to the village path.",
+      "sceneImagePath": "assets/images/location-backgrounds/forest.png",
+      "availableNpcIds": []
     },
     {
       "id": "camp",

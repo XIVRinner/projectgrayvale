@@ -1,6 +1,5 @@
 import { effect, Injectable, inject, signal } from "@angular/core";
 import {
-  type ActivityDefinition,
   type ActivityReward,
   type Delta,
   type PlayerQuestEntry,
@@ -15,6 +14,7 @@ import { Subject, type Subscription } from "rxjs";
 
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import { QuestsLoader } from "../../data/loaders/quests.loader";
+import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import { CharacterRosterService } from "./character-roster.service";
 import { DebugLogService } from "./game-log/debug-log.service";
 import type { GameQuestEvent } from "./game-quest.types";
@@ -38,7 +38,7 @@ export class GameQuestService {
   private readonly debugLog = inject(DebugLogService);
 
   private readonly authoredQuestsState = signal<readonly Quest[]>([]);
-  private readonly activitiesState = signal<readonly ActivityDefinition[]>([]);
+  private readonly activitiesState = signal<readonly GameActivityDefinition[]>([]);
   private readonly runtimeStatesState = signal<readonly QuestRuntimeState[]>([]);
   private readonly latestQuestMessageState = signal<string | null>(null);
   private readonly latestAttributeMessageState = signal<string | null>(null);
@@ -396,7 +396,7 @@ export class GameQuestService {
       return false;
     }
 
-    const deltas = buildActivityRewardDeltas(activity);
+    const deltas = buildActivityRewardDeltas(activity, player);
 
     if (deltas.length === 0) {
       this.debugLog.logMessage("quest", "Quest activity produced no reward deltas.", {
@@ -441,7 +441,7 @@ export class GameQuestService {
       return [];
     }
 
-    const deltas = buildActivityRewardDeltas(activity);
+    const deltas = buildActivityRewardDeltas(activity, player);
 
     if (deltas.length > 0) {
       this.roster.applyActiveCharacterDeltas(deltas);
@@ -816,10 +816,27 @@ function seedQuestObjectives(
   });
 }
 
-function buildActivityRewardDeltas(activity: ActivityDefinition): Delta[] {
-  return (activity.rewards ?? []).map((reward, index) =>
-    buildActivityRewardDelta(activity, reward, index === 0)
-  );
+function buildActivityRewardDeltas(
+  activity: GameActivityDefinition,
+  player: Player
+): Delta[] {
+  const deltas: Delta[] = [];
+  let attachedActivityMeta = false;
+
+  for (const reward of activity.rewards ?? []) {
+    const resolvedAmount = resolveActivityRewardAmount(reward, player);
+
+    if (resolvedAmount === null || resolvedAmount === 0) {
+      continue;
+    }
+
+    deltas.push(
+      buildActivityRewardDelta(activity, reward, resolvedAmount, !attachedActivityMeta)
+    );
+    attachedActivityMeta = true;
+  }
+
+  return deltas;
 }
 
 function buildQuestRewardDeltas(rewards: readonly QuestReward[] | undefined): Delta[] {
@@ -869,38 +886,122 @@ function applyQuestRewards(
 }
 
 function buildActivityRewardDelta(
-  activity: ActivityDefinition,
+  activity: GameActivityDefinition,
   reward: ActivityReward,
+  amount: number,
   attachActivityMeta: boolean
 ): Delta {
-  if (
-    reward.type !== "attribute" ||
-    typeof reward.targetId !== "string" ||
-    reward.value.type !== "flat"
-  ) {
-    throw new Error(
-      `Activity "${activity.id}" currently supports only flat attribute rewards in the game runtime.`
-    );
+  if (typeof reward.targetId !== "string" || reward.targetId.trim().length === 0) {
+    throw new Error(`Activity "${activity.id}" reward is missing a targetId.`);
   }
 
-  return {
-    type: "add",
-    target: "player",
-    path: ["attributes", reward.targetId],
-    value: reward.value.amount,
-    meta: attachActivityMeta
-      ? {
-          activityTick: {
-            activityId: activity.id,
-            difficulty: activity.difficulty,
-            governingAttributes: activity.governingAttributes,
-            tags: activity.tags,
-            tickDelta: 1,
-            duration: 1
-          }
-        }
-      : undefined
-  };
+  const meta = attachActivityMeta
+    ? {
+        activityTick: {
+          activityId: activity.id,
+          difficulty: activity.difficulty,
+          governingAttributes: activity.governingAttributes,
+          tags: activity.tags,
+          tickDelta: 1,
+          duration: 1
+        },
+        ...(activity.questSignal ? { questSignal: activity.questSignal } : {})
+      }
+    : undefined;
+
+  switch (reward.type) {
+    case "attribute":
+      return {
+        type: "add",
+        target: "player",
+        path: ["attributes", reward.targetId],
+        value: amount,
+        meta
+      };
+    case "skill":
+      return {
+        type: "add",
+        target: "player",
+        path: ["skills", reward.targetId],
+        value: amount,
+        meta
+      };
+    case "item":
+      return {
+        type: "add",
+        target: "player",
+        path: ["inventory", "items", reward.targetId],
+        value: normalizeInventoryRewardAmount(amount),
+        meta
+      };
+    case "currency":
+      throw new Error(
+        `Activity "${activity.id}" uses currency rewards, but player inventory currencies are not implemented yet.`
+      );
+  }
+}
+
+function resolveActivityRewardAmount(
+  reward: ActivityReward,
+  player: Player
+): number | null {
+  if (!shouldApplyActivityReward(reward)) {
+    return null;
+  }
+
+  switch (reward.value.type) {
+    case "flat":
+      return reward.value.amount;
+    case "range":
+      return resolveRangeRewardAmount(reward.value.min, reward.value.max);
+    case "scaled":
+      return reward.value.base + readRewardScalingSource(player, reward.value.scaling);
+  }
+}
+
+function shouldApplyActivityReward(reward: ActivityReward): boolean {
+  if (!reward.distribution || reward.distribution.type === "deterministic") {
+    return true;
+  }
+
+  const chance = reward.distribution.chance ?? 1;
+  return Math.random() <= chance;
+}
+
+function resolveRangeRewardAmount(min: number, max: number): number {
+  const roll = Math.random();
+
+  if (Number.isInteger(min) && Number.isInteger(max)) {
+    const span = max - min + 1;
+    return min + Math.floor(roll * span);
+  }
+
+  return min + (max - min) * roll;
+}
+
+function readRewardScalingSource(
+  player: Player,
+  scaling: {
+    source: "skill" | "attribute";
+    id: string;
+    factor: number;
+  }
+): number {
+  if (scaling.source === "attribute") {
+    return (player.attributes[scaling.id] ?? 0) * scaling.factor;
+  }
+
+  return (player.skills[scaling.id] ?? 0) * scaling.factor;
+}
+
+function normalizeInventoryRewardAmount(amount: number): number {
+  const roundedAmount = Math.round(amount);
+
+  if (roundedAmount <= 0) {
+    return 1;
+  }
+
+  return roundedAmount;
 }
 
 function describeQuestInstruction(quest: Quest, stepId?: string): string {
@@ -1007,6 +1108,15 @@ function resolveStepCompletionMode(step: QuestStep): "automatic" | "manual" {
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     return error.message;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
   }
 
   return fallback;

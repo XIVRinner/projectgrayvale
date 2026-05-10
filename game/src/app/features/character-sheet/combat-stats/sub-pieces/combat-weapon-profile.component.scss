@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+
+.gv-weapon-profile {
+  display: grid;
+  gap: 2px;
+}
+
+.gv-weapon-profile__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  border-radius: var(--gv-radius-sm);
+  border: var(--gv-border-subtle);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 70%, transparent);
+}
+
+.gv-weapon-profile__label {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-weapon-profile__value {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+}

@@ -30,11 +30,16 @@ import {
   GameDialogTranscriptEntry
 } from "../../shared/components/game-dialog/game-dialog.types";
 import type { ActivityTickSnapshotView } from "../../shared/components/activity-tick-feed/activity-tick-feed.types";
+import type { CombatEncounterView } from "../../features/combat/combat.types";
 import { CharacterRosterService } from "./character-roster.service";
 import { DebugLogService } from "./game-log/debug-log.service";
 import { GameQuestService } from "./game-quest.service";
 import { WorldStateService } from "./world-state.service";
 import { Subject } from "rxjs";
+
+const DIALOG_ITEM_ID_ALIASES: Readonly<Record<string, string>> = {
+  old_dagger: "weapon_dagger_rustleaf"
+};
 
 @Injectable({ providedIn: "root" })
 export class GameDialogService {
@@ -321,6 +326,14 @@ export class GameDialogService {
       return null;
     });
 
+    engine.registerFunction("startQuest", (_ctx, id) => {
+      const questId = ensureNonEmptyString(id, "startQuest questId");
+
+      this.debugLog.logMessage("dialogue", "Dialogue requested quest start.", { questId });
+      this.gameQuests.startQuestById(questId);
+      return null;
+    });
+
     engine.registerFunction("resolveQuestStep", (_ctx, questIdValue, stepIdValue) => {
       const questId = ensureNonEmptyString(questIdValue, "resolveQuestStep questId");
       const stepId = ensureNonEmptyString(stepIdValue, "resolveQuestStep stepId");
@@ -338,6 +351,110 @@ export class GameDialogService {
 
       this.debugLog.logMessage("dialogue", "Dialogue requested skill unlock.", { skillId });
       this.roster.setActiveSkillUnlocked(skillId, true);
+      return null;
+    });
+
+    engine.registerFunction("logEvent", (_ctx, textValue) => {
+      const text = ensureNonEmptyString(textValue, "logEvent text");
+
+      this.debugLog.logMessage("dialogue", "Dialogue emitted log event.", { text });
+      this.eventSubject.next({
+        type: "log-event",
+        text
+      });
+      return null;
+    });
+
+    engine.registerFunction("unlockCombatClass", (_ctx, classIdValue) => {
+      const combatClassId = ensureNonEmptyString(classIdValue, "unlockCombatClass combatClassId");
+
+      this.debugLog.logMessage(
+        "dialogue",
+        "Dialogue requested combat class unlock before the system exists.",
+        { combatClassId }
+      );
+      this.eventSubject.next({
+        type: "log-event",
+        text: "Classes are still WIP"
+      });
+      return null;
+    });
+
+    engine.registerFunction("giveItem", (_ctx, itemIdValue) => {
+      const rawItemId = ensureNonEmptyString(itemIdValue, "giveItem itemId");
+      const itemId = DIALOG_ITEM_ID_ALIASES[rawItemId] ?? rawItemId;
+      const activePlayer = this.roster.activeCharacter();
+
+      if (!activePlayer) {
+        this.debugLog.logMessage("dialogue", "Dialogue item grant skipped because no player is active.", {
+          rawItemId,
+          itemId
+        });
+        return null;
+      }
+
+      const alreadyInInventory = (activePlayer.inventory.items[itemId] ?? 0) > 0;
+      const alreadyEquipped = Object.values(activePlayer.equippedItems).includes(itemId);
+
+      if (alreadyInInventory || alreadyEquipped) {
+        this.debugLog.logMessage("dialogue", "Dialogue item grant skipped because the player already owns the item.", {
+          rawItemId,
+          itemId,
+          alreadyInInventory,
+          alreadyEquipped
+        });
+        return null;
+      }
+
+      const applied = this.roster.applyActiveCharacterDeltas([
+        {
+          type: "set",
+          target: "player",
+          path: ["inventory", "items", itemId],
+          value: 1
+        }
+      ]) !== null;
+
+      this.debugLog.logMessage(
+        "dialogue",
+        applied ? "Dialogue item grant applied." : "Dialogue item grant failed.",
+        {
+          rawItemId,
+          itemId
+        }
+      );
+      return null;
+    });
+
+    engine.registerFunction("unlockActivity", (_ctx, activityIdValue) => {
+      const activityId = ensureNonEmptyString(activityIdValue, "unlockActivity activityId");
+      const applied = this.roster.applyActiveCharacterDeltas([
+        {
+          type: "set",
+          target: "player",
+          path: ["activityState", "availability", activityId],
+          value: {
+            status: "enabled"
+          }
+        }
+      ]) !== null;
+
+      this.debugLog.logMessage(
+        "dialogue",
+        applied ? "Dialogue activity unlock applied." : "Dialogue activity unlock failed.",
+        { activityId }
+      );
+      return null;
+    });
+
+    engine.registerFunction("unlockLocation", (_ctx, locationIdValue) => {
+      const locationId = ensureNonEmptyString(locationIdValue, "unlockLocation locationId");
+
+      this.debugLog.logMessage(
+        "dialogue",
+        "Dialogue location unlock requested. Travel availability is driven by authored world guards.",
+        { locationId }
+      );
       return null;
     });
   }
@@ -509,6 +626,59 @@ export class GameDialogService {
 
     this.sessionState.set({ ...session, activityTicks: updated });
   }
+
+  startCombat(encounter: CombatEncounterView): void {
+    if (this.sessionState() !== null) {
+      this.debugLog.logMessage("combat", "Ignored combat dialog start — session already open.", {
+        activityId: encounter.activityId
+      });
+      return;
+    }
+
+    this.sessionState.set({
+      mode: "combat",
+      title: encounter.title,
+      eyebrow: "Combat",
+      subtitle: encounter.summary,
+      sceneImagePath: null,
+      transcript: [],
+      currentEntry: null,
+      choices: [],
+      canAdvance: false,
+      isAwaitingChoice: false,
+      combatEncounter: encounter
+    });
+
+    this.debugLog.logMessage("combat", "Combat dialog opened.", {
+      activityId: encounter.activityId
+    });
+  }
+
+  updateCombat(encounter: CombatEncounterView): void {
+    const session = this.sessionState();
+
+    if (!session || session.mode !== "combat") {
+      return;
+    }
+
+    this.sessionState.set({
+      ...session,
+      title: encounter.title,
+      subtitle: encounter.summary,
+      combatEncounter: encounter
+    });
+  }
+
+  stopCombat(): void {
+    const session = this.sessionState();
+
+    if (!session || session.mode !== "combat") {
+      return;
+    }
+
+    this.sessionState.set(null);
+    this.debugLog.logMessage("combat", "Combat dialog closed.");
+  }
 }
 
 function buildSessionView(options: {
@@ -636,6 +806,15 @@ function toDeltaValue(value: unknown): DeltaValue {
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     return error.message;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
   }
 
   return fallback;

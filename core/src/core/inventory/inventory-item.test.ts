@@ -110,6 +110,10 @@ describe("InventoryEquipmentItem", () => {
       slot: "main_hand",
       itemLevel: 20,
       requirements,
+      damage: {
+        piercing: { min: 8, max: 14 },
+        slashing: { min: 4, max: 9 }
+      },
       combatStats: [
         { stat: "physical_damage", value: 40, operation: "add" },
         { stat: "attack_speed", value: 0.05, operation: "multiply" }
@@ -123,6 +127,7 @@ describe("InventoryEquipmentItem", () => {
     };
 
     expect(item.requirements?.levelRequirement).toBe(10);
+    expect(item.damage?.piercing).toEqual({ min: 8, max: 14 });
     expect(item.combatStats).toHaveLength(2);
     expect(item.specialEffects).toContain("effect_wind_burst");
     expect(item.tooltip?.statLines).toHaveLength(2);

@@ -1,4 +1,5 @@
 import type { ActivityTickSnapshotView } from "../activity-tick-feed/activity-tick-feed.types";
+import type { CombatEncounterView } from "../../../features/combat/combat.types";
 
 export type GameDialogMode = "valeflow" | "combat" | "activity";
 
@@ -35,6 +36,8 @@ export interface GameDialogSessionView {
   readonly isAwaitingChoice: boolean;
   /** Populated only when mode === "activity". */
   readonly activityTicks?: readonly ActivityTickSnapshotView[];
+  /** Populated only when mode === "combat". */
+  readonly combatEncounter?: CombatEncounterView;
 }
 
 export type GameDialogEvent =
@@ -56,6 +59,10 @@ export type GameDialogEvent =
   | {
       readonly type: "choice-selected";
       readonly choice: GameDialogChoiceView;
+    }
+  | {
+      readonly type: "log-event";
+      readonly text: string;
     }
   | {
       readonly type: "session-ended";

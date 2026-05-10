@@ -42,6 +42,12 @@ describe("inventoryEquipmentItemSchema", () => {
     );
   });
 
+  it("accepts authored weapon damage intervals on equipment items", () => {
+    expect(inventoryEquipmentItemSchema.parse(sampleEquipmentItem).damage).toEqual({
+      slashing: { min: 6, max: 10 }
+    });
+  });
+
   it("accepts an equipment item without optional fields", () => {
     const input = {
       id: "item_boots_basic",

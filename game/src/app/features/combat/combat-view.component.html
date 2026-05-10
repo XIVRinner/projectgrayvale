@@ -1,0 +1,81 @@
+<section class="gv-combat" aria-label="Combat">
+  @if (encounter(); as encounterView) {
+    <header class="gv-combat__header">
+      <div>
+        <p class="gv-combat__eyebrow">{{ encounterView.phaseLabel }}</p>
+        <h1 class="gv-combat__title">{{ encounterView.title }}</h1>
+        <p class="gv-combat__summary">{{ encounterView.summary }}</p>
+      </div>
+      <div class="gv-combat__meta">
+        <span class="gv-combat__tick">{{ encounterView.tickLabel }}</span>
+        @if (encounterView.outcomeLabel) {
+          <span class="gv-combat__outcome">{{ encounterView.outcomeLabel }}</span>
+        }
+      </div>
+    </header>
+
+    <div class="gv-combat__stage">
+      <gv-combat-actor-card [actor]="encounterView.player" />
+      <div class="gv-combat__vs">VS</div>
+      <div class="gv-combat__enemies">
+        @for (enemy of encounterView.enemies; track enemy.id) {
+          <gv-combat-actor-card [actor]="enemy" />
+        }
+      </div>
+    </div>
+
+    <div class="gv-combat__grid">
+      <gv-combat-log-feed [logs]="encounterView.logs" />
+      <aside class="gv-combat__sidebar">
+        <gv-combat-rotation-preview [rows]="encounterView.rotation" />
+
+        @if (encounterView.rewards.length > 0) {
+          <section class="gv-combat__rewards" aria-label="Combat rewards">
+            <h2 class="gv-combat__panel-title">Result</h2>
+            <ul class="gv-combat__reward-list">
+              @for (reward of encounterView.rewards; track reward.id) {
+                <li class="gv-combat__reward" [attr.data-tone]="reward.tone">
+                  <span>{{ reward.label }}</span>
+                  <strong>{{ reward.value }}</strong>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </aside>
+    </div>
+
+    @if (encounterView.outcomeLabel) {
+      <div class="gv-combat__actions">
+        <button class="gv-combat__button" type="button" (click)="dismissRequested.emit()">
+          Return to Field
+        </button>
+      </div>
+    }
+  } @else {
+    <header class="gv-combat__header gv-combat__header--idle">
+      <div>
+        <p class="gv-combat__eyebrow">Combat</p>
+        <h1 class="gv-combat__title">No active encounter</h1>
+        <p class="gv-combat__summary">
+          Travel to the forest edge and choose <strong>Cull the Coyote</strong> to launch the
+          tutorial fight.
+        </p>
+      </div>
+      <button class="gv-combat__button" type="button" (click)="returnRequested.emit()">
+        Back to Home
+      </button>
+    </header>
+
+    <div class="gv-combat__grid gv-combat__grid--idle">
+      <gv-combat-rotation-preview [rows]="previewRotation()" />
+      <section class="gv-combat__empty-log" aria-label="Combat notes">
+        <h2 class="gv-combat__panel-title">Why this page exists</h2>
+        <p class="gv-combat__empty-copy">
+          The combat engine now runs in-game instead of resolving kill activities as generic
+          activity ticks, and the compiled tutorial rotation is visible here before the fight.
+        </p>
+      </section>
+    </div>
+  }
+</section>

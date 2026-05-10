@@ -7,7 +7,6 @@ import {
   output,
   signal
 } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { catchError, map, of } from "rxjs";
 
@@ -19,7 +18,9 @@ import {
   inventoryEquipmentItemSchema
 } from "@rinner/grayvale-core";
 
-import { parseItemArrayWithIconPath } from "../character-sheet-item-assets";
+import { apiPath, dataApiPath } from "../../../data/api-paths";
+import { GameApiCacheService } from "../../../data/game-api-cache.service";
+import { parseEquipmentItemArrayWithGameFields } from "../character-sheet-item-assets";
 import {
   buildEquipmentRequirementStatuses,
   checkEquipmentRequirements
@@ -81,7 +82,7 @@ const ALL_SLOTS: EquipmentSlot[] = [
   `
 })
 export class LoadoutSelectorContainerComponent {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   /** All loadouts keyed by ID — provided by the parent character-sheet container. */
   readonly loadoutsRecord = input.required<Readonly<Record<string, Loadout>>>();
@@ -155,10 +156,17 @@ export class LoadoutSelectorContainerComponent {
   });
 
   constructor() {
-    this.http
-      .get<unknown>("assets/data/equipment-items.json")
+    this.apiCache
+      .getJsonWithFallback<unknown>(
+        [apiPath("equipment-items"), dataApiPath("equipment-items")],
+        { cacheKey: apiPath("equipment-items") }
+      )
       .pipe(
-        map((raw) => parseItemArrayWithIconPath(raw, (entry) => inventoryEquipmentItemSchema.parse(entry))),
+        map((raw) =>
+          parseEquipmentItemArrayWithGameFields(raw, (entry) =>
+            inventoryEquipmentItemSchema.parse(entry)
+          )
+        ),
         catchError((err: unknown) => {
           const message = err instanceof Error ? err.message : "Failed to load items.";
           this.error.set(message);

@@ -80,7 +80,7 @@ export class HomeContainerComponent {
     },
     {
       label: "Combat",
-      description: "Enter the arena or respond to an encounter.",
+      description: "Combat opens in a dialog when an encounter begins.",
       icon: "pi pi-shield",
       route: "/combat",
       disabled: true

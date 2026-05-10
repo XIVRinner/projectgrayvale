@@ -236,6 +236,16 @@ export class CharacterRosterService {
   setActiveSkillUnlocked(skillId: string, unlocked: boolean): CharacterSaveSlot | null {
     return this.updateActiveSlot((slot) => ({
       ...slot,
+      player:
+        unlocked && slot.player.skills[skillId] === undefined
+          ? {
+              ...slot.player,
+              skills: {
+                ...slot.player.skills,
+                [skillId]: 0
+              }
+            }
+          : slot.player,
       statUnlocks: {
         ...slot.statUnlocks,
         skills: {
@@ -408,12 +418,15 @@ function parseSlot(raw: unknown, index: number): CharacterSaveSlot {
 
   const normalizedPlayer = normalizeSaveSlotPlayer(playerResult.data);
 
+  const statUnlocks = parseStatUnlocks(record["statUnlocks"], `slots[${index}].statUnlocks`, normalizedPlayer);
+  const playerWithSeededSkills = seedMissingSkillsFromUnlocks(normalizedPlayer, statUnlocks);
+
   return {
     id,
     createdAt,
     updatedAt,
-    player: normalizedPlayer,
-    statUnlocks: parseStatUnlocks(record["statUnlocks"], `slots[${index}].statUnlocks`, normalizedPlayer),
+    player: playerWithSeededSkills,
+    statUnlocks,
     world: parseWorldState(record["world"], `slots[${index}].world`),
     health: parseHealthState(record["health"], `slots[${index}].health`)
   };
@@ -582,6 +595,27 @@ function buildDefaultStatUnlocks(player: Player): CharacterStatUnlockState {
   return {
     attributes,
     skills
+  };
+}
+
+function seedMissingSkillsFromUnlocks(
+  player: Player,
+  statUnlocks: CharacterStatUnlockState
+): Player {
+  const missingUnlockedSkillIds = Object.entries(statUnlocks.skills)
+    .filter(([skillId, unlocked]) => unlocked && player.skills[skillId] === undefined)
+    .map(([skillId]) => skillId);
+
+  if (missingUnlockedSkillIds.length === 0) {
+    return player;
+  }
+
+  return {
+    ...player,
+    skills: Object.fromEntries([
+      ...Object.entries(player.skills),
+      ...missingUnlockedSkillIds.map((skillId) => [skillId, 0] as const)
+    ])
   };
 }
 

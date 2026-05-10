@@ -17,6 +17,18 @@
     </div>
   }
 
+  @if (hasDamageProfile()) {
+    <div class="gv-tooltip-section gv-tooltip-section--damage">
+      <span class="gv-tooltip-section__label">Weapon Damage</span>
+      @for (entry of damageEntries(); track entry.type) {
+        <div class="gv-tooltip-stat-row">
+          <span class="gv-tooltip-stat-row__name">{{ entry.label }}</span>
+          <span class="gv-tooltip-stat-row__value">{{ entry.value }}</span>
+        </div>
+      }
+    </div>
+  }
+
   @if (hasCombatStats()) {
     <div class="gv-tooltip-section gv-tooltip-section--combat-stats">
       <span class="gv-tooltip-section__label">Combat Stats</span>

@@ -1,4 +1,3 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import {
   type ActivityReward,
@@ -6,17 +5,23 @@ import {
 } from "@rinner/grayvale-core";
 import { map, type Observable } from "rxjs";
 
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 import {
   type GameActivityDefinition,
-  type GameActivityLocation
+  type GameActivityLocation,
+  type GameActivityQuestSignal
 } from "./game-activity.types";
 
 @Injectable({ providedIn: "root" })
 export class ActivitiesLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<readonly GameActivityDefinition[]> {
-    return this.http.get<unknown>("assets/data/activities.json").pipe(
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("activities"), dataApiPath("activities")],
+      { cacheKey: apiPath("activities") }
+    ).pipe(
       map((raw) => parseActivities(raw))
     );
   }
@@ -29,12 +34,14 @@ function parseActivities(raw: unknown): readonly GameActivityDefinition[] {
 
   return raw.map((entry, index) => {
     const location = parseLocation(entry, index);
+    const questSignal = parseQuestSignal(entry, index);
     const rewards = parseRewards(entry, index);
     // Strip the game-layer `location` field before passing to the core Zod schema,
     // which does not know about game-layer extensions. Rewards are also stripped
     // to keep compatibility with core schema variants that do not yet include them.
     const {
       location: _strippedLocation,
+      questSignal: _strippedQuestSignal,
       rewards: _strippedRewards,
       ...coreEntry
     } = entry as Record<string, unknown>;
@@ -43,9 +50,54 @@ function parseActivities(raw: unknown): readonly GameActivityDefinition[] {
     return {
       ...base,
       location,
+      ...(questSignal ? { questSignal } : {}),
       ...(rewards ? { rewards } : {})
     } satisfies GameActivityDefinition;
   });
+}
+
+function parseQuestSignal(
+  entry: unknown,
+  index: number
+): GameActivityQuestSignal | undefined {
+  if (typeof entry !== "object" || entry === null) {
+    throw new Error(`activities.json[${index}] must be an object.`);
+  }
+
+  const record = entry as Record<string, unknown>;
+  const signal = record["questSignal"];
+
+  if (signal === undefined) {
+    return undefined;
+  }
+
+  if (typeof signal !== "object" || signal === null || Array.isArray(signal)) {
+    throw new Error(`activities.json[${index}].questSignal must be an object.`);
+  }
+
+  const signalRecord = signal as Record<string, unknown>;
+
+  if (signalRecord["type"] !== "kill") {
+    throw new Error(`activities.json[${index}].questSignal.type must be "kill".`);
+  }
+
+  if (typeof signalRecord["target"] !== "string" || signalRecord["target"].trim().length === 0) {
+    throw new Error(`activities.json[${index}].questSignal.target must be a non-empty string.`);
+  }
+
+  if (
+    typeof signalRecord["count"] !== "number" ||
+    !Number.isFinite(signalRecord["count"]) ||
+    signalRecord["count"] < 1
+  ) {
+    throw new Error(`activities.json[${index}].questSignal.count must be a number >= 1.`);
+  }
+
+  return {
+    type: "kill",
+    target: signalRecord["target"],
+    count: signalRecord["count"]
+  };
 }
 
 function parseRewards(entry: unknown, index: number): ActivityReward[] | undefined {

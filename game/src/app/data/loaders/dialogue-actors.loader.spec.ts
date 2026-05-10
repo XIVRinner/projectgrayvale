@@ -1,9 +1,9 @@
 import { Injector, runInInjectionContext } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { firstValueFrom, of } from "rxjs";
 
+import { GameApiCacheService } from "../game-api-cache.service";
 import { DialogueActorsLoader } from "./dialogue-actors.loader";
 
 describe("DialogueActorsLoader", () => {
@@ -44,11 +44,11 @@ describe("DialogueActorsLoader", () => {
 });
 
 function createDialogueActorsLoader(payload: unknown): DialogueActorsLoader {
-  const http = {
-    get: jest.fn(() => of(payload))
+  const apiCache = {
+    getJsonWithFallback: jest.fn(() => of(payload))
   };
   const injector = Injector.create({
-    providers: [{ provide: HttpClient, useValue: http }]
+    providers: [{ provide: GameApiCacheService, useValue: apiCache }]
   });
 
   return runInInjectionContext(injector, () => new DialogueActorsLoader());

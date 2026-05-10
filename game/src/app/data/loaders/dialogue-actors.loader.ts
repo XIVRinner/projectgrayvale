@@ -1,6 +1,8 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, type Observable } from "rxjs";
+
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 
 export interface DialogueActorDefinition {
   readonly id: string;
@@ -11,10 +13,13 @@ export interface DialogueActorDefinition {
 
 @Injectable({ providedIn: "root" })
 export class DialogueActorsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<readonly DialogueActorDefinition[]> {
-    return this.http.get<unknown>("assets/data/dialogue-actors.json").pipe(
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("dialogue-actors"), dataApiPath("dialogue-actors")],
+      { cacheKey: apiPath("dialogue-actors") }
+    ).pipe(
       map((raw) => parseDialogueActors(raw))
     );
   }

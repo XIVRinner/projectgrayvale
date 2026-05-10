@@ -2,7 +2,24 @@
   "locations": {
     "village-arkama": {
       "id": "village-arkama",
-      "sublocations": ["chief-house", "tavern", "bridgitte-house"]
+      "sublocations": [
+        "chief-house",
+        "tavern",
+        "bridgitte-house",
+        "smithy",
+        "shopkeep"
+      ]
+    },
+    "forest_edge": {
+      "id": "forest_edge",
+      "guards": [
+        {
+          "type": "quest_started",
+          "params": {
+            "questId": "cull_arkama_coyote"
+          }
+        }
+      ]
     },
     "camp": {
       "id": "camp"
@@ -14,7 +31,15 @@
       "to": "camp"
     },
     {
+      "from": "village-arkama",
+      "to": "forest_edge"
+    },
+    {
       "from": "camp",
+      "to": "village-arkama"
+    },
+    {
+      "from": "forest_edge",
       "to": "village-arkama"
     }
   ]

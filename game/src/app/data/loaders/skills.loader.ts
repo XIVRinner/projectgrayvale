@@ -1,14 +1,19 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { type Skill, skillSchema } from "@rinner/grayvale-core";
 import { map, Observable } from "rxjs";
 
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
+
 @Injectable({ providedIn: "root" })
 export class SkillsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<readonly Skill[]> {
-    return this.http.get<unknown>("assets/data/skills.json").pipe(
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("skills"), dataApiPath("skills")],
+      { cacheKey: apiPath("skills") }
+    ).pipe(
       map((raw) => parseSkills(raw))
     );
   }

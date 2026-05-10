@@ -1,0 +1,9 @@
+name=GrayVale Dev Server
+clientId=grayvale-local-client
+clientSecret=replace-me-client-secret
+adminPassword=replace-me-admin-password
+
+# Optional overrides if you want them in the file instead of env vars.
+# port=3000
+# dbFilePath=../data/grayvale.sqlite
+# contentRoot=../../game/src/assets/data

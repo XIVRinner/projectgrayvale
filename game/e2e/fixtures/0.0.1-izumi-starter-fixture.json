@@ -1,0 +1,165 @@
+{
+  "id": "slot_3",
+  "createdAt": "2026-05-09T16:05:36.706Z",
+  "updatedAt": "2026-05-09T16:06:24.164Z",
+  "player": {
+    "id": "player_izumi",
+    "name": "Izumi",
+    "description": "A newly registered adventurer entering GrayVale.",
+    "raceId": "race_oni",
+    "jobClass": "wayfarer",
+    "progression": {
+      "level": 1,
+      "experience": 0
+    },
+    "adventurerRank": 1,
+    "difficulty": {
+      "mode": "easy",
+      "expert": true,
+      "ironman": false
+    },
+    "genderId": "type-3",
+    "attributes": {
+      "strength": 10,
+      "agility": 6,
+      "vitality": 10,
+      "mentality": 6
+    },
+    "skills": {
+      "short_blade": 1,
+      "survival": 1
+    },
+    "selectedAppearance": {
+      "variant": "cool",
+      "imageIndex": 5
+    },
+    "questLog": {
+      "quests": {
+        "quest_recovery": {
+          "currentStep": "runtime_objectives",
+          "status": "completed",
+          "completedSteps": [
+            "runtime_objectives"
+          ]
+        },
+        "quest_chief_labour": {
+          "currentStep": "report_to_chief",
+          "status": "completed",
+          "completedSteps": [
+            "build_strength",
+            "report_to_chief"
+          ]
+        },
+        "cull_arkama_coyote": {
+          "currentStep": "cull_the_coyote",
+          "status": "active",
+          "completedSteps": []
+        }
+      }
+    },
+    "story": {
+      "currentArcId": "prologue",
+      "currentChapter": 2
+    },
+    "activityState": {
+      "availability": {
+        "recover": {
+          "status": "locked"
+        },
+        "village-labour": {
+          "status": "locked"
+        },
+        "coyote_culling": {
+          "status": "enabled"
+        },
+        "forest_edge_foraging": {
+          "status": "enabled"
+        }
+      },
+      "activeActivityId": null
+    },
+    "interactionState": {
+      "totalButtonPresses": 3,
+      "lastButtonPress": {
+        "actionId": "leave-bridgitte-house",
+        "actionKind": "sublocation-exit",
+        "occurredAt": "2026-05-09T16:06:24.164Z",
+        "locationId": "village-arkama",
+        "sublocationId": "bridgitte-house",
+        "payload": {
+          "sublocationId": "bridgitte-house"
+        }
+      },
+      "recentButtonPresses": [
+        {
+          "actionId": "leave-chief-house",
+          "actionKind": "sublocation-exit",
+          "occurredAt": "2026-05-09T16:05:56.213Z",
+          "locationId": "village-arkama",
+          "sublocationId": "chief-house",
+          "payload": {
+            "sublocationId": "chief-house"
+          }
+        },
+        {
+          "actionId": "enter-bridgitte-house",
+          "actionKind": "sublocation-enter",
+          "occurredAt": "2026-05-09T16:06:08.122Z",
+          "locationId": "village-arkama",
+          "payload": {
+            "sublocationId": "bridgitte-house"
+          }
+        },
+        {
+          "actionId": "leave-bridgitte-house",
+          "actionKind": "sublocation-exit",
+          "occurredAt": "2026-05-09T16:06:24.164Z",
+          "locationId": "village-arkama",
+          "sublocationId": "bridgitte-house",
+          "payload": {
+            "sublocationId": "bridgitte-house"
+          }
+        }
+      ]
+    },
+    "inventory": {
+      "items": {
+        "weapon_dagger_rustleaf": 1
+      }
+    },
+    "equippedItems": {
+      "mainHand": "weapon_dagger_rustleaf"
+    },
+    "loadouts": {
+      "loadout_default": {
+        "id": "loadout_default",
+        "displayName": "Default",
+        "slots": {
+          "main_hand": "weapon_dagger_rustleaf"
+        },
+        "isActive": true
+      }
+    },
+    "activeLoadoutId": "loadout_default"
+  },
+  "statUnlocks": {
+    "attributes": {
+      "strength": true,
+      "agility": false,
+      "vitality": true,
+      "mentality": false
+    },
+    "skills": {
+      "short_blade": true,
+      "survival": false
+    }
+  },
+  "world": {
+    "currentLocation": "village-arkama",
+    "sublocations": []
+  },
+  "health": {
+    "currentHp": 44,
+    "maxHp": 60
+  }
+}

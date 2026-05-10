@@ -1,6 +1,8 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, type Observable } from "rxjs";
+
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 
 export interface WorldGuardDefinition {
   readonly type: string;
@@ -13,16 +15,27 @@ export interface WorldGuardCatalog {
 
 @Injectable({ providedIn: "root" })
 export class WorldGuardsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<WorldGuardCatalog> {
-    return this.http
-      .get<unknown>("assets/data/world-guards.json")
-      .pipe(map((raw) => parseWorldGuardCatalog(raw)));
+    return this.apiCache.getJsonWithFallback<unknown>(
+      [apiPath("world-guards"), dataApiPath("world-guards")],
+      { cacheKey: apiPath("world-guards") }
+    ).pipe(
+      map((raw) => parseWorldGuardCatalog(raw))
+    );
   }
 }
 
 function parseWorldGuardCatalog(raw: unknown): WorldGuardCatalog {
+  if (Array.isArray(raw)) {
+    return {
+      guards: raw.map((entry, index) =>
+        parseWorldGuardDefinition(entry, `world guards[${index}]`)
+      )
+    };
+  }
+
   const record = ensureRecord(raw, "world guards");
 
   return {

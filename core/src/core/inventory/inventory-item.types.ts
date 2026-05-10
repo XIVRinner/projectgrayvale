@@ -1,5 +1,6 @@
 import type { Id } from "../models/base";
 import type { EquipmentSlot } from "../combat/combat.equipment";
+import type { DamageInterval, DamageType } from "../combat/combat.damage";
 import type { EffectId } from "../combat/combat.ids";
 import type { Rarity } from "../equipment/rarity.types";
 
@@ -64,6 +65,7 @@ export interface InventoryEquipmentItem extends BaseInventoryItem {
   slot: EquipmentSlot;
   itemLevel: number;
   requirements?: EquipmentRequirements;
+  damage?: Partial<Record<DamageType, DamageInterval>>;
   combatStats?: ItemCombatStat[];
   specialEffects?: EffectId[];
   tooltip?: EquipmentTooltipData;

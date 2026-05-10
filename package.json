@@ -8,19 +8,23 @@
     "combat",
     "dialogue",
     "worldgraph",
-    "game"
+    "game",
+    "server"
   ],
   "scripts": {
     "build": "npm run build:all",
-    "build:all": "npm run build --workspace=core --workspace=combat --workspace=worldgraph --workspace=dialogue --workspace=game",
-    "build:libs": "npm run build --workspace=core --workspace=combat --workspace=worldgraph --workspace=dialogue",
+    "build:all": "npm run build --workspace=core --workspace=combat --workspace=worldgraph --workspace=dialogue --workspace=game --workspace=server",
+    "build:libs": "npm run build --workspace=core --workspace=combat --workspace=worldgraph --workspace=dialogue --workspace=server",
     "build:core": "npm run build --workspace=core",
     "build:combat": "npm run build --workspace=combat",
     "build:dialogue": "npm run build --workspace=dialogue",
     "build:worldgraph": "npm run build --workspace=worldgraph",
     "build:game": "npm run build --workspace=game",
-    "start": "npm run start:game",
+    "build:server": "npm run build --workspace=server",
+    "start": "concurrently -k -n server,game -c cyan,green \"npm run dev:server\" \"npm run start:game\"",
     "start:game": "npm run start --workspace=game",
+    "start:server": "npm run start --workspace=server",
+    "dev:server": "npm run dev --workspace=server",
     "watch:game": "npm run watch --workspace=game",
     "sync:race-assets": "npm run sync:race-assets --workspace=game",
     "watch:race-assets": "npm run watch:race-assets --workspace=game",
@@ -32,6 +36,7 @@
     "test:dialogue": "npm run test --workspace=dialogue",
     "test:worldgraph": "npm run test --workspace=worldgraph",
     "test:game": "npm run test --workspace=game",
+    "test:server": "npm run test --workspace=server",
     "check": "npm run check:all",
     "check:all": "npm run check --workspaces --if-present",
     "check:core": "npm run check --workspace=core",
@@ -39,7 +44,11 @@
     "check:dialogue": "npm run check --workspace=dialogue --if-present",
     "check:worldgraph": "npm run check --workspace=worldgraph",
     "check:game": "npm run check --workspace=game --if-present",
+    "check:server": "npm run check --workspace=server --if-present",
     "e2e:game": "npm run e2e --workspace=game",
     "e2e:game:ui": "npm run e2e:ui --workspace=game"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

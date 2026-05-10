@@ -10,6 +10,12 @@ export interface GameActivityLocation {
   readonly sublocationId?: string;
 }
 
+export interface GameActivityQuestSignal {
+  readonly type: "kill";
+  readonly target: string;
+  readonly count: number;
+}
+
 /**
  * Game-layer extension of the core ActivityDefinition.
  * The `location` field is required at the game layer — every activity must declare
@@ -17,6 +23,7 @@ export interface GameActivityLocation {
  */
 export interface GameActivityDefinition extends ActivityDefinition {
   readonly location: GameActivityLocation;
+  readonly questSignal?: GameActivityQuestSignal;
 }
 
 /**

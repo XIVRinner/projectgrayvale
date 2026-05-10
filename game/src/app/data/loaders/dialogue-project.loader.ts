@@ -3,6 +3,9 @@ import { Injectable, inject } from "@angular/core";
 import { type LoadInput } from "@rinner/grayvale-dialogue";
 import { forkJoin, map, shareReplay, switchMap, type Observable } from "rxjs";
 
+import { dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
+
 interface DialogueProjectManifest {
   readonly files: readonly string[];
 }
@@ -10,9 +13,10 @@ interface DialogueProjectManifest {
 @Injectable({ providedIn: "root" })
 export class DialogueProjectLoader {
   private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
-  private readonly project$ = this.http
-    .get<unknown>("assets/data/dialogue-project.json")
+  private readonly project$ = this.apiCache
+    .getJson<unknown>(dataApiPath("dialogue-project"))
     .pipe(
       map((raw) => parseDialogueProjectManifest(raw)),
       switchMap((manifest) =>

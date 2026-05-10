@@ -1,6 +1,8 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, shareReplay, type Observable } from "rxjs";
+
+import { apiPath, dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 
 export interface DialogueDefinition {
   readonly id: string;
@@ -12,10 +14,13 @@ export interface DialogueDefinition {
 
 @Injectable({ providedIn: "root" })
 export class DialogueDefinitionsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
-  private readonly definitions$ = this.http
-    .get<unknown>("assets/data/dialogues.json")
+  private readonly definitions$ = this.apiCache
+    .getJsonWithFallback<unknown>(
+      [apiPath("dialogues"), dataApiPath("dialogues")],
+      { cacheKey: apiPath("dialogues") }
+    )
     .pipe(
       map((raw) => parseDialogueDefinitions(raw)),
       shareReplay({ bufferSize: 1, refCount: false })

@@ -6,9 +6,9 @@
     [subtitle]="session.subtitle ?? null"
     [ariaLabel]="session.title"
     [variant]="'game-dialogue'"
-    [width]="'dialogue'"
-    [closeDisabled]="session.mode !== 'activity'"
-    [showCloseButton]="session.mode === 'activity'"
+    [width]="dialogWidth()"
+    [closeDisabled]="closeDisabled()"
+    [showCloseButton]="showCloseButton()"
     (closed)="closeRequested.emit()"
   >
     @switch (session.mode) {
@@ -26,11 +26,13 @@
       @case ("activity") {
         <gv-activity-tick-feed [entries]="session.activityTicks ?? []" />
       }
-      @default {
-        <!-- GAP: Combat dialog mode -->
-        <!-- Blocked on: design -->
-        <!-- Needs: concrete payload shapes for combat dialog content -->
-        <!-- Do not implement until: combat popup contract is specified -->
+      @case ("combat") {
+        <gv-combat-view
+          [encounter]="session.combatEncounter ?? null"
+          [previewRotation]="[]"
+          (returnRequested)="closeRequested.emit()"
+          (dismissRequested)="closeRequested.emit()"
+        />
       }
     }
   </gv-dialog-shell>

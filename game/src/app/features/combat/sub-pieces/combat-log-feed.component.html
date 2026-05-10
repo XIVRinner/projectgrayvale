@@ -1,0 +1,16 @@
+<section class="gv-combat-log" aria-label="Combat log">
+  <h2 class="gv-combat-log__title">Combat Log</h2>
+
+  @if (logs().length > 0) {
+    <ol class="gv-combat-log__list">
+      @for (log of logs(); track log.id) {
+        <li class="gv-combat-log__item" [attr.data-type]="log.type">
+          <span class="gv-combat-log__tick">T{{ log.tick }}</span>
+          <span class="gv-combat-log__text">{{ log.text }}</span>
+        </li>
+      }
+    </ol>
+  } @else {
+    <p class="gv-combat-log__empty">No combat events yet.</p>
+  }
+</section>

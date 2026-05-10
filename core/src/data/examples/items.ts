@@ -16,6 +16,9 @@ export const sampleEquipmentItem: InventoryEquipmentItem = {
   itemLevel: 5,
   description: "A reliable iron sword favoured by militia recruits.",
   requirements: { levelRequirement: 3 },
+  damage: {
+    slashing: { min: 6, max: 10 }
+  },
   combatStats: [{ stat: "physical_damage", value: 12, operation: "add" }],
   tooltip: {
     statLines: ["+12 Physical Damage"],

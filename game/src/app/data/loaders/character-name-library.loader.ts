@@ -1,15 +1,17 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { map, Observable } from "rxjs";
+
+import { dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 
 export type CharacterNameLibrary = Readonly<Record<string, readonly string[]>>;
 
 @Injectable({ providedIn: "root" })
 export class CharacterNameLibraryLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<CharacterNameLibrary> {
-    return this.http.get<unknown>("assets/data/character-names.json").pipe(
+    return this.apiCache.getJson<unknown>(dataApiPath("character-names")).pipe(
       map((raw) => parseCharacterNameLibrary(raw))
     );
   }

@@ -9,6 +9,7 @@ import type {
   ActivityTickSnapshotView
 } from "../../shared/components/activity-tick-feed/activity-tick-feed.types";
 import { CharacterRosterService } from "./character-roster.service";
+import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
 import { DebugLogService } from "./game-log/debug-log.service";
 import { GameDialogService } from "./game-dialog.service";
 import { GameQuestService } from "./game-quest.service";
@@ -23,6 +24,7 @@ export class ActivityService {
   private readonly gameQuests = inject(GameQuestService);
   private readonly gameDialog = inject(GameDialogService);
   private readonly activitiesLoader = inject(ActivitiesLoader);
+  private readonly combatEncounter = inject(CombatEncounterService);
   private readonly debugLog = inject(DebugLogService);
 
   private readonly activitiesState: GameActivityDefinition[] = [];
@@ -104,8 +106,26 @@ export class ActivityService {
       this.runItemTotals.clear();
       this.emptyGrowthTickStreak = 0;
       this.debugLog.logMessage("activity", "Activity started.", { activityId });
-      const label = this.activitiesState.find((a) => a.id === activityId)?.name ?? activityId;
-      this.gameDialog.startActivity(activityId, label);
+      const activity = this.activitiesState.find((entry) => entry.id === activityId);
+
+      if (activity && this.combatEncounter.isCombatActivity(activity)) {
+        const started = this.combatEncounter.startEncounter(activity);
+
+        if (!started) {
+          this.roster.applyActiveCharacterDeltas([
+            {
+              type: "set",
+              target: "player",
+              path: ["activityState", "activeActivityId"],
+              value: null
+            }
+          ]);
+          return false;
+        }
+      } else {
+        const label = activity?.name ?? activityId;
+        this.gameDialog.startActivity(activityId, label);
+      }
     }
 
     return applied;
@@ -140,8 +160,13 @@ export class ActivityService {
       return;
     }
 
-    const appliedDeltas = this.gameQuests.executeActivityTick(activityId);
     const activity = this.activitiesState.find((entry) => entry.id === activityId);
+
+    if (activity && this.combatEncounter.isCombatActivity(activity)) {
+      return;
+    }
+
+    const appliedDeltas = this.gameQuests.executeActivityTick(activityId);
     const growth = summarizeGrowth(appliedDeltas, event.elapsedMs);
     const player = this.roster.activeCharacter();
 

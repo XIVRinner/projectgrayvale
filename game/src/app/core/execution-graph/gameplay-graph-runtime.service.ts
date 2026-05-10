@@ -13,6 +13,7 @@ import {
 } from "../../shared/models/action-panel-group.model";
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
+import type { WorldGuardCatalog } from "../../data/loaders/world-guards.loader";
 import { CharacterRosterService } from "../services/character-roster.service";
 import { DebugLogService } from "../services/game-log/debug-log.service";
 import { WorldStateService } from "../services/world-state.service";
@@ -26,6 +27,7 @@ import { evaluateExecutionGuards } from "./gameplay-guard-runner";
 import { logDiagnostics } from "./gameplay-graph-diagnostics";
 import { GameplayTriggerRunner } from "./gameplay-trigger-runner";
 import type {
+  ActionNode,
   ActionId,
   ActionView,
   CompileResult,
@@ -204,10 +206,7 @@ export class GameplayGraphRuntime {
           guardContext && guardCatalog
             ? evaluateExecutionGuards(action.visibleWhen, guardContext, guardCatalog)
             : { passes: true };
-        const enabledResult =
-          guardContext && guardCatalog
-            ? evaluateExecutionGuards(action.enabledWhen, guardContext, guardCatalog)
-            : { passes: false, failureReason: "No active guard context." };
+        const enabledResult = resolveActionEnabledState(action, guardContext, guardCatalog);
         const isVisible = visibleResult.passes;
         const isEnabled = isVisible && enabledResult.passes;
 
@@ -351,8 +350,8 @@ export class GameplayGraphRuntime {
         continue;
       }
 
-      const enabledResult = evaluateExecutionGuards(
-        action.enabledWhen,
+      const effectiveEnabledResult = resolveActionEnabledState(
+        action,
         guardContext,
         guardCatalog
       );
@@ -361,8 +360,10 @@ export class GameplayGraphRuntime {
         id: action.id,
         label: action.label,
         visible: true,
-        enabled: enabledResult.passes,
-        disabledReason: enabledResult.passes ? undefined : enabledResult.failureReason,
+        enabled: effectiveEnabledResult.passes,
+        disabledReason: effectiveEnabledResult.passes
+          ? undefined
+          : effectiveEnabledResult.failureReason,
         groupKind: action.groupKind
       });
     }
@@ -468,11 +469,7 @@ export class GameplayGraphRuntime {
       return { ok: false, actionId, reason: "ACTION_NOT_VISIBLE" };
     }
 
-    const enabledResult = evaluateExecutionGuards(
-      action.enabledWhen,
-      guardContext,
-      guardCatalog
-    );
+    const enabledResult = resolveActionEnabledState(action, guardContext, guardCatalog);
 
     if (!enabledResult.passes) {
       this.debugLog.logMessage("execution-graph", "Execute rejected: action disabled.", {
@@ -502,6 +499,30 @@ export class GameplayGraphRuntime {
 
     return result;
   }
+}
+
+function resolveActionEnabledState(
+  action: ActionNode,
+  guardContext: GuardContext | null,
+  guardCatalog: WorldGuardCatalog | null
+): { passes: boolean; failureReason?: string } {
+  const staticDisabledReason = action.disabledReason?.trim();
+
+  if (staticDisabledReason) {
+    return {
+      passes: false,
+      failureReason: staticDisabledReason
+    };
+  }
+
+  if (!guardContext || !guardCatalog) {
+    return {
+      passes: false,
+      failureReason: "No active guard context."
+    };
+  }
+
+  return evaluateExecutionGuards(action.enabledWhen, guardContext, guardCatalog);
 }
 
 function normalizeErrorMessage(error: unknown): string {

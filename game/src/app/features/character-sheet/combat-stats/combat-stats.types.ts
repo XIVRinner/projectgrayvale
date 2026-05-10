@@ -6,6 +6,7 @@ export interface CombatStatRowView {
   label: string;
   breakdown: StatBreakdown;
   isLocked: boolean;
+  isInspectable?: boolean;
   /** Final value formatted for display (e.g. "40", "18%"). */
   formattedValue: string;
   /** Net change from base formatted for display (e.g. "+20", "-12%"), or null when unchanged. */
@@ -16,4 +17,10 @@ export interface CombatStatRowView {
 export interface CombatStatGroupView {
   label: string;
   stats: CombatStatRowView[];
+}
+
+export interface CombatWeaponDamageRowView {
+  key: string;
+  label: string;
+  intervalLabel: string;
 }

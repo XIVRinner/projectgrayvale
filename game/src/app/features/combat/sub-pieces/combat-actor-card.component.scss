@@ -1,0 +1,76 @@
+.gv-combat-actor {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background: rgba(255, 255, 255, 0.04);
+  padding: var(--gv-space-md);
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-combat-actor[data-role="enemy"] {
+  background: rgba(255, 85, 119, 0.08);
+}
+
+.gv-combat-actor__header,
+.gv-combat-actor__status {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gv-space-md);
+  align-items: center;
+}
+
+.gv-combat-actor__role {
+  margin: 0;
+  color: var(--gv-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-combat-actor__name {
+  margin: 0;
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-combat-actor__meter {
+  height: 0.75rem;
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.gv-combat-actor__meter::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.gv-combat-actor__meter::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--gv-color-success), var(--gv-color-accent-warm));
+}
+
+.gv-combat-actor__meter::-moz-progress-bar {
+  background: linear-gradient(90deg, var(--gv-color-success), var(--gv-color-accent-warm));
+}
+
+.gv-combat-actor__status {
+  color: var(--gv-color-text-muted);
+}
+
+.gv-combat-actor__effects {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+.gv-combat-actor__effects li {
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  border-radius: 999px;
+  background: rgba(180, 138, 255, 0.15);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}

@@ -42,6 +42,9 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+server/config/server.properties
+server/config/server.yaml
+server/config/server.yml
 
 # VS Code / editor
 .vscode/*

@@ -1,15 +1,17 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import type { Guard, WorldGraph } from "@rinner/grayvale-worldgraph";
 import { map, type Observable } from "rxjs";
 
+import { dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
+
 @Injectable({ providedIn: "root" })
 export class WorldGraphLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<WorldGraph> {
-    return this.http
-      .get<unknown>("assets/data/world-graph.json")
+    return this.apiCache
+      .getJson<unknown>(dataApiPath("world-graph"))
       .pipe(map((raw) => parseWorldGraph(raw)));
   }
 }

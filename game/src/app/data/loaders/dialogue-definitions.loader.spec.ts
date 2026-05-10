@@ -1,9 +1,9 @@
 import { Injector, runInInjectionContext } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { firstValueFrom, of } from "rxjs";
 
+import { GameApiCacheService } from "../game-api-cache.service";
 import { DialogueDefinitionsLoader } from "./dialogue-definitions.loader";
 
 describe("DialogueDefinitionsLoader", () => {
@@ -42,17 +42,31 @@ describe("DialogueDefinitionsLoader", () => {
         title: "Bridgitte",
         eyebrowFallback: "Bridgitte's House",
         subtitleFallback: "A retired adventurer finally opens her door to you."
+      },
+      {
+        id: "bridgitte-report-back",
+        entryFile: "arkama/bridgitte-report-back.fsc",
+        title: "Bridgitte",
+        eyebrowFallback: "Bridgitte's House",
+        subtitleFallback: "Your first contract is done, and Bridgitte has more direction for you."
+      },
+      {
+        id: "bridgitte-repeatables",
+        entryFile: "arkama/bridgitte-repetables.fsc",
+        title: "Bridgitte",
+        eyebrowFallback: "Bridgitte's House",
+        subtitleFallback: "A retired adventurer answers what she is willing to share."
       }
     ]);
   });
 });
 
 function createDialogueDefinitionsLoader(payload: unknown): DialogueDefinitionsLoader {
-  const http = {
-    get: jest.fn(() => of(payload))
+  const apiCache = {
+    getJsonWithFallback: jest.fn(() => of(payload))
   };
   const injector = Injector.create({
-    providers: [{ provide: HttpClient, useValue: http }]
+    providers: [{ provide: GameApiCacheService, useValue: apiCache }]
   });
 
   return runInInjectionContext(injector, () => new DialogueDefinitionsLoader());

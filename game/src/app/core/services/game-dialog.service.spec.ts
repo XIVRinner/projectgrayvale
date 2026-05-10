@@ -239,6 +239,87 @@ describe("GameDialogService", () => {
     expect(service.session()?.currentEntry?.text).toContain("smells faintly of woodsmoke");
   });
 
+  it("processes Bridgitte's tutorial hooks through the dialogue bridge", () => {
+    const { service, roster, gameQuests, worldState } = createFixture();
+    const receivedEvents: GameDialogEvent[] = [];
+
+    service.events$.subscribe((event) => {
+      receivedEvents.push(event);
+    });
+
+    worldState.currentSublocationMetadata.set({
+      id: "bridgitte-house",
+      label: "Bridgitte's House",
+      subtitle: "A quiet house where an old adventurer keeps her past within arm's reach.",
+      sceneImagePath: "assets/images/location-backgrounds/bridgette-house.png",
+      availableNpcIds: ["bridgitte"],
+      isReturnable: true,
+      entryActionLabel: "Visit Bridgitte's house",
+      exitActionLabel: "Leave Bridgitte's house"
+    });
+
+    service.startBridgitteHouse();
+    advanceUntilChoice(service);
+    service.choose(0);
+    advanceUntilQuestStart(service, gameQuests.startQuestById);
+
+    expect(gameQuests.startQuestById).toHaveBeenCalledWith("cull_arkama_coyote");
+    expect(roster.activeCharacter()?.inventory.items["weapon_dagger_rustleaf"]).toBe(1);
+    expect(roster.activeSlot()?.statUnlocks.skills["short_blade"]).toBe(true);
+    expect(
+      receivedEvents.some(
+        (event) => event.type === "log-event" && event.text === "Classes are still WIP"
+      )
+    ).toBe(true);
+  });
+
+  it("opens Bridgitte repeatables directly from the repeatables entry file", () => {
+    const { service, worldState } = createFixture();
+
+    worldState.currentSublocationMetadata.set({
+      id: "bridgitte-house",
+      label: "Bridgitte's House",
+      subtitle: "A quiet house where an old adventurer keeps her past within arm's reach.",
+      sceneImagePath: "assets/images/location-backgrounds/bridgette-house.png",
+      availableNpcIds: ["bridgitte"],
+      isReturnable: true,
+      entryActionLabel: "Visit Bridgitte's house",
+      exitActionLabel: "Leave Bridgitte's house"
+    });
+
+    service.startDialogueById("bridgitte-repeatables");
+
+    expect(service.session()?.title).toBe("Bridgitte");
+    expect(service.session()?.currentEntry?.actor?.name).toBe("Narrator");
+    expect(service.session()?.currentEntry?.text).toContain("checking the edge on a skinning knife");
+  });
+
+  it("uses the report-back dialogue to resolve the coyote quest and seed the next quests", () => {
+    const { service, gameQuests, worldState } = createFixture();
+
+    worldState.currentSublocationMetadata.set({
+      id: "bridgitte-house",
+      label: "Bridgitte's House",
+      subtitle: "A quiet house where an old adventurer keeps her past within arm's reach.",
+      sceneImagePath: "assets/images/location-backgrounds/bridgette-house.png",
+      availableNpcIds: ["bridgitte"],
+      isReturnable: true,
+      entryActionLabel: "Visit Bridgitte's house",
+      exitActionLabel: "Leave Bridgitte's house"
+    });
+
+    service.startDialogueById("bridgitte-report-back");
+    advanceUntilSessionEnds(service, 80);
+
+    expect(gameQuests.resolveQuestStep).toHaveBeenCalledWith(
+      "cull_arkama_coyote",
+      "report_back_to_bridgitte"
+    );
+    expect(gameQuests.startQuestById).toHaveBeenCalledWith("learn_five_finger_fillet");
+    expect(gameQuests.startQuestById).toHaveBeenCalledWith("lydia_smithing_intro");
+    expect(gameQuests.startQuestById).toHaveBeenCalledWith("shopkeep_forest_supplies");
+  });
+
   it("replaces an open activity session when a story dialogue starts", () => {
     const { service } = createFixture();
 
@@ -318,6 +399,7 @@ function createFixture(options?: {
           loadDialogueFile("assets/dialogue/prologue/chief-labour.fsc"),
           loadDialogueFile("assets/dialogue/arkama/chief-bridgitte-handoff.fsc"),
           loadDialogueFile("assets/dialogue/arkama/bridgitte-house.fsc"),
+          loadDialogueFile("assets/dialogue/arkama/bridgitte-report-back.fsc"),
           loadDialogueFile("assets/dialogue/arkama/bridgitte-repetables.fsc")
         ])
       ])
@@ -353,6 +435,20 @@ function createFixture(options?: {
           title: "Bridgitte",
           eyebrowFallback: "Bridgitte's House",
           subtitleFallback: "A retired adventurer finally opens her door to you."
+        },
+        {
+          id: "bridgitte-report-back",
+          entryFile: "arkama/bridgitte-report-back.fsc",
+          title: "Bridgitte",
+          eyebrowFallback: "Bridgitte's House",
+          subtitleFallback: "Your first contract is done, and Bridgitte has more direction for you."
+        },
+        {
+          id: "bridgitte-repeatables",
+          entryFile: "arkama/bridgitte-repetables.fsc",
+          title: "Bridgitte",
+          eyebrowFallback: "Bridgitte's House",
+          subtitleFallback: "A retired adventurer answers what she is willing to share."
         }
       ])
     )
@@ -447,6 +543,34 @@ function advanceUntilSessionEnds(service: GameDialogService, maxSteps = 20): voi
 
     service.advance();
   }
+}
+
+function advanceUntilChoice(service: GameDialogService, maxSteps = 120): void {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (service.session()?.isAwaitingChoice) {
+      return;
+    }
+
+    service.advance();
+  }
+
+  throw new Error("Expected dialogue choices to appear.");
+}
+
+function advanceUntilQuestStart(service: GameDialogService, startQuestById: jest.Mock, maxSteps = 120): void {
+  for (let step = 0; step < maxSteps; step += 1) {
+    if (startQuestById.mock.calls.length > 0) {
+      return;
+    }
+
+    if (service.session()?.isAwaitingChoice) {
+      throw new Error("Encountered an unexpected choice before the tutorial hooks fired.");
+    }
+
+    service.advance();
+  }
+
+  throw new Error("Expected the dialogue to trigger a quest start.");
 }
 
 function loadDialogueFile(assetPath: string): { filename: string; source: string } {

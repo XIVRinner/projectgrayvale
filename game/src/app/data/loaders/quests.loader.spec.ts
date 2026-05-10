@@ -1,9 +1,9 @@
 import { Injector, runInInjectionContext } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { firstValueFrom, of } from "rxjs";
 
+import { GameApiCacheService } from "../game-api-cache.service";
 import { QuestsLoader } from "./quests.loader";
 
 describe("QuestsLoader", () => {
@@ -60,11 +60,11 @@ describe("QuestsLoader", () => {
 });
 
 function createQuestsLoader(payload: unknown): QuestsLoader {
-  const http = {
-    get: jest.fn(() => of(payload))
+  const apiCache = {
+    getJsonWithFallback: jest.fn(() => of(payload))
   };
   const injector = Injector.create({
-    providers: [{ provide: HttpClient, useValue: http }]
+    providers: [{ provide: GameApiCacheService, useValue: apiCache }]
   });
 
   return runInInjectionContext(injector, () => new QuestsLoader());

@@ -1,0 +1,21 @@
+<section class="gv-combat-rotation" aria-label="Compiled rotation">
+  <h2 class="gv-combat-rotation__title">Compiled Rotation</h2>
+
+  @if (rows().length > 0) {
+    <ol class="gv-combat-rotation__list">
+      @for (row of rows(); track row.id) {
+        <li class="gv-combat-rotation__item">
+          <div>
+            <strong>{{ row.abilityLabel }}</strong>
+            <p>{{ row.detail }}</p>
+          </div>
+          <span class="gv-combat-rotation__badge">
+            {{ row.isReaction ? "Reaction" : row.isFallback ? "Fallback" : "Priority" }}
+          </span>
+        </li>
+      }
+    </ol>
+  } @else {
+    <p class="gv-combat-rotation__empty">No compiled rotation is available for the active loadout.</p>
+  }
+</section>

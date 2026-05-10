@@ -1,8 +1,9 @@
-import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { type Race, type RaceVariant } from "@rinner/grayvale-core";
 import { map, Observable } from "rxjs";
 
+import { dataApiPath } from "../api-paths";
+import { GameApiCacheService } from "../game-api-cache.service";
 import { parseRace } from "../../core/validation/core-runtime-validation";
 
 export interface CharacterCreatorClassOption {
@@ -35,10 +36,10 @@ export interface CharacterCreatorOptions {
 
 @Injectable({ providedIn: "root" })
 export class CharacterCreatorOptionsLoader {
-  private readonly http = inject(HttpClient);
+  private readonly apiCache = inject(GameApiCacheService);
 
   load(): Observable<CharacterCreatorOptions> {
-    return this.http.get<unknown>("assets/data/character-creator.json").pipe(
+    return this.apiCache.getJson<unknown>(dataApiPath("character-creator")).pipe(
       map((raw) => parseCharacterCreatorOptions(raw))
     );
   }

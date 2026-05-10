@@ -61,5 +61,130 @@
         "completion": "manual"
       }
     ]
+  },
+  {
+    "id": "cull_arkama_coyote",
+    "startRewards": [
+      {
+        "type": "activity_availability",
+        "activityId": "coyote_culling",
+        "status": "enabled"
+      }
+    ],
+    "steps": [
+      {
+        "id": "cull_the_coyote",
+        "label": "Deal with the coyote at the forest edge",
+        "objectives": [
+          {
+            "type": "kill",
+            "target": "arkama_coyote",
+            "count": 1
+          }
+        ],
+        "rewards": [
+          {
+            "type": "activity_availability",
+            "activityId": "coyote_culling",
+            "status": "locked"
+          }
+        ]
+      },
+      {
+        "id": "report_back_to_bridgitte",
+        "label": "Report back to Bridgitte",
+        "completion": "manual"
+      }
+    ],
+    "rewards": [
+      {
+        "type": "activity_availability",
+        "activityId": "gather_medicine_herb_t1",
+        "status": "enabled"
+      },
+      {
+        "type": "activity_availability",
+        "activityId": "harvest_flax_t1",
+        "status": "enabled"
+      },
+      {
+        "type": "activity_availability",
+        "activityId": "mine_brittle_copper",
+        "status": "enabled"
+      },
+      {
+        "type": "activity_availability",
+        "activityId": "chop_brittle_oak_log",
+        "status": "enabled"
+      },
+      {
+        "type": "activity_availability",
+        "activityId": "hunt_coyote",
+        "status": "enabled"
+      }
+    ]
+  },
+  {
+    "id": "learn_five_finger_fillet",
+    "steps": [
+      {
+        "id": "visit_tavern",
+        "label": "Visit the tavern and ask about five finger fillet",
+        "completion": "manual"
+      }
+    ]
+  },
+  {
+    "id": "lydia_smithing_intro",
+    "steps": [
+      {
+        "id": "mine_brittle_copper",
+        "label": "Mine 10 brittle copper",
+        "objectives": [
+          {
+            "type": "item_collected",
+            "itemId": "mat_brittle_copper_t1",
+            "quantity": 10
+          }
+        ]
+      },
+      {
+        "id": "visit_lydia",
+        "label": "Visit Lydia at the smithy",
+        "completion": "manual"
+      }
+    ]
+  },
+  {
+    "id": "shopkeep_forest_supplies",
+    "steps": [
+      {
+        "id": "gather_supplies",
+        "label": "Gather 10 medicine herbs and 10 flax",
+        "objectives": [
+          {
+            "type": "composite",
+            "operator": "AND",
+            "objectives": [
+              {
+                "type": "item_collected",
+                "itemId": "mat_medicine_herb_t1",
+                "quantity": 10
+              },
+              {
+                "type": "item_collected",
+                "itemId": "mat_flax_t1",
+                "quantity": 10
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "visit_shopkeep",
+        "label": "Visit the shopkeeper",
+        "completion": "manual"
+      }
+    ]
   }
 ]

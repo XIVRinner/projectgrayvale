@@ -4,9 +4,9 @@
   [class.gv-stat-row--selected]="isSelected()"
   [class.gv-stat-row--locked]="row().isLocked"
   [attr.data-state]="row().breakdown.displayState"
-  [attr.aria-pressed]="row().isLocked ? null : isSelected()"
-  [attr.aria-label]="row().isLocked ? row().label + ' is locked' : 'Show breakdown for ' + row().label"
-  [disabled]="row().isLocked"
+  [attr.aria-pressed]="row().isLocked || row().isInspectable === false ? null : isSelected()"
+  [attr.aria-label]="row().isLocked ? row().label + ' is locked' : row().isInspectable === false ? row().label : 'Show breakdown for ' + row().label"
+  [disabled]="row().isLocked || row().isInspectable === false"
   (click)="onSelect()"
 >
   <span class="gv-stat-row__label">{{ row().label }}</span>

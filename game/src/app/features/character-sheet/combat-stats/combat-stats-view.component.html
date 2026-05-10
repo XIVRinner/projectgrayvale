@@ -27,6 +27,13 @@
           </div>
         </div>
       }
+
+      @if (weaponDamageRows().length > 0) {
+        <div class="gv-combat-stats__group">
+          <h3 class="gv-combat-stats__group-label">Weapon Damage</h3>
+          <gv-combat-weapon-profile [rows]="weaponDamageRows()" />
+        </div>
+      }
     </div>
 
     @if (selectedBreakdown(); as bd) {

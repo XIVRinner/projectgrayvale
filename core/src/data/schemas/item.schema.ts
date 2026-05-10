@@ -41,6 +41,29 @@ export const itemCombatStatSchema = z
   })
   .strict();
 
+export const damageIntervalSchema = z
+  .object({
+    min: z.number().int(),
+    max: z.number().int()
+  })
+  .strict()
+  .refine((value) => value.min <= value.max, {
+    message: "Damage interval min cannot be greater than max."
+  });
+
+export const itemDamageProfileSchema = z
+  .object({
+    slashing: damageIntervalSchema.optional(),
+    piercing: damageIntervalSchema.optional(),
+    thrusting: damageIntervalSchema.optional(),
+    blunt: damageIntervalSchema.optional(),
+    nature: damageIntervalSchema.optional()
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Damage profile must define at least one damage interval."
+  });
+
 export const equipmentRequirementsSchema = z
   .object({
     levelRequirement: z.number().int().min(1).optional(),
@@ -68,6 +91,7 @@ export const inventoryEquipmentItemSchema = baseInventoryItemSchema
     slot: loadoutSlotSchema,
     itemLevel: z.number().int().min(1),
     requirements: equipmentRequirementsSchema.optional(),
+    damage: itemDamageProfileSchema.optional(),
     combatStats: z.array(itemCombatStatSchema).optional(),
     specialEffects: z.array(idSchema).optional(),
     tooltip: equipmentTooltipDataSchema.optional()
