@@ -4,12 +4,16 @@ import { openDatabase } from "./db/database";
 
 async function main(): Promise<void> {
   const config = readServerConfig();
-  const db = await openDatabase(config.dbFilePath);
+  const db = await openDatabase(config);
   const app = await createApp(config, db);
+  const databaseLabel =
+    config.databaseProvider === "turso"
+      ? config.tursoDatabaseUrl
+      : config.dbFilePath;
 
   app.listen(config.port, () => {
     process.stdout.write(
-      `${config.name} listening on http://localhost:${config.port} using ${config.dbFilePath} (config: ${config.configFilePath})\n`
+      `${config.name} listening on http://localhost:${config.port} using ${config.databaseProvider}:${databaseLabel} (config: ${config.configFilePath})\n`
     );
   });
 }

@@ -15,6 +15,7 @@
     "test": "npm run check"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",

@@ -24,6 +24,14 @@ jobs:
           EOF
           test -s server/config/server.properties
 
+      - name: Bundle game data for server runtime
+        shell: bash
+        run: |
+          rm -rf server/content
+          mkdir -p server/content
+          cp -R game/src/assets/data/. server/content/
+          test -f server/content/activities.json
+
       - name: Install Vercel CLI
         run: npm install --global vercel
 

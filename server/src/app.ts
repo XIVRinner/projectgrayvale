@@ -117,7 +117,7 @@ async function resolveVercelApp(): Promise<Express> {
 
   appPromise = (async () => {
     const config = readServerConfig();
-    const db = await openDatabase(config.dbFilePath);
+    const db = await openDatabase(config);
 
     return createApp(config, db);
   })();

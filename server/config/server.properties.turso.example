@@ -1,0 +1,22 @@
+# GrayVale server properties template
+# Copy values as needed for local or shared non-secret defaults.
+# Keep secrets out of git when possible.
+
+name=GrayVale Dev Server
+clientId=grayvale-local-client
+clientSecret=replace-me-client-secret
+adminPassword=replace-me-admin-password
+
+# Optional local overrides:
+# port=3000
+# dbFilePath=../data/grayvale.sqlite
+# contentRoot=../../game/src/assets/data
+
+# Turso cloud notes (set as environment variables, not in this file):
+# grayvale_TURSO_DATABASE_URL=libsql://your-db.turso.io
+# grayvale_TURSO_AUTH_TOKEN=your-turso-auth-token
+# (uppercase GRAYVALE_TURSO_* aliases are also accepted)
+#
+# Cloud runtime behavior:
+# - On Vercel, if both grayvale_TURSO_* vars are set, server uses Turso.
+# - Local runtime continues to use SQLite file path unless you explicitly change code/runtime behavior.

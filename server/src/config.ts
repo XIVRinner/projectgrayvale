@@ -28,6 +28,9 @@ export interface ServerConfig {
   readonly clientSecret: string;
   readonly adminPassword: string;
   readonly port: number;
+  readonly databaseProvider: "sqlite" | "turso";
+  readonly tursoDatabaseUrl?: string;
+  readonly tursoAuthToken?: string;
   readonly dbFilePath: string;
   readonly contentRoot: string;
   readonly configFilePath: string;
@@ -37,6 +40,23 @@ export function readServerConfig(): ServerConfig {
   const configFilePath = resolveConfigFilePath(process.env["GRAYVALE_CONFIG_PATH"]);
   const configValues = readConfigValues(configFilePath);
   const isVercelRuntime = readOptionalSetting(process.env["VERCEL"]) !== undefined;
+  const tursoDatabaseUrl = readEnvSetting(
+    "grayvale_TURSO_DATABASE_URL",
+    "GRAYVALE_TURSO_DATABASE_URL",
+  );
+  const tursoAuthToken = readEnvSetting(
+    "grayvale_TURSO_AUTH_TOKEN",
+    "GRAYVALE_TURSO_AUTH_TOKEN",
+  );
+
+  if ((tursoDatabaseUrl && !tursoAuthToken) || (!tursoDatabaseUrl && tursoAuthToken)) {
+    throw new Error(
+      "grayvale_TURSO_DATABASE_URL and grayvale_TURSO_AUTH_TOKEN must both be set together (uppercase GRAYVALE_TURSO_* aliases are also supported).",
+    );
+  }
+
+  const useTurso =
+    isVercelRuntime && tursoDatabaseUrl !== undefined && tursoAuthToken !== undefined;
 
   return {
     name: readRequiredSetting("GRAYVALE_NAME", process.env["GRAYVALE_NAME"], configValues.name),
@@ -56,15 +76,19 @@ export function readServerConfig(): ServerConfig {
       configValues.adminPassword
     ),
     port: readPort(process.env["PORT"] ?? configValues.port),
+    databaseProvider: useTurso ? "turso" : "sqlite",
+    tursoDatabaseUrl: useTurso ? tursoDatabaseUrl : undefined,
+    tursoAuthToken: useTurso ? tursoAuthToken : undefined,
     dbFilePath: resolveDatabaseFilePath(
       isVercelRuntime,
       configFilePath,
       configValues.dbFilePath,
     ),
-    contentRoot:
-      readOptionalSetting(process.env["GRAYVALE_CONTENT_ROOT"]) ??
-      resolveConfigRelativePath(configFilePath, configValues.contentRoot) ??
-      resolve(repoRoot, "game", "src", "assets", "data"),
+    contentRoot: resolveContentRootPath(
+      isVercelRuntime,
+      configFilePath,
+      configValues.contentRoot,
+    ),
     configFilePath
   };
 }
@@ -88,6 +112,52 @@ function resolveDatabaseFilePath(
     resolveConfigRelativePath(configFilePath, configFilePathValue) ??
     resolve(serverRoot, "data", "grayvale.sqlite")
   );
+}
+
+function resolveContentRootPath(
+  isVercelRuntime: boolean,
+  configFilePath: string,
+  configFilePathValue: string | undefined,
+): string {
+  const envRoot = readOptionalSetting(process.env["GRAYVALE_CONTENT_ROOT"]);
+
+  if (envRoot) {
+    return envRoot;
+  }
+
+  const configRoot = resolveConfigRelativePath(configFilePath, configFilePathValue);
+
+  if (!isVercelRuntime) {
+    return configRoot ?? resolve(repoRoot, "game", "src", "assets", "data");
+  }
+
+  const fallbackRoot = resolveFirstExistingPath([
+    configRoot,
+    resolve(serverRoot, "content"),
+    "/var/task/content",
+  ]);
+
+  if (fallbackRoot) {
+    return fallbackRoot;
+  }
+
+  throw new Error(
+    "Unable to resolve a readable contentRoot in Vercel runtime. Set GRAYVALE_CONTENT_ROOT or bundle content into server/content.",
+  );
+}
+
+function resolveFirstExistingPath(candidates: readonly (string | undefined)[]): string | undefined {
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
 }
 
 function readPort(raw: string | undefined): number {
@@ -262,4 +332,8 @@ function readOptionalSetting(raw: string | undefined): string | undefined {
   const trimmedValue = raw?.trim();
 
   return trimmedValue ? trimmedValue : undefined;
+}
+
+function readEnvSetting(primaryName: string, fallbackName: string): string | undefined {
+  return readOptionalSetting(process.env[primaryName]) ?? readOptionalSetting(process.env[fallbackName]);
 }
