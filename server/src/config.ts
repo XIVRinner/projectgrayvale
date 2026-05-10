@@ -17,7 +17,8 @@ const configFileSchema = z.object({
   adminPassword: z.string().trim().min(1, 'Config field "adminPassword" is required.'),
   port: z.string().trim().optional(),
   dbFilePath: z.string().trim().optional(),
-  contentRoot: z.string().trim().optional()
+  contentRoot: z.string().trim().optional(),
+  allowedOrigins: z.string().trim().optional(),
 });
 
 type RawConfigValues = Record<string, string>;
@@ -34,6 +35,12 @@ export interface ServerConfig {
   readonly dbFilePath: string;
   readonly contentRoot: string;
   readonly configFilePath: string;
+  /**
+   * Comma-separated list of allowed CORS origins (e.g. "https://game.example.com,https://www.example.com").
+   * When empty the server accepts all origins (development default).
+   * Set GRAYVALE_ALLOWED_ORIGINS or the allowedOrigins config-file key in production.
+   */
+  readonly allowedOrigins: readonly string[];
 }
 
 export function readServerConfig(): ServerConfig {
@@ -89,7 +96,10 @@ export function readServerConfig(): ServerConfig {
       configFilePath,
       configValues.contentRoot,
     ),
-    configFilePath
+    configFilePath,
+    allowedOrigins: parseAllowedOrigins(
+      process.env["GRAYVALE_ALLOWED_ORIGINS"] ?? configValues.allowedOrigins
+    ),
   };
 }
 
@@ -336,4 +346,15 @@ function readOptionalSetting(raw: string | undefined): string | undefined {
 
 function readEnvSetting(primaryName: string, fallbackName: string): string | undefined {
   return readOptionalSetting(process.env[primaryName]) ?? readOptionalSetting(process.env[fallbackName]);
+}
+
+function parseAllowedOrigins(raw: string | undefined): readonly string[] {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
 }

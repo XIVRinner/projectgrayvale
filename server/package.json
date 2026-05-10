@@ -10,9 +10,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
+    "security-check": "node scripts/security-check.js",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "npm run check"
+    "test": "npm run check && npm run security-check"
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
