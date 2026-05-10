@@ -133,7 +133,7 @@ export class ShellContainerComponent {
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly isQuestLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
-  protected readonly isServerSelectOpen = signal(true);
+  protected readonly isServerSelectOpen = signal(shouldShowServerSelectOnStartup());
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
   protected readonly serverStatusMessage = signal<string | null>(null);
@@ -457,11 +457,13 @@ export class ShellContainerComponent {
   protected openServerSelect(): void {
     this.logUi("Opening server select.");
     this.isServerSelectOpen.set(true);
+    persistServerSelectPreference(true);
   }
 
   protected closeServerSelect(): void {
     this.logUi("Closing server select.");
     this.isServerSelectOpen.set(false);
+    persistServerSelectPreference(false);
   }
 
   protected selectServer(serverId: string): void {
@@ -802,3 +804,22 @@ function resolveSaveSlotPortraitPath(
 
   return `${race.imageBasePath}/${appearance.variant}/${portraitFile}`;
 }
+
+function shouldShowServerSelectOnStartup(): boolean {
+  try {
+    const persisted = localStorage.getItem(SERVER_SELECT_STARTUP_KEY);
+    return persisted !== "hidden";
+  } catch {
+    return true;
+  }
+}
+
+function persistServerSelectPreference(open: boolean): void {
+  try {
+    localStorage.setItem(SERVER_SELECT_STARTUP_KEY, open ? "visible" : "hidden");
+  } catch {
+    // Ignore persistence failures.
+  }
+}
+
+const SERVER_SELECT_STARTUP_KEY = "grayvale:server-select:start-up";

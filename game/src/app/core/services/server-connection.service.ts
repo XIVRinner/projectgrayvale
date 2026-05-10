@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { setApiOriginOverride } from "../../data/api-paths";
+import { generatePlayerUuid } from "../utils/player-uuid";
 
 export type ServerPlayerRank = "player" | "vip" | "moderator" | "admin";
 
@@ -76,7 +77,7 @@ export class ServerConnectionService {
     }
 
     const nextEntry: ServerDirectoryEntry = {
-      id: crypto.randomUUID(),
+      id: generatePlayerUuid(),
       label: `${endpoint.host}:${port}`,
       protocol: endpoint.protocol,
       host: endpoint.host,
@@ -307,7 +308,11 @@ function isNotRegisteredError(error: unknown): boolean {
 
   const maybeStatus = (error as { status?: unknown }).status;
 
-  if (typeof maybeStatus !== "number" || maybeStatus !== 404) {
+  if (typeof maybeStatus !== "number") {
+    return false;
+  }
+
+  if (maybeStatus !== 404) {
     return false;
   }
 

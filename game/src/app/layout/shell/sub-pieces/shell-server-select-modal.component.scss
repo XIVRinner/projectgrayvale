@@ -33,6 +33,11 @@
   font-size: var(--gv-font-size-sm);
 }
 
+.gv-server-select__uuid {
+  color: var(--gv-color-text-primary);
+  font-family: monospace;
+}
+
 .gv-server-select__panel label {
   display: grid;
   gap: var(--gv-space-xs);

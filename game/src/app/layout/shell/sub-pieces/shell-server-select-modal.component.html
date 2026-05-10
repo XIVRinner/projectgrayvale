@@ -49,7 +49,8 @@
     <section class="gv-server-select__panel">
       <h3>Connect Player UUID</h3>
       <p class="gv-server-select__copy">
-        Active Player UUID: {{ activePlayerUuid() ?? "Create/load a character first" }}
+        Active Player UUID:
+        <span class="gv-server-select__uuid">{{ activePlayerUuid() ?? "Create/load a character first" }}</span>
       </p>
       <label>
         <span>Player Password</span>

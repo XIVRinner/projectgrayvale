@@ -44,7 +44,7 @@ interface AuditLogRow {
   readonly created_at: string;
 }
 
-// Balance between brute-force resistance and low-latency login checks on the local dev server.
+// Baseline PBKDF2 work factor based on OWASP Password Storage guidance (2024-era), tuned for low-latency local/server auth.
 const PBKDF2_ITERATIONS = 120_000;
 
 export class MultiplayerRepository {
