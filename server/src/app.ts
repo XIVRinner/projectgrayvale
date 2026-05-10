@@ -122,15 +122,62 @@ async function resolveVercelApp(): Promise<Express> {
     return createApp(config, db);
   })();
 
-  return appPromise;
+  try {
+    return await appPromise;
+  } catch (error) {
+    appPromise = null;
+    throw error;
+  }
 }
 
 export default async function handler(
   request: Request,
   response: Response,
 ): Promise<void> {
-  const app = await resolveVercelApp();
-  app(request, response);
+  applyCorsHeaders(request, response);
+
+  if (request.method === "OPTIONS") {
+    response.status(204).end();
+    return;
+  }
+
+  try {
+    const app = await resolveVercelApp();
+    app(request, response);
+  } catch (error) {
+    if (response.headersSent) {
+      return;
+    }
+
+    const message =
+      error instanceof Error ? error.message : "Server bootstrap failed.";
+
+    response.status(500).json({
+      error: "bootstrap_failed",
+      message,
+    });
+  }
+}
+
+function applyCorsHeaders(request: Request, response: Response): void {
+  const origin = request.headers.origin;
+
+  if (typeof origin === "string" && origin.length > 0) {
+    response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Access-Control-Allow-Credentials", "true");
+    response.setHeader("Vary", "Origin");
+  } else {
+    response.setHeader("Access-Control-Allow-Origin", "*");
+  }
+
+  response.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  );
+  response.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With",
+  );
 }
 
 function notFoundHandler(_request: Request, response: Response): void {
