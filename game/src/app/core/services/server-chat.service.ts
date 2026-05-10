@@ -198,6 +198,7 @@ export class ServerChatService {
           this.serverConnection.serverApiUrl("/api/server/chat"),
           {
             message: trimmedMessage,
+            sessionId: session.sessionId,
           },
           {
             withCredentials: true,
@@ -214,10 +215,20 @@ export class ServerChatService {
   }
 
   async moderatePlayer(request: ServerModerationRequest): Promise<void> {
+    const session = this.serverConnection.session();
+
+    if (!session) {
+      this.openServerSelectHint();
+      return;
+    }
+
     await firstValueFrom(
       this.http.post(
         this.serverConnection.serverApiUrl("/api/server/admin/moderation"),
-        request,
+        {
+          ...request,
+          sessionId: session.sessionId,
+        },
         {
           withCredentials: true,
         },

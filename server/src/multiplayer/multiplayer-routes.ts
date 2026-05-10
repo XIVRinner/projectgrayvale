@@ -102,7 +102,7 @@ export function createMultiplayerRouter(
       const session = await repository.getSession(sessionId);
 
       if (!session) {
-        clearSessionCookie(response);
+        clearSessionCookie(response, request);
         response.status(401).json({
           error: "invalid_session",
           message: "Session is invalid or expired.",
@@ -113,7 +113,7 @@ export function createMultiplayerRouter(
       const player = await repository.getAllowedPlayer(session.playerUuid);
 
       if (!player) {
-        clearSessionCookie(response);
+        clearSessionCookie(response, request);
         response.status(404).json({
           error: "player_not_registered",
           message: "Player no longer exists in the allow-list.",
@@ -123,7 +123,7 @@ export function createMultiplayerRouter(
 
       if (player.serverBanned) {
         await repository.deleteSessionsForPlayer(player.playerUuid);
-        clearSessionCookie(response);
+        clearSessionCookie(response, request);
         response.status(403).json({
           error: "server_banned",
           message: player.serverBanReason
@@ -154,7 +154,7 @@ export function createMultiplayerRouter(
         const session = await repository.getSession(sessionId);
 
         if (!session) {
-          clearSessionCookie(response);
+          clearSessionCookie(response, request);
           response.status(401).json({
             error: "invalid_session",
             message: "Session is invalid or expired.",
@@ -166,7 +166,7 @@ export function createMultiplayerRouter(
 
         if (player?.serverBanned) {
           await repository.deleteSessionsForPlayer(session.playerUuid);
-          clearSessionCookie(response);
+          clearSessionCookie(response, request);
           response.status(403).json({
             error: "server_banned",
             message: player.serverBanReason
@@ -347,7 +347,7 @@ export function createMultiplayerRouter(
       const session = await repository.getSession(sessionId);
 
       if (!session) {
-        clearSessionCookie(response);
+        clearSessionCookie(response, request);
         response.status(401).json({
           error: "invalid_session",
           message: "Session is invalid or expired.",
@@ -434,7 +434,7 @@ export function createMultiplayerRouter(
         const actorSession = await repository.getSession(actorSessionId);
 
         if (!actorSession) {
-          clearSessionCookie(response);
+          clearSessionCookie(response, request);
           response.status(401).json({
             error: "invalid_session",
             message: "Session is invalid or expired.",
@@ -762,19 +762,24 @@ function setSessionCookie(
   sessionId: string,
   request: Request,
 ): void {
+  const secure = isSecureRequest(request);
+
   response.cookie(SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: isSecureRequest(request),
+    sameSite: secure ? "none" : "lax",
+    secure,
     path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
 }
 
-function clearSessionCookie(response: Response): void {
+function clearSessionCookie(response: Response, request?: Request): void {
+  const secure = request ? isSecureRequest(request) : false;
+
   response.clearCookie(SESSION_COOKIE_NAME, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: secure ? "none" : "lax",
+    secure,
     path: "/",
   });
 }
