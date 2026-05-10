@@ -1,0 +1,81 @@
+.gv-server-select__status,
+.gv-server-select__panel h3,
+.gv-server-select__copy,
+.gv-server-select__panel label {
+  margin: 0;
+}
+
+.gv-server-select__status {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-server-select__panel {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 88%, transparent);
+  padding: var(--gv-space-md);
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-select__panel h3 {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-md);
+}
+
+.gv-server-select__copy {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-server-select__panel label {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-server-select__panel label span {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.gv-server-select__panel input,
+.gv-server-select__panel select {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-primary);
+  color: var(--gv-color-text-primary);
+  font: inherit;
+  font-size: var(--gv-font-size-sm);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+}
+
+.gv-server-select__grid {
+  display: grid;
+  gap: var(--gv-space-sm);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gv-server-select__action {
+  justify-self: start;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-primary);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--gv-font-size-sm);
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+}
+
+@media (max-width: 64rem) {
+  .gv-server-select__grid {
+    grid-template-columns: 1fr;
+  }
+}

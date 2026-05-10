@@ -9,6 +9,8 @@ import type { GrayvaleDatabase } from "./db/database";
 import { EntityRepository } from "./entities/entity-repository";
 import { registerEntityRoutes } from "./entities/entity-routes";
 import { seedApiEntities } from "./entities/entity-seed";
+import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
+import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
 
 export async function createApp(
   config: ServerConfig,
@@ -19,6 +21,7 @@ export async function createApp(
   const seededEntities = await seedApiEntities(db, seededResources);
   const repository = new ContentRepository(db);
   const entityRepository = new EntityRepository(db);
+  const multiplayerRepository = new MultiplayerRepository(db);
 
   app.use(cors());
   app.use(express.json({ limit: "1mb" }));
@@ -33,6 +36,7 @@ export async function createApp(
   });
 
   app.use("/api/data", createContentRouter(repository));
+  app.use("/api/server", createMultiplayerRouter(multiplayerRepository, config));
   registerEntityRoutes(app, "/api/activities", "activity", entityRepository);
   registerEntityRoutes(app, "/api/attributes", "attribute", entityRepository);
   registerEntityRoutes(app, "/api/balance-profiles", "balance-profile", entityRepository);

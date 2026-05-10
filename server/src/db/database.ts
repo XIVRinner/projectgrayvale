@@ -62,6 +62,59 @@ export async function openDatabase(filename: string): Promise<GrayvaleDatabase> 
       ON api_entities (entity_type, location_id, sublocation_id);
     CREATE INDEX IF NOT EXISTS idx_api_entity_tags_tag
       ON api_entity_tags (entity_type, tag);
+
+    CREATE TABLE IF NOT EXISTS allowed_players (
+      player_uuid TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      display_name TEXT,
+      rank TEXT NOT NULL DEFAULT 'player',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS server_sessions (
+      session_id TEXT PRIMARY KEY,
+      player_uuid TEXT NOT NULL,
+      client_id TEXT NOT NULL,
+      ip_address TEXT,
+      connected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (player_uuid)
+        REFERENCES allowed_players (player_uuid)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS player_audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_uuid TEXT,
+      event_type TEXT NOT NULL,
+      details_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (player_uuid)
+        REFERENCES allowed_players (player_uuid)
+        ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_uuid TEXT NOT NULL,
+      rank TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (player_uuid)
+        REFERENCES allowed_players (player_uuid)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_allowed_players_rank
+      ON allowed_players (rank);
+    CREATE INDEX IF NOT EXISTS idx_server_sessions_player
+      ON server_sessions (player_uuid);
+    CREATE INDEX IF NOT EXISTS idx_player_audit_logs_player
+      ON player_audit_logs (player_uuid, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_created
+      ON chat_messages (created_at DESC, id DESC);
   `);
 
   return db;

@@ -62,6 +62,19 @@
     (transferPayloadChanged)="saveTransferPayloadChanged.emit($event)"
   />
 
+  <gv-shell-server-select-modal
+    [open]="isServerSelectOpen()"
+    [servers]="servers()"
+    [selectedServerId]="selectedServerId()"
+    [activePlayerUuid]="activePlayerUuid()"
+    [statusMessage]="serverStatusMessage()"
+    (closed)="serverSelectCloseRequested.emit()"
+    (selectedServerChanged)="serverChanged.emit($event)"
+    (serverAdded)="serverAdded.emit($event)"
+    (connectRequested)="serverConnectRequested.emit($event)"
+    (giveAdminRequested)="serverGiveAdminRequested.emit($event)"
+  />
+
   <gv-shell-gameplay-log-dialog
     [open]="isGameplayLogOpen()"
     [entries]="gameplayLogEntries()"

@@ -1,0 +1,81 @@
+@if (open()) {
+  <gv-dialog-shell
+    [open]="open()"
+    variant="character-system"
+    width="standard"
+    eyebrow="Server"
+    title="Server Select"
+    subtitle="Choose a server, add custom endpoints, and connect your character UUID to multiplayer tracking."
+    ariaLabel="Server select"
+    (closed)="closed.emit()"
+  >
+    @if (statusMessage(); as status) {
+      <p class="gv-server-select__status">{{ status }}</p>
+    }
+
+    <section class="gv-server-select__panel">
+      <h3>Current Server</h3>
+      <label>
+        <span>Server</span>
+        <select [value]="selectedServerId()" (change)="onSelectedServerChanged($event)">
+          @for (server of servers(); track server.id) {
+            <option [value]="server.id">
+              {{ server.label }} — {{ server.host }}:{{ server.port }} · {{ server.clientId }}
+            </option>
+          }
+        </select>
+      </label>
+    </section>
+
+    <section class="gv-server-select__panel">
+      <h3>Add Server</h3>
+      <div class="gv-server-select__grid">
+        <label>
+          <span>IP / Host</span>
+          <input [value]="host()" placeholder="127.0.0.1" (input)="onHostInput($event)" />
+        </label>
+        <label>
+          <span>Port</span>
+          <input [value]="port()" type="number" min="1" placeholder="3000" (input)="onPortInput($event)" />
+        </label>
+        <label>
+          <span>Client ID</span>
+          <input [value]="clientId()" placeholder="grayvale-local-client" (input)="onClientIdInput($event)" />
+        </label>
+      </div>
+      <button type="button" class="gv-server-select__action" (click)="addServer()">Add Server</button>
+    </section>
+
+    <section class="gv-server-select__panel">
+      <h3>Connect Player UUID</h3>
+      <p class="gv-server-select__copy">
+        Active Player UUID: {{ activePlayerUuid() ?? "Create/load a character first" }}
+      </p>
+      <label>
+        <span>Player Password</span>
+        <input
+          [value]="playerPassword()"
+          type="password"
+          placeholder="Password for this UUID"
+          (input)="onPlayerPasswordInput($event)"
+        />
+      </label>
+      <button type="button" class="gv-server-select__action" (click)="connect()">Connect</button>
+    </section>
+
+    <section class="gv-server-select__panel">
+      <h3>Settings</h3>
+      <p class="gv-server-select__copy">Give admin rights by validating the server admin password.</p>
+      <label>
+        <span>Server Admin Password</span>
+        <input
+          [value]="adminPassword()"
+          type="password"
+          placeholder="Server admin password"
+          (input)="onAdminPasswordInput($event)"
+        />
+      </label>
+      <button type="button" class="gv-server-select__action" (click)="giveAdminRights()">Give Admin Rights</button>
+    </section>
+  </gv-dialog-shell>
+}

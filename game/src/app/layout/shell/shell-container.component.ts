@@ -10,6 +10,7 @@ import { DebugLogService } from "../../core/services/game-log/debug-log.service"
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
 import { GameQuestService } from "../../core/services/game-quest.service";
 import { GameSettingsService } from "../../core/services/game-settings.service";
+import { ServerConnectionService } from "../../core/services/server-connection.service";
 import {
   healthStatesEqual,
   PLAYER_HEALTH_BALANCE_PROFILE_ID,
@@ -72,6 +73,11 @@ import {
       [gegDebugSnapshot]="gegDebugSnapshot()"
       [transferPayload]="transferPayload()"
       [transferStatusMessage]="transferStatusMessage()"
+      [servers]="serverConnection.servers()"
+      [selectedServerId]="serverConnection.selectedServerId()"
+      [activePlayerUuid]="roster.activeCharacter()?.id ?? null"
+      [serverStatusMessage]="serverStatusMessage()"
+      [isServerSelectOpen]="isServerSelectOpen()"
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
@@ -99,6 +105,11 @@ import {
       (saveImportRequested)="importSlots()"
       (saveResetRequested)="resetAllSlots()"
       (saveTransferPayloadChanged)="setTransferPayload($event)"
+      (serverSelectCloseRequested)="closeServerSelect()"
+      (serverChanged)="selectServer($event)"
+      (serverAdded)="addServer($event)"
+      (serverConnectRequested)="connectServer($event.password)"
+      (serverGiveAdminRequested)="giveAdminRights($event.adminPassword)"
     />
   `
 })
@@ -114,6 +125,7 @@ export class ShellContainerComponent {
   private readonly gameSettings = inject(GameSettingsService);
   private readonly worldState = inject(WorldStateService);
   private readonly gameplayRuntime = inject(GameplayGraphRuntime);
+  private readonly serverConnection = inject(ServerConnectionService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
   protected readonly isCharacterSheetOpen = signal(false);
@@ -121,8 +133,10 @@ export class ShellContainerComponent {
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly isQuestLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
+  protected readonly isServerSelectOpen = signal(true);
   protected readonly transferPayload = signal("");
   protected readonly transferStatusMessage = signal<string | null>(null);
+  protected readonly serverStatusMessage = signal<string | null>(null);
   protected readonly trackedQuestIdsState = signal<readonly string[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(null);
   protected readonly gameplayLogEntries = toSignal(this.gameplayLog.log$, {
@@ -321,13 +335,11 @@ export class ShellContainerComponent {
       tone: "cool",
       disabled: true
     },
-    // GAP: SettingsService not yet available
     {
       id: TOPBAR_SETTINGS_ACTION_ID,
       label: "Settings",
       icon: "pi pi-cog",
-      tone: "default",
-      disabled: true
+      tone: "default"
     }
     ];
   });
@@ -440,6 +452,88 @@ export class ShellContainerComponent {
   protected closeSaveManager(): void {
     this.logUi("Closing save manager.");
     this.isSaveManagerOpen.set(false);
+  }
+
+  protected openServerSelect(): void {
+    this.logUi("Opening server select.");
+    this.isServerSelectOpen.set(true);
+  }
+
+  protected closeServerSelect(): void {
+    this.logUi("Closing server select.");
+    this.isServerSelectOpen.set(false);
+  }
+
+  protected selectServer(serverId: string): void {
+    this.logUi("Selecting server.", { serverId });
+    this.serverConnection.selectServer(serverId);
+    this.serverStatusMessage.set(`Selected ${serverId}.`);
+  }
+
+  protected addServer(server: { host: string; port: number; clientId: string }): void {
+    try {
+      this.serverConnection.addServer(server.host, server.port, server.clientId);
+      this.serverStatusMessage.set(`Added ${server.host}:${server.port}.`);
+      this.logUi("Added server endpoint.", server);
+    } catch (error) {
+      const message = errorToMessage(error);
+      this.serverStatusMessage.set(message);
+      this.logUi("Adding server endpoint failed.", message, "error");
+    }
+  }
+
+  protected async connectServer(password: string): Promise<void> {
+    const playerUuid = this.roster.activeCharacter()?.id;
+
+    if (!playerUuid) {
+      this.serverStatusMessage.set(
+        "Create or load a character first so the server can track its UUID."
+      );
+      return;
+    }
+
+    if (!password.trim()) {
+      this.serverStatusMessage.set("Enter a player password before connecting.");
+      return;
+    }
+
+    try {
+      const session = await this.serverConnection.connectPlayer(playerUuid, password);
+      this.serverStatusMessage.set(
+        `Connected ${session.playerUuid} as ${session.rank.toUpperCase()}.`
+      );
+      this.logUi("Connected player to server.", session);
+    } catch (error) {
+      const message = errorToMessage(error);
+      this.serverStatusMessage.set(message);
+      this.logUi("Connecting player to server failed.", message, "error");
+    }
+  }
+
+  protected async giveAdminRights(adminPassword: string): Promise<void> {
+    const playerUuid = this.roster.activeCharacter()?.id;
+
+    if (!playerUuid) {
+      this.serverStatusMessage.set("Create or load a character before granting admin.");
+      return;
+    }
+
+    if (!adminPassword.trim()) {
+      this.serverStatusMessage.set("Enter the server admin password.");
+      return;
+    }
+
+    try {
+      const session = await this.serverConnection.grantAdmin(playerUuid, adminPassword);
+      this.serverStatusMessage.set(
+        `Granted ${session.playerUuid} admin rights on the selected server.`
+      );
+      this.logUi("Granted admin rights.", session);
+    } catch (error) {
+      const message = errorToMessage(error);
+      this.serverStatusMessage.set(message);
+      this.logUi("Grant admin rights failed.", message, "error");
+    }
   }
 
   protected openGameplayLog(): void {
@@ -607,6 +701,11 @@ export class ShellContainerComponent {
     this.logUi("Topbar action selected.", { actionId });
     if (actionId === TOPBAR_GAMEPLAY_LOG_ACTION_ID) {
       this.openGameplayLog();
+      return;
+    }
+
+    if (actionId === TOPBAR_SETTINGS_ACTION_ID) {
+      this.openServerSelect();
     }
   }
 
@@ -668,6 +767,15 @@ function formatSlotLabel(slotId: string): string {
 }
 
 function errorToMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "error" in error &&
+    typeof (error as { error?: { message?: unknown } }).error?.message === "string"
+  ) {
+    return (error as { error: { message: string } }).error.message;
+  }
+
   if (error instanceof Error) {
     return error.message;
   }

@@ -4,6 +4,7 @@ import { provideRouter, withComponentInputBinding } from "@angular/router";
 import { providePrimeNG } from "primeng/config";
 
 import { GameSettingsService } from "./core/services/game-settings.service";
+import { ServerConnectionService } from "./core/services/server-connection.service";
 import { routes } from "./app.routes";
 import { GrayValeTheme } from "./shared/theme/primeng-theme";
 
@@ -16,6 +17,7 @@ export const appConfig: ApplicationConfig = {
       provide: ENVIRONMENT_INITIALIZER,
       multi: true,
       useValue: () => {
+        inject(ServerConnectionService);
         inject(GameSettingsService);
       }
     },

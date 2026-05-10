@@ -559,6 +559,7 @@ function normalizeSaveSlotPlayer(player: Player): Player {
 
   return {
     ...player,
+    id: ensurePlayerUuid(player.id),
     questLog: {
       quests: {
         ...(player.questLog?.quests ?? {})
@@ -579,6 +580,18 @@ function normalizeSaveSlotPlayer(player: Player): Player {
     loadouts: normalizedLoadouts,
     activeLoadoutId
   };
+}
+
+function ensurePlayerUuid(value: string): string {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value)) {
+    return value;
+  }
+
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `legacy-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 }
 
 function buildDefaultStatUnlocks(player: Player): CharacterStatUnlockState {

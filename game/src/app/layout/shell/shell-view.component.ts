@@ -18,6 +18,7 @@ import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
 import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
 import { ShellQuestTrackerComponent } from "./sub-pieces/shell-quest-tracker.component";
 import { ShellSaveManagerModalComponent } from "./sub-pieces/shell-save-manager-modal.component";
+import { ShellServerSelectModalComponent } from "./sub-pieces/shell-server-select-modal.component";
 import {
   ShellActionGroup,
   ShellCharacterPanel,
@@ -29,6 +30,7 @@ import {
   ShellTopbarAction,
   ShellTopbarSaveSummary
 } from "./shell.types";
+import type { ServerDirectoryEntry } from "../../core/services/server-connection.service";
 
 @Component({
   selector: "gv-shell-view",
@@ -45,7 +47,8 @@ import {
     ShellTopbarComponent,
     ShellActionPanelComponent,
     ShellQuestTrackerComponent,
-    ShellSaveManagerModalComponent
+    ShellSaveManagerModalComponent,
+    ShellServerSelectModalComponent
   ],
   templateUrl: "./shell-view.component.html",
   styleUrl: "./shell-view.component.scss"
@@ -76,6 +79,11 @@ export class ShellViewComponent {
   readonly gegDebugSnapshot = input<GameplayGraphDebugSnapshot | null>(null);
   readonly transferPayload = input.required<string>();
   readonly transferStatusMessage = input<string | null>(null);
+  readonly servers = input.required<readonly ServerDirectoryEntry[]>();
+  readonly selectedServerId = input.required<string>();
+  readonly activePlayerUuid = input<string | null>(null);
+  readonly serverStatusMessage = input<string | null>(null);
+  readonly isServerSelectOpen = input.required<boolean>();
   readonly gameDialogSession = input<GameDialogSessionView | null>(null);
   readonly version = input.required<string>();
 
@@ -99,6 +107,11 @@ export class ShellViewComponent {
   readonly saveImportRequested = output<void>();
   readonly saveResetRequested = output<void>();
   readonly saveTransferPayloadChanged = output<string>();
+  readonly serverSelectCloseRequested = output<void>();
+  readonly serverChanged = output<string>();
+  readonly serverAdded = output<{ host: string; port: number; clientId: string }>();
+  readonly serverConnectRequested = output<{ password: string }>();
+  readonly serverGiveAdminRequested = output<{ adminPassword: string }>();
   readonly actionSelected = output<string>();
   readonly characterPanelActionSelected = output<string>();
   readonly gameDialogAdvanceRequested = output<void>();

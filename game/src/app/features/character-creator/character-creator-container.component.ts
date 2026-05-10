@@ -290,7 +290,7 @@ export class CharacterCreatorContainerComponent {
     }
 
     const playerDraft: Player = {
-      id: buildPlayerId(normalizedName),
+      id: buildPlayerUuid(),
       name: normalizedName,
       description: "A newly registered adventurer entering GrayVale.",
       raceId: race.id,
@@ -717,13 +717,12 @@ function resolveSkillLabel(skillId: string, skillsById: ReadonlyMap<string, Skil
   return skillsById.get(skillId)?.name ?? prettyLabel(skillId);
 }
 
-function buildPlayerId(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+function buildPlayerUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
 
-  return `player_${slug || "new_recruit"}`;
+  return `legacy-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 }
 
 const STARTER_LOADOUT_ID = "loadout_default";
