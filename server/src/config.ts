@@ -36,6 +36,7 @@ export interface ServerConfig {
 export function readServerConfig(): ServerConfig {
   const configFilePath = resolveConfigFilePath(process.env["GRAYVALE_CONFIG_PATH"]);
   const configValues = readConfigValues(configFilePath);
+  const isVercelRuntime = readOptionalSetting(process.env["VERCEL"]) !== undefined;
 
   return {
     name: readRequiredSetting("GRAYVALE_NAME", process.env["GRAYVALE_NAME"], configValues.name),
@@ -55,16 +56,38 @@ export function readServerConfig(): ServerConfig {
       configValues.adminPassword
     ),
     port: readPort(process.env["PORT"] ?? configValues.port),
-    dbFilePath:
-      readOptionalSetting(process.env["GRAYVALE_DB_PATH"]) ??
-      resolveConfigRelativePath(configFilePath, configValues.dbFilePath) ??
-      resolve(serverRoot, "data", "grayvale.sqlite"),
+    dbFilePath: resolveDatabaseFilePath(
+      isVercelRuntime,
+      configFilePath,
+      configValues.dbFilePath,
+    ),
     contentRoot:
       readOptionalSetting(process.env["GRAYVALE_CONTENT_ROOT"]) ??
       resolveConfigRelativePath(configFilePath, configValues.contentRoot) ??
       resolve(repoRoot, "game", "src", "assets", "data"),
     configFilePath
   };
+}
+
+function resolveDatabaseFilePath(
+  isVercelRuntime: boolean,
+  configFilePath: string,
+  configFilePathValue: string | undefined,
+): string {
+  const envPath = readOptionalSetting(process.env["GRAYVALE_DB_PATH"]);
+
+  if (envPath) {
+    return envPath;
+  }
+
+  if (isVercelRuntime) {
+    return "/tmp/grayvale.sqlite";
+  }
+
+  return (
+    resolveConfigRelativePath(configFilePath, configFilePathValue) ??
+    resolve(serverRoot, "data", "grayvale.sqlite")
+  );
 }
 
 function readPort(raw: string | undefined): number {
