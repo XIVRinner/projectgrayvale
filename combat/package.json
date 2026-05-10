@@ -11,8 +11,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "node ../core/node_modules/typescript/lib/tsc.js -p tsconfig.json",
-    "check": "node ../core/node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --passWithNoTests"
   },
   "dependencies": {
