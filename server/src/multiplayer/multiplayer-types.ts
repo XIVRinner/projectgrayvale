@@ -33,10 +33,3 @@ export interface PlayerAuditLogRecord {
   readonly detailsJson: string;
   readonly createdAt: string;
 }
-
-export const RANK_COLOR_BY_VALUE: Readonly<Record<PlayerRank, string>> = {
-  player: "#d0d4f2",
-  vip: "#ff9a6c",
-  moderator: "#66d6ff",
-  admin: "#b48aff"
-};

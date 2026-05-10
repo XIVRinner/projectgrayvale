@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import type { ServerConfig } from "../config";
 import { MultiplayerRepository } from "./multiplayer-repository";
-import { type PlayerRank, RANK_COLOR_BY_VALUE } from "./multiplayer-types";
+import { type PlayerRank } from "./multiplayer-types";
 
 const playerUuidSchema = z.string().trim().uuid();
 const clientIdSchema = z.string().trim().min(1).max(120);
@@ -28,6 +28,7 @@ export function createMultiplayerRouter(
   config: ServerConfig
 ): Router {
   const router = Router();
+  const authRateLimiter = createRateLimiter(5, 60_000);
 
   router.get("/info", (_request, response) => {
     response.json({
@@ -35,13 +36,20 @@ export function createMultiplayerRouter(
       port: config.port,
       defaultClientId: config.clientId,
       ranks: rankSchema.options,
-      rankColors: RANK_COLOR_BY_VALUE,
       passwordLockSupported: true
     });
   });
 
   router.post("/register", async (request, response, next) => {
     try {
+      if (!authRateLimiter.allow(request)) {
+        response.status(429).json({
+          error: "rate_limited",
+          message: "Too many auth requests. Try again in a minute."
+        });
+        return;
+      }
+
       const payload = registerBodySchema.parse(request.body);
       const player = await repository.registerPlayer(
         payload.playerUuid,
@@ -56,8 +64,7 @@ export function createMultiplayerRouter(
       );
 
       response.status(201).json({
-        player,
-        rankColor: RANK_COLOR_BY_VALUE[player.rank]
+        player
       });
     } catch (error) {
       if (isErrorCode(error, "player_exists")) {
@@ -82,6 +89,14 @@ export function createMultiplayerRouter(
 
   router.post("/join", async (request, response, next) => {
     try {
+      if (!authRateLimiter.allow(request)) {
+        response.status(429).json({
+          error: "rate_limited",
+          message: "Too many auth requests. Try again in a minute."
+        });
+        return;
+      }
+
       const payload = joinBodySchema.parse(request.body);
       const player = await repository.authenticatePlayer(payload.playerUuid, payload.password);
 
@@ -111,8 +126,7 @@ export function createMultiplayerRouter(
 
       response.json({
         session,
-        player,
-        rankColor: RANK_COLOR_BY_VALUE[player.rank]
+        player
       });
     } catch (error) {
       if (isErrorCode(error, "invalid_password")) {
@@ -142,10 +156,7 @@ export function createMultiplayerRouter(
 
       response.json({
         count: entries.length,
-        entries: entries.map((entry) => ({
-          ...entry,
-          rankColor: RANK_COLOR_BY_VALUE[entry.rank]
-        }))
+        entries
       });
     } catch (error) {
       next(error);
@@ -189,10 +200,7 @@ export function createMultiplayerRouter(
       );
 
       response.status(201).json({
-        entry: {
-          ...entry,
-          rankColor: RANK_COLOR_BY_VALUE[entry.rank]
-        }
+        entry
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -217,6 +225,14 @@ export function createMultiplayerRouter(
 
   router.post("/admin/grant", async (request, response, next) => {
     try {
+      if (!authRateLimiter.allow(request)) {
+        response.status(429).json({
+          error: "rate_limited",
+          message: "Too many admin requests. Try again in a minute."
+        });
+        return;
+      }
+
       const sessionId = z.string().uuid().parse(request.body?.sessionId);
       const targetUuid = playerUuidSchema.parse(request.body?.targetUuid);
       const targetRank = rankSchema.parse(request.body?.rank);
@@ -261,8 +277,7 @@ export function createMultiplayerRouter(
       );
 
       response.json({
-        player: updated,
-        rankColor: RANK_COLOR_BY_VALUE[updated.rank]
+        player: updated
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -278,6 +293,14 @@ export function createMultiplayerRouter(
   });
 
   router.post("/admin/verify", (request, response) => {
+    if (!authRateLimiter.allow(request)) {
+      response.status(429).json({
+        error: "rate_limited",
+        message: "Too many admin requests. Try again in a minute."
+      });
+      return;
+    }
+
     const adminPassword = request.body?.adminPassword;
 
     if (typeof adminPassword !== "string") {
@@ -362,4 +385,33 @@ function isErrorCode(error: unknown, code: string): boolean {
 
 export function isPlayerRank(value: string): value is PlayerRank {
   return rankSchema.safeParse(value).success;
+}
+
+function createRateLimiter(maxRequests: number, windowMs: number): {
+  allow: (request: Request) => boolean;
+} {
+  const requestsByIp = new Map<string, { count: number; windowStart: number }>();
+
+  return {
+    allow(request: Request): boolean {
+      const now = Date.now();
+      const ip = readIpAddress(request) ?? "unknown";
+      const current = requestsByIp.get(ip);
+
+      if (!current || now - current.windowStart >= windowMs) {
+        requestsByIp.set(ip, { count: 1, windowStart: now });
+        return true;
+      }
+
+      if (current.count >= maxRequests) {
+        return false;
+      }
+
+      requestsByIp.set(ip, {
+        count: current.count + 1,
+        windowStart: current.windowStart
+      });
+      return true;
+    }
+  };
 }

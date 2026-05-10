@@ -44,6 +44,7 @@ interface AuditLogRow {
   readonly created_at: string;
 }
 
+// Balance between brute-force resistance and low-latency login checks on the local dev server.
 const PBKDF2_ITERATIONS = 120_000;
 
 export class MultiplayerRepository {

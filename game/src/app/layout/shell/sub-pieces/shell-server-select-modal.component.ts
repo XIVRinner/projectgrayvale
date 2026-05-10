@@ -1,7 +1,10 @@
 import { Component, computed, input, output, signal } from "@angular/core";
 
 import { DialogShellComponent } from "../../../shared/components/dialog-shell/dialog-shell.component";
-import type { ServerDirectoryEntry } from "../../../core/services/server-connection.service";
+import {
+  DEFAULT_SERVER_CLIENT_ID,
+  type ServerDirectoryEntry
+} from "../../../core/services/server-connection.service";
 
 @Component({
   selector: "gv-shell-server-select-modal",
@@ -25,7 +28,7 @@ export class ShellServerSelectModalComponent {
 
   protected readonly host = signal("");
   protected readonly port = signal("3000");
-  protected readonly clientId = signal("grayvale-local-client");
+  protected readonly clientId = signal(DEFAULT_SERVER_CLIENT_ID);
   protected readonly playerPassword = signal("");
   protected readonly adminPassword = signal("");
 

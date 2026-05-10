@@ -9,6 +9,7 @@ export type ServerPlayerRank = "player" | "vip" | "moderator" | "admin";
 export interface ServerDirectoryEntry {
   readonly id: string;
   readonly label: string;
+  readonly protocol: "http" | "https";
   readonly host: string;
   readonly port: number;
   readonly clientId: string;
@@ -30,12 +31,14 @@ interface PersistedDirectory {
 
 const DEFAULT_SERVER_ID = "dev-local";
 const STORAGE_KEY = "grayvale:servers:v1";
+export const DEFAULT_SERVER_CLIENT_ID = "grayvale-local-client";
 const DEFAULT_SERVER: ServerDirectoryEntry = {
   id: DEFAULT_SERVER_ID,
   label: "Dev (Singleplayer)",
+  protocol: "http",
   host: "localhost",
   port: 3000,
-  clientId: "grayvale-local-client",
+  clientId: DEFAULT_SERVER_CLIENT_ID,
   isDefault: true
 };
 
@@ -65,17 +68,18 @@ export class ServerConnectionService {
   }
 
   addServer(host: string, port: number, clientId: string): void {
-    const normalizedHost = host.trim();
+    const endpoint = parseEndpoint(host.trim());
     const normalizedClientId = clientId.trim();
 
-    if (!normalizedHost || !normalizedClientId || !Number.isInteger(port) || port <= 0) {
+    if (!endpoint || !normalizedClientId || !Number.isInteger(port) || port <= 0) {
       throw new Error("Server host, client id, and a valid port are required.");
     }
 
     const nextEntry: ServerDirectoryEntry = {
       id: crypto.randomUUID(),
-      label: `${normalizedHost}:${port}`,
-      host: normalizedHost,
+      label: `${endpoint.host}:${port}`,
+      protocol: endpoint.protocol,
+      host: endpoint.host,
       port,
       clientId: normalizedClientId,
       isDefault: false
@@ -131,7 +135,7 @@ export class ServerConnectionService {
       sessionId: response.session.sessionId,
       playerUuid: response.player.playerUuid,
       rank: response.player.rank,
-      rankColor: response.rankColor,
+      rankColor: rankColorFor(response.player.rank),
       connectedAt: response.session.connectedAt
     };
 
@@ -163,7 +167,7 @@ export class ServerConnectionService {
       ...currentSession,
       playerUuid: response.player.playerUuid,
       rank: response.player.rank,
-      rankColor: response.rankColor
+      rankColor: rankColorFor(response.player.rank)
     };
 
     this.sessionState.set(nextSession);
@@ -217,6 +221,7 @@ export class ServerConnectionService {
       customServers: this.customServersState().map((entry) => ({
         id: entry.id,
         label: entry.label,
+        protocol: entry.protocol,
         host: entry.host,
         port: entry.port,
         clientId: entry.clientId
@@ -231,7 +236,7 @@ export class ServerConnectionService {
   }
 
   private serverBaseUrl(server: ServerDirectoryEntry): string {
-    return `http://${server.host}:${server.port}`;
+    return `${server.protocol}://${server.host}:${server.port}`;
   }
 }
 
@@ -244,7 +249,6 @@ interface JoinResponse {
     readonly playerUuid: string;
     readonly rank: ServerPlayerRank;
   };
-  readonly rankColor: string;
 }
 
 interface AdminGrantResponse {
@@ -252,7 +256,6 @@ interface AdminGrantResponse {
     readonly playerUuid: string;
     readonly rank: ServerPlayerRank;
   };
-  readonly rankColor: string;
 }
 
 function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
@@ -261,6 +264,9 @@ function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
   }
 
   const record = raw as Record<string, unknown>;
+
+  const protocol =
+    record["protocol"] === "https" ? "https" : "http";
 
   if (
     typeof record["id"] !== "string" ||
@@ -277,6 +283,7 @@ function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
   return {
     id: record["id"],
     label: record["label"],
+    protocol,
     host: record["host"],
     port: record["port"],
     clientId: record["clientId"],
@@ -286,6 +293,7 @@ function parseCustomServer(raw: unknown): ServerDirectoryEntry | null {
 
 function isSameEndpoint(left: ServerDirectoryEntry, right: ServerDirectoryEntry): boolean {
   return (
+    left.protocol === right.protocol &&
     left.host.toLowerCase() === right.host.toLowerCase() &&
     left.port === right.port &&
     left.clientId.toLowerCase() === right.clientId.toLowerCase()
@@ -306,4 +314,62 @@ function isNotRegisteredError(error: unknown): boolean {
   const message = (error as { error?: { error?: unknown } }).error?.error;
 
   return message === "player_not_registered";
+}
+
+function rankColorFor(rank: ServerPlayerRank): string {
+  if (rank === "admin") {
+    return "var(--gv-color-accent)";
+  }
+
+  if (rank === "moderator") {
+    return "var(--gv-color-accent-cool)";
+  }
+
+  if (rank === "vip") {
+    return "var(--gv-color-accent-warm)";
+  }
+
+  return "var(--gv-color-text-primary)";
+}
+
+function parseEndpoint(value: string): { protocol: "http" | "https"; host: string } | null {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith("http://")) {
+    const host = trimmed.slice("http://".length).replace(/\/+$/, "");
+
+    if (!host) {
+      return null;
+    }
+
+    return {
+      protocol: "http",
+      host
+    };
+  }
+
+  if (trimmed.startsWith("https://")) {
+    const host = trimmed.slice("https://".length).replace(/\/+$/, "");
+
+    if (!host) {
+      return null;
+    }
+
+    return {
+      protocol: "https",
+      host
+    };
+  }
+
+  const host = trimmed.replace(/\/+$/, "");
+
+  if (!host) {
+    return null;
+  }
+
+  return { protocol: "http", host };
 }
