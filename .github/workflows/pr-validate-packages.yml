@@ -17,17 +17,29 @@ jobs:
       matrix:
         include:
           - package_name: core
-            package_path: core
+            workspace_name: core
+            package_mode: workspace
+          - package_name: combat
+            workspace_name: combat
+            package_mode: workspace
           - package_name: worldgraph
-            package_path: worldgraph
+            workspace_name: worldgraph
+            package_mode: workspace
           - package_name: dialogue
-            package_path: dialogue
+            workspace_name: dialogue
+            package_mode: workspace
+          - package_name: server
+            workspace_name: server
+            package_mode: workspace
           - package_name: dialogue-angular-demo
             package_path: dialogue/examples/angular-demo
+            package_mode: standalone
           - package_name: valeflow-vscode-extension
             package_path: dialogue/extensions/vscode-valeflow
+            package_mode: standalone
           - package_name: game
-            package_path: game
+            workspace_name: game
+            package_mode: workspace
 
     defaults:
       run:
@@ -41,8 +53,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
+        if: matrix.package_mode == 'workspace'
+        run: npm ci
+
+      - name: Install standalone package dependencies
+        if: matrix.package_mode == 'standalone'
         working-directory: ${{ matrix.package_path }}
         run: |
           if [ -f package-lock.json ]; then
@@ -51,17 +69,17 @@ jobs:
             npm install
           fi
 
-      - name: Run package validation scripts
+      - name: Run workspace validation scripts
+        if: matrix.package_mode == 'workspace'
+        run: |
+          npm run check --workspace=${{ matrix.workspace_name }} --if-present
+          npm run test --workspace=${{ matrix.workspace_name }} --if-present
+          npm run build --workspace=${{ matrix.workspace_name }} --if-present
+
+      - name: Run standalone package validation scripts
+        if: matrix.package_mode == 'standalone'
         working-directory: ${{ matrix.package_path }}
         run: |
-          if npm run | grep -q " check"; then
-            npm run check
-          fi
-
-          if npm run | grep -q " test"; then
-            npm run test
-          fi
-
-          if npm run | grep -q " build"; then
-            npm run build
-          fi
+          npm run check --if-present
+          npm run test --if-present
+          npm run build --if-present

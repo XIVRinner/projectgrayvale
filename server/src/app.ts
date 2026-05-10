@@ -6,16 +6,20 @@ import express, {
 } from "express";
 import cors from "cors";
 
+import { readServerConfig } from "./config";
 import type { ServerConfig } from "./config";
 import { ContentRepository } from "./content/content-repository";
 import { createContentRouter } from "./content/content-routes";
 import { seedJsonResources } from "./content/content-seed";
+import { openDatabase } from "./db/database";
 import type { GrayvaleDatabase } from "./db/database";
 import { EntityRepository } from "./entities/entity-repository";
 import { registerEntityRoutes } from "./entities/entity-routes";
 import { seedApiEntities } from "./entities/entity-seed";
 import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
+
+let appPromise: Promise<Express> | null = null;
 
 export async function createApp(
   config: ServerConfig,
@@ -104,6 +108,29 @@ export async function createApp(
   app.use(errorHandler);
 
   return app;
+}
+
+async function resolveVercelApp(): Promise<Express> {
+  if (appPromise) {
+    return appPromise;
+  }
+
+  appPromise = (async () => {
+    const config = readServerConfig();
+    const db = await openDatabase(config.dbFilePath);
+
+    return createApp(config, db);
+  })();
+
+  return appPromise;
+}
+
+export default async function handler(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  const app = await resolveVercelApp();
+  app(request, response);
 }
 
 function notFoundHandler(_request: Request, response: Response): void {
