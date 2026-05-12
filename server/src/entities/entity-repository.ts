@@ -20,34 +20,17 @@ export class EntityRepository {
   constructor(private readonly db: GrayvaleDatabase) {}
 
   async list(entityType: string, filters: EntityListFilters = {}): Promise<readonly ApiEntityRecord[]> {
-    const clauses = ["e.entity_type = ?"];
-    const params: Array<string | number> = [entityType];
-
-    if (filters.category) {
-      clauses.push("e.category = ?");
-      params.push(filters.category);
-    }
-
-    if (filters.slot) {
-      clauses.push("e.slot = ?");
-      params.push(filters.slot);
-    }
-
-    if (filters.locationId) {
-      clauses.push("e.location_id = ?");
-      params.push(filters.locationId);
-    }
-
-    if (filters.tag) {
-      clauses.push(
-        "EXISTS (SELECT 1 FROM api_entity_tags t WHERE t.entity_type = e.entity_type AND t.entity_id = e.entity_id AND t.tag = ?)"
-      );
-      params.push(filters.tag);
-    }
-
-    const limit = normalizeOptionalNumber(filters.limit, 500);
+    const limit = normalizeEntityLimit(filters.limit);
     const offset = normalizeOptionalNumber(filters.offset, 0);
 
+    // Fixed query with optional filters expressed as nullable parameters so that
+    // no user input is ever interpolated into the SQL string.
+    //
+    // Each optional filter binds the same value twice:
+    //   bind 1 → IS NULL check  (NULL means "skip this filter")
+    //   bind 2 → equality check (the actual value when the filter is active)
+    // This is intentional — SQLite requires the value to appear once in each
+    // clause position, and COALESCE / CASE would be more verbose for no gain.
     const rows = await this.db.all<RawEntityRow[]>(
       `
         SELECT
@@ -64,13 +47,30 @@ export class EntityRepository {
           e.checksum,
           e.updated_at
         FROM api_entities e
-        WHERE ${clauses.join(" AND ")}
+        WHERE e.entity_type = ?
+          AND (? IS NULL OR e.category = ?)
+          AND (? IS NULL OR e.slot = ?)
+          AND (? IS NULL OR e.location_id = ?)
+          AND (? IS NULL OR EXISTS (
+            SELECT 1 FROM api_entity_tags t
+            WHERE t.entity_type = e.entity_type
+              AND t.entity_id = e.entity_id
+              AND t.tag = ?
+          ))
         ORDER BY e.sort_key ASC, e.entity_id ASC
         LIMIT ? OFFSET ?
       `,
-      ...params,
+      entityType,
+      filters.category ?? null,
+      filters.category ?? null,
+      filters.slot ?? null,
+      filters.slot ?? null,
+      filters.locationId ?? null,
+      filters.locationId ?? null,
+      filters.tag ?? null,
+      filters.tag ?? null,
       limit,
-      offset
+      offset,
     );
 
     return rows.map(mapEntityRow);
@@ -130,4 +130,12 @@ function normalizeOptionalNumber(raw: number | undefined, fallback: number): num
   }
 
   return raw;
+}
+
+const ENTITY_LIST_MAX_LIMIT = 500;
+
+function normalizeEntityLimit(raw: number | undefined): number {
+  const value = normalizeOptionalNumber(raw, ENTITY_LIST_MAX_LIMIT);
+
+  return Math.min(value, ENTITY_LIST_MAX_LIMIT);
 }

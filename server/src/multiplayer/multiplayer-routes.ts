@@ -66,6 +66,8 @@ export function createMultiplayerRouter(
   config: ServerConfig,
 ): Router {
   const router = Router();
+
+  // 5 auth actions per minute — covers register, join, grant, verify
   const enforceAuthRateLimit = rateLimit({
     windowMs: 60_000,
     limit: 5,
@@ -74,6 +76,42 @@ export function createMultiplayerRouter(
     message: {
       error: "rate_limited",
       message: "Too many auth requests. Try again in a minute.",
+    },
+  });
+
+  // 60 read requests per minute — covers session, presence, chat listing, audit
+  const enforceReadRateLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: "rate_limited",
+      message: "Too many requests. Try again in a minute.",
+    },
+  });
+
+  // 30 chat posts per minute
+  const enforceChatWriteRateLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: "rate_limited",
+      message: "Too many chat messages. Try again in a minute.",
+    },
+  });
+
+  // 10 moderation actions per minute
+  const enforceModerationRateLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: "rate_limited",
+      message: "Too many moderation actions. Try again in a minute.",
     },
   });
 
@@ -87,7 +125,7 @@ export function createMultiplayerRouter(
     });
   });
 
-  router.get("/session", async (request, response, next) => {
+  router.get("/session", enforceReadRateLimit, async (request, response, next) => {
     try {
       const sessionId = resolveSessionId(request);
 
@@ -145,7 +183,7 @@ export function createMultiplayerRouter(
     }
   });
 
-  router.get("/presence", async (request, response, next) => {
+  router.get("/presence", enforceReadRateLimit, async (request, response, next) => {
     try {
       const limit = parseLimit(request.query["limit"]);
       const sessionId = resolveSessionId(request);
@@ -317,7 +355,7 @@ export function createMultiplayerRouter(
     },
   );
 
-  router.get("/chat", async (request, response, next) => {
+  router.get("/chat", enforceReadRateLimit, async (request, response, next) => {
     try {
       const limit = parseLimit(request.query["limit"]);
       const entries = await repository.listChatMessages(limit);
@@ -331,7 +369,7 @@ export function createMultiplayerRouter(
     }
   });
 
-  router.post("/chat", async (request, response, next) => {
+  router.post("/chat", enforceChatWriteRateLimit, async (request, response, next) => {
     try {
       const sessionId = resolveSessionId(request);
       const message = chatMessageSchema.parse(request.body?.message);
@@ -418,6 +456,7 @@ export function createMultiplayerRouter(
 
   router.post(
     "/admin/moderation",
+    enforceModerationRateLimit,
     async (request, response, next) => {
       try {
         const payload = moderationBodySchema.parse(request.body);
@@ -642,8 +681,51 @@ export function createMultiplayerRouter(
     });
   });
 
-  router.get("/audit", async (request, response, next) => {
+  router.get("/audit", enforceReadRateLimit, async (request, response, next) => {
     try {
+      // Audit logs contain sensitive data (IPs, session IDs, player UUIDs).
+      // Access is restricted to moderators and admins.
+      const actorSessionId = resolveSessionId(request);
+
+      if (!actorSessionId) {
+        response.status(401).json({
+          error: "invalid_session",
+          message: "Authentication required to access audit logs.",
+        });
+        return;
+      }
+
+      const actorSession = await repository.getSession(actorSessionId);
+
+      if (!actorSession) {
+        clearSessionCookie(response, request);
+        response.status(401).json({
+          error: "invalid_session",
+          message: "Session is invalid or expired.",
+        });
+        return;
+      }
+
+      const actorPlayer = await repository.getAllowedPlayer(
+        actorSession.playerUuid,
+      );
+
+      if (!actorPlayer) {
+        response.status(403).json({
+          error: "forbidden",
+          message: "Insufficient permissions.",
+        });
+        return;
+      }
+
+      if (!canModeratePlayers(actorPlayer.rank)) {
+        response.status(403).json({
+          error: "forbidden",
+          message: "Moderator or admin rank is required.",
+        });
+        return;
+      }
+
       const limit = parseLimit(request.query["limit"]);
       const playerUuid = optionalUuid(request.query["playerUuid"]);
       const logs = await repository.listAuditLogs(limit, playerUuid);
@@ -663,18 +745,22 @@ export function createMultiplayerRouter(
   return router;
 }
 
-function parseLimit(raw: unknown): number {
+function parseLimit(raw: unknown, max = 100): number {
+  // Route-layer first-line guard. The `max` parameter should match the
+  // collection's repository-level ceiling (300 for chat, 200 for presence,
+  // 500 for audit).  Callers that don't pass `max` default to 100, which is
+  // below all repository ceilings and therefore safe.
   if (typeof raw !== "string") {
-    return 100;
+    return max;
   }
 
   const parsed = Number(raw);
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    return 100;
+    return max;
   }
 
-  return parsed;
+  return Math.min(parsed, max);
 }
 
 function optionalUuid(raw: unknown): string | undefined {

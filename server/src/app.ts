@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import express, {
   type Express,
   type NextFunction,
@@ -5,6 +7,7 @@ import express, {
   type Response,
 } from "express";
 import cors from "cors";
+import helmet from "helmet";
 
 import { readServerConfig } from "./config";
 import type { ServerConfig } from "./config";
@@ -27,6 +30,7 @@ import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
 
 let appPromise: Promise<Express> | null = null;
+let configCache: ServerConfig | null = null;
 
 export async function createApp(
   config: ServerConfig,
@@ -46,9 +50,43 @@ export async function createApp(
     config.adminPassword,
   );
 
+  // Trust the first proxy hop so that req.ip and secure-cookie detection
+  // work correctly on Vercel / behind a load-balancer.
+  app.set("trust proxy", 1);
+
+  // Security headers (helmet defaults: X-Frame-Options, X-Content-Type-Options,
+  // HSTS, Referrer-Policy, etc.).
+  // CSP and COEP are disabled: this server returns JSON only, never HTML, so
+  // Content-Security-Policy has no effect and would add noise to every response.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // Attach a unique correlation ID to every request so errors can be traced.
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    const requestId =
+      typeof request.headers["x-request-id"] === "string"
+        ? request.headers["x-request-id"]
+        : randomUUID();
+    request.headers["x-request-id"] = requestId;
+    response.setHeader("X-Request-Id", requestId);
+    next();
+  });
+
   app.use(
     cors({
-      origin: true,
+      // When allowedOrigins is populated use it as an explicit allowlist.
+      // When empty (development default) reflect the request origin so that
+      // local tooling and the dev server work without configuration.
+      origin:
+        config.allowedOrigins.length > 0
+          ? (config.allowedOrigins as string[])
+          : (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+              callback(null, true);
+            },
       credentials: true,
     }),
   );
@@ -132,7 +170,7 @@ async function resolveVercelApp(): Promise<Express> {
   }
 
   appPromise = (async () => {
-    const config = readServerConfig();
+    const config = resolveVercelConfig();
     const db = await openDatabase(config);
 
     return createApp(config, db);
@@ -146,18 +184,29 @@ async function resolveVercelApp(): Promise<Express> {
   }
 }
 
+function resolveVercelConfig(): ServerConfig {
+  if (!configCache) {
+    configCache = readServerConfig();
+  }
+
+  return configCache;
+}
+
 export default async function handler(
   request: Request,
   response: Response,
 ): Promise<void> {
-  applyCorsHeaders(request, response);
-
-  if (request.method === "OPTIONS") {
-    response.status(204).end();
-    return;
-  }
-
   try {
+    // Resolve config first (synchronous after first call) so we can apply
+    // CORS headers even if the async app bootstrap hasn't completed yet.
+    const config = resolveVercelConfig();
+    applyCorsHeaders(request, response, config.allowedOrigins);
+
+    if (request.method === "OPTIONS") {
+      response.status(204).end();
+      return;
+    }
+
     const app = await resolveVercelApp();
     app(request, response);
   } catch (error) {
@@ -165,8 +214,11 @@ export default async function handler(
       return;
     }
 
-    const message =
-      error instanceof Error ? error.message : "Server bootstrap failed.";
+    const message = isProductionRuntime()
+      ? "An unexpected error occurred."
+      : error instanceof Error
+        ? error.message
+        : "Server bootstrap failed.";
 
     response.status(500).json({
       error: "bootstrap_failed",
@@ -175,14 +227,23 @@ export default async function handler(
   }
 }
 
-function applyCorsHeaders(request: Request, response: Response): void {
+function applyCorsHeaders(
+  request: Request,
+  response: Response,
+  allowedOrigins: readonly string[],
+): void {
   const origin = request.headers.origin;
 
   if (typeof origin === "string" && origin.length > 0) {
-    response.setHeader("Access-Control-Allow-Origin", origin);
-    response.setHeader("Access-Control-Allow-Credentials", "true");
-    response.setHeader("Vary", "Origin");
-  } else {
+    const isAllowed =
+      allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+
+    if (isAllowed) {
+      response.setHeader("Access-Control-Allow-Origin", origin);
+      response.setHeader("Access-Control-Allow-Credentials", "true");
+      response.setHeader("Vary", "Origin");
+    }
+  } else if (allowedOrigins.length === 0) {
     response.setHeader("Access-Control-Allow-Origin", "*");
   }
 
@@ -203,14 +264,26 @@ function notFoundHandler(_request: Request, response: Response): void {
   });
 }
 
+function isProductionRuntime(): boolean {
+  return (
+    process.env["NODE_ENV"] === "production" ||
+    process.env["VERCEL"] !== undefined
+  );
+}
+
 function errorHandler(
   error: unknown,
   _request: Request,
   response: Response,
   _next: NextFunction,
 ): void {
-  const message =
-    error instanceof Error ? error.message : "Unexpected server error.";
+  // In production hide internal error details to prevent information leakage.
+  // In development return the full message to aid debugging.
+  const message = isProductionRuntime()
+    ? "An unexpected error occurred."
+    : error instanceof Error
+      ? error.message
+      : "Unexpected server error.";
 
   response.status(500).json({
     error: "internal_error",

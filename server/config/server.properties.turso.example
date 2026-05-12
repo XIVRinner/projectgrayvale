@@ -12,6 +12,12 @@ adminPassword=replace-me-admin-password
 # dbFilePath=../data/grayvale.sqlite
 # contentRoot=../../game/src/assets/data
 
+# CORS allowlist — comma-separated list of trusted origins.
+# Leave unset (or empty) in local development to allow all origins.
+# In production set this to your exact deployment domain(s):
+# allowedOrigins=https://game.example.com,https://www.example.com
+# Environment variable override: GRAYVALE_ALLOWED_ORIGINS
+
 # Turso cloud notes (set as environment variables, not in this file):
 # grayvale_TURSO_DATABASE_URL=libsql://your-db.turso.io
 # grayvale_TURSO_AUTH_TOKEN=your-turso-auth-token

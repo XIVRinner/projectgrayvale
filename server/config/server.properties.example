@@ -7,3 +7,9 @@ adminPassword=replace-me-admin-password
 # port=3000
 # dbFilePath=../data/grayvale.sqlite
 # contentRoot=../../game/src/assets/data
+
+# CORS allowlist — comma-separated list of trusted origins.
+# Leave unset (or empty) in local development to allow all origins.
+# Set to your production domain(s) when deploying:
+# allowedOrigins=https://game.example.com,https://www.example.com
+# Environment variable override: GRAYVALE_ALLOWED_ORIGINS
