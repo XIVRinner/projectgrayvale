@@ -1,0 +1,81 @@
+<gv-dialog-shell
+  [open]="open()"
+  title="What's New"
+  eyebrow="Release Notes"
+  subtitle="Recent shipped changes for this shard."
+  [variant]="'special'"
+  [width]="'notes'"
+  (closed)="closed.emit()"
+>
+  <div class="gv-whats-new-modal">
+    @if (loading()) {
+      <p class="gv-whats-new-modal__state">Loading release notes...</p>
+    } @else if (errorMessage()) {
+      <p class="gv-whats-new-modal__state gv-whats-new-modal__state--error">
+        {{ errorMessage() }}
+      </p>
+    } @else {
+      @if (!unreadCount()) {
+        <p class="gv-whats-new-modal__state">You're caught up. No unread release notes right now.</p>
+      }
+
+      @if (!releases().length) {
+        <p class="gv-whats-new-modal__state">No release notes have been published yet.</p>
+      } @else {
+        <div class="gv-whats-new-modal__list">
+          @for (release of releases(); track release.id) {
+            <section
+              class="gv-whats-new-modal__accordion"
+              [class.gv-whats-new-modal__accordion--expanded]="isReleaseExpanded(release.id)"
+            >
+              <button
+                type="button"
+                class="gv-whats-new-modal__accordion-summary"
+                [attr.aria-expanded]="isReleaseExpanded(release.id)"
+                (click)="toggleRelease(release.id)"
+              >
+                <span class="gv-whats-new-modal__accordion-copy">
+                  <span class="gv-whats-new-modal__accordion-version">v{{ release.version }}</span>
+                  <strong class="gv-whats-new-modal__accordion-title">{{ release.title }}</strong>
+                  <span class="gv-whats-new-modal__accordion-date">
+                    {{ formatReleaseDate(release.releasedAt) }}
+                  </span>
+                </span>
+
+                <span class="gv-whats-new-modal__accordion-meta">
+                  @if (!release.isRead) {
+                    <span class="gv-whats-new-modal__new-badge">NEW</span>
+                  }
+                  <span class="gv-whats-new-modal__accordion-count">
+                    {{ release.entries.length }} item{{ release.entries.length === 1 ? '' : 's' }}
+                  </span>
+                  <span class="gv-whats-new-modal__accordion-icon" aria-hidden="true">
+                    {{ isReleaseExpanded(release.id) ? "−" : "+" }}
+                  </span>
+                </span>
+              </button>
+
+              @if (isReleaseExpanded(release.id)) {
+                <div class="gv-whats-new-modal__accordion-body">
+                  <gv-changelog-release-card
+                    [release]="release"
+                    [compact]="true"
+                    [showHeader]="false"
+                  />
+                </div>
+              }
+            </section>
+          }
+        </div>
+      }
+    }
+
+    <div class="gv-whats-new-modal__actions">
+      @if (unreadCount() > 0) {
+        <button type="button" class="gv-whats-new-modal__primary" (click)="markReadRequested.emit()">
+          {{ markReadLabel() }}
+        </button>
+      }
+    </div>
+  </div>
+</gv-dialog-shell>

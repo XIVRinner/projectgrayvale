@@ -142,6 +142,70 @@ describe("combat encounter adapters", () => {
     expect(view.player.effectLabels).toContain("Piercing Talon x2");
   });
 
+  it("replaces actor ids with display names in combat logs", () => {
+    const bundle = buildCombatEncounterBundle(tutorialActivity, samplePlayer, health);
+
+    expect(bundle).not.toBeNull();
+
+    const state: CombatRunState = {
+      activityId: bundle!.activity.id,
+      currentTick: 1,
+      phase: "combat",
+      actors: {
+        [bundle!.player.id]: {
+          actorId: bundle!.player.id,
+          definitionId: bundle!.player.id,
+          currentHp: bundle!.player.maxHp,
+          maxHp: bundle!.player.maxHp,
+          level: bundle!.player.level,
+          tags: [...bundle!.player.tags],
+          resources: {},
+          activeEffects: [],
+          cooldowns: {},
+          range: 0,
+          defeated: false
+        },
+        [bundle!.enemies[0].id]: {
+          actorId: bundle!.enemies[0].id,
+          definitionId: bundle!.enemies[0].id,
+          currentHp: bundle!.enemies[0].maxHp,
+          maxHp: bundle!.enemies[0].maxHp,
+          level: bundle!.enemies[0].level,
+          tags: [...bundle!.enemies[0].tags],
+          resources: {},
+          activeEffects: [],
+          cooldowns: {},
+          range: 0,
+          defeated: false
+        }
+      },
+      logs: [
+        {
+          tick: 1,
+          type: "damage",
+          actorId: bundle!.player.id,
+          targetActorId: bundle!.enemies[0].id,
+          message: `${bundle!.player.id} hits ${bundle!.enemies[0].id} for 5`
+        }
+      ],
+      accumulatedDelta: {
+        actorChanges: [],
+        resourceChanges: [],
+        effectsApplied: [],
+        effectsExpired: [],
+        xp: [],
+        loot: [],
+        penalties: []
+      }
+    };
+
+    const view = buildCombatEncounterView(bundle!, state, [], "Skirmish underway.");
+    expect(view.logs[0]?.text).toContain(samplePlayer.name);
+    expect(view.logs[0]?.text).toContain(bundle!.enemies[0].displayName);
+    expect(view.logs[0]?.text).not.toContain(samplePlayer.id);
+    expect(view.logs[0]?.text).not.toContain(bundle!.enemies[0].id);
+  });
+
   it("maps combat skill ids back into the game player skill ids", () => {
     expect(mapCombatSkillIdToPlayerSkillId("skill_short_blade")).toBe("short_blade");
     expect(mapCombatSkillIdToPlayerSkillId("skill_unknown")).toBeNull();

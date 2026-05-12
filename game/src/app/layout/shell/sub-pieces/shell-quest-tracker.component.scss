@@ -57,6 +57,33 @@
   font-size: var(--gv-font-size-sm);
 }
 
+.gv-quest-tracker__scroll-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gv-space-sm);
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: var(--gv-space-xs);
+}
+
+/* Custom scrollbar styling */
+.gv-quest-tracker__scroll-container::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.gv-quest-tracker__scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gv-quest-tracker__scroll-container::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--gv-color-border-subtle) 60%, transparent);
+  border-radius: 999px;
+}
+
+.gv-quest-tracker__scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--gv-color-border-subtle);
+}
+
 .gv-quest-tracker__entries {
   display: grid;
   gap: var(--gv-space-sm);
@@ -153,13 +180,6 @@
     var(--gv-color-accent),
     color-mix(in srgb, var(--gv-color-accent-warm) 80%, white 20%)
   );
-}
-
-.gv-quest-tracker__more {
-  justify-self: start;
-  border-color: var(--gv-color-border-subtle);
-  background: transparent;
-  color: var(--gv-color-text-muted);
 }
 
 @media (max-width: 48rem) {

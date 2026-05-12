@@ -106,6 +106,8 @@ export const samplePlayer: Player = {
       ration_standard: 5
     }
   },
+  money: 120,
+  currencies: {},
   equippedItems: {
     mainHand: "weapon_longsword_graymark",
     head: "armor_hood_rainwoven",

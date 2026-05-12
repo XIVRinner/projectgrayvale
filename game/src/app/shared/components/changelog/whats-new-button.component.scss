@@ -1,0 +1,47 @@
+:host {
+  display: inline-flex;
+}
+
+.gv-whats-new-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gv-space-xs);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background: color-mix(in srgb, var(--gv-color-accent) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 700;
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  transition:
+    border-color var(--gv-anim-fast),
+    background var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
+
+.gv-whats-new-button:hover {
+  border-color: var(--gv-color-border-strong);
+  background: color-mix(in srgb, var(--gv-color-accent) 22%, transparent);
+  transform: translateY(calc(var(--gv-space-xs) * -0.25));
+}
+
+.gv-whats-new-button__label {
+  line-height: 1;
+}
+
+.gv-whats-new-button__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: var(--gv-color-accent-cool);
+  color: var(--gv-color-bg-primary);
+  font-size: var(--gv-font-size-xxs);
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 0.22rem;
+}

@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added a character sheet with inventory, equipment, loadouts, and combat stats",
+  "body": "Players can inspect authored equipment, view inventory state, switch loadouts, and review combat stat breakdowns from the in-game shell.",
+  "audience": "user",
+  "impact": "high",
+  "tags": ["character-sheet", "inventory", "equipment", "stats"]
+}

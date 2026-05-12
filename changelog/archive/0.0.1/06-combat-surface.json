@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added combat encounter presentation and summary views",
+  "body": "The build includes combat actor cards, log presentation, rotation preview support, and encounter summary handling inside the shell flow.",
+  "audience": "user",
+  "impact": "medium",
+  "tags": ["combat", "encounter", "ui"]
+}

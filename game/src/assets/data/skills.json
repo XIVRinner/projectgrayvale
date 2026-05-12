@@ -88,5 +88,17 @@
     "name": "Tracking",
     "description": "Reading signs, trails, and movement through terrain.",
     "tags": ["general"]
+  },
+  {
+    "id": "tavern_work",
+    "name": "Tavern Work",
+    "description": "Skill at working jobs in the tavern—serving, cleaning, and general labor.",
+    "tags": ["labour", "service"]
+  },
+  {
+    "id": "medicine",
+    "name": "Medicine",
+    "description": "Knowledge of healing, wound care, and medicinal treatments.",
+    "tags": ["healing", "knowledge"]
   }
 ]

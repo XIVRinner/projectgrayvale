@@ -11,11 +11,13 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/index.ts",
+    "release:changelog": "tsx src/scripts/release-changelog.ts",
     "start": "node dist/index.js",
     "test": "npm run check"
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
+    "@rinner/grayvale-core": "*",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",

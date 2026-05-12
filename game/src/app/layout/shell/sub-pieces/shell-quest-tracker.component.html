@@ -33,8 +33,8 @@
   } @else if (collapsed()) {
     <p class="gv-quest-tracker__collapsed">{{ panel().entries.length }} active quests hidden.</p>
   } @else {
-    <div class="gv-quest-tracker__entries">
-      @for (entry of visibleEntries(); track entry.id) {
+    <div class="gv-quest-tracker__scroll-container">
+      @for (entry of panel().entries; track entry.id) {
         <article class="gv-quest-tracker__entry" [attr.data-status]="entry.status">
           <div class="gv-quest-tracker__entry-topline">
             <div class="gv-quest-tracker__entry-heading">
@@ -69,15 +69,5 @@
         </article>
       }
     </div>
-
-    @if (hiddenCount() > 0) {
-      <button
-        type="button"
-        pButton
-        class="gv-quest-tracker__more p-button p-component"
-        [label]="expanded() ? 'Show fewer' : '+' + hiddenCount() + ' more active quests'"
-        (click)="toggleExpanded()"
-      ></button>
-    }
   }
 </section>

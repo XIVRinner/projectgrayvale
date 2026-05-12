@@ -151,9 +151,7 @@ export class ServerChatService {
     timer(0, CHAT_POLL_MS)
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        if (this.panelOpenState()) {
-          void this.refreshMessages();
-        }
+        void this.refreshMessages();
       });
   }
 

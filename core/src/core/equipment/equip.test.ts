@@ -21,6 +21,8 @@ const createPlayer = (): Player => ({
   inventory: {
     items: {}
   },
+  money: 0,
+  currencies: {},
   equippedItems: {
     mainHand: "weapon_old_blade",
     offHand: "shield_old_guard",

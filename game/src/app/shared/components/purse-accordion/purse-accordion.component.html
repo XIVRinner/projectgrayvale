@@ -1,0 +1,30 @@
+<section class="gv-purse-accordion" aria-label="Purse">
+  <article class="gv-purse-accordion__section">
+    <button type="button" class="gv-purse-accordion__toggle" [attr.aria-expanded]="isOpen()" (click)="toggle()">
+      <span>Purse</span>
+      <span class="gv-purse-accordion__summary">{{ purse().totalDisplay }}</span>
+      <i class="pi" [class.pi-chevron-down]="isOpen()" [class.pi-chevron-right]="!isOpen()" aria-hidden="true"></i>
+    </button>
+
+    @if (isOpen()) {
+      <div class="gv-purse-accordion__body">
+        <div class="gv-purse-accordion__coins">
+          @for (coin of purse().coins; track coin.id) {
+            <article class="gv-purse-accordion__coin" [class.gv-purse-accordion__coin--empty]="coin.amount === 0">
+              <img class="gv-purse-accordion__coin-icon" [src]="coin.iconPath" [alt]="coin.label + ' coin'" />
+              <div class="gv-purse-accordion__coin-copy">
+                <span class="gv-purse-accordion__coin-label">{{ coin.label }}</span>
+                <strong class="gv-purse-accordion__coin-value">{{ coin.displayValue }}</strong>
+              </div>
+            </article>
+          }
+        </div>
+
+        <div class="gv-purse-accordion__currency">
+          <span class="gv-purse-accordion__currency-label">Currency</span>
+          <strong class="gv-purse-accordion__currency-value">{{ purse().currencyValue ?? 'None' }}</strong>
+        </div>
+      </div>
+    }
+  </article>
+</section>

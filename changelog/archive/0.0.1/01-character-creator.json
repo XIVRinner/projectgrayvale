@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added a full character creator with race, class, and portrait selection",
+  "body": "Players can create a new adventurer, choose authored options, and start the build with a saved identity instead of a placeholder profile.",
+  "audience": "user",
+  "impact": "high",
+  "tags": ["character", "creator", "onboarding"]
+}

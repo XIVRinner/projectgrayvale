@@ -1,0 +1,25 @@
+declare bartender = Actor("bartender")
+
+chapter START:
+  narrator "The bartender looks up from polishing a glass as you approach the bar."
+  bartender "Well, well. A fresh face in my tavern. You look like you could use some work, and I could use the help around here."
+  goto ASK
+
+chapter ASK:
+  choice:
+    -> "Talk to the bartender about working":
+      bartender "Aye, it's simple enough. We serve drinks, clean tables, keep the place running."
+      bartender "For your troubles, you'd earn some coin. Interested?"
+      goto OFFER
+    -> "Ask about something else":
+      bartender "Not much else to talk about with me, friend. Just work and the business."
+
+chapter OFFER:
+  choice:
+    -> "Yes, I'll work here":
+      call unlockSkillById("tavern_work")
+      call unlockActivity("tavern_work")
+      bartender "Good. Start whenever you like. The work's always there."
+      narrator "You've unlocked: Work in the Tavern activity."
+    -> "Not right now":
+      bartender "Suit yourself. The offer stands whenever you're ready."

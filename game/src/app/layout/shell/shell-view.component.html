@@ -38,14 +38,28 @@
         [panel]="questTrackerPanel()"
         (openQuestLogRequested)="questLogOpenRequested.emit()"
       />
+
+      <gv-shell-mini-chat
+        [panel]="miniChatPanel()"
+        [canSend]="canSendServerChat()"
+        [isSending]="isServerChatSending()"
+        [sendHint]="serverChatSendHint()"
+        [statusMessage]="serverChatStatusMessage()"
+        (refreshRequested)="serverChatRefreshRequested.emit()"
+        (openServerSelectRequested)="serverChatServerSelectRequested.emit()"
+        (openFullChatRequested)="serverInfoRequested.emit()"
+        (sendRequested)="serverChatSendRequested.emit($event)"
+      />
     </aside>
   </main>
 
   <gv-shell-footer
     [version]="version()"
     [serverSummary]="serverFooterSummary()"
+    [whatsNewUnreadCount]="whatsNewUnreadCount()"
     (gegVisualizerRequested)="gegVisualizerOpenRequested.emit()"
     (serverInfoRequested)="serverInfoRequested.emit()"
+    (whatsNewRequested)="whatsNewOpenRequested.emit()"
   />
 
   <gv-shell-save-manager-modal
@@ -146,6 +160,15 @@
     [required]="isCharacterCreationRequired()"
     (closed)="characterCreationCloseRequested.emit()"
     (characterCreated)="characterCreated.emit()"
+  />
+
+  <gv-whats-new-modal
+    [open]="isWhatsNewOpen()"
+    [releases]="whatsNewReleases()"
+    [loading]="isWhatsNewLoading()"
+    [errorMessage]="whatsNewErrorMessage()"
+    (closed)="whatsNewCloseRequested.emit()"
+    (markReadRequested)="whatsNewMarkReadRequested.emit()"
   />
 
   <gv-game-dialog

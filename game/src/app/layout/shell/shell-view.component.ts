@@ -1,5 +1,6 @@
 import { Component, computed, input, output } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
+import type { ChangelogRelease } from "../../features/changelog/changelog.types";
 
 import type { DebugLogEntry } from "../../core/services/game-log/debug-log.service";
 import type { GameLogEntry } from "../../core/services/game-log/log-mapper";
@@ -28,12 +29,15 @@ import { ShellServerChatDialogComponent } from "./sub-pieces/shell-server-chat-d
 import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
 import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
 import { ShellQuestTrackerComponent } from "./sub-pieces/shell-quest-tracker.component";
+import { ShellMiniChatComponent } from "./sub-pieces/shell-mini-chat.component";
 import { ShellSaveManagerModalComponent } from "./sub-pieces/shell-save-manager-modal.component";
 import { ShellServerSelectModalComponent } from "./sub-pieces/shell-server-select-modal.component";
+import { WhatsNewModalComponent } from "../../shared/components/changelog/whats-new-modal.component";
 import {
   ShellActionGroup,
   ShellCharacterPanel,
   ShellLayoutPreset,
+  ShellMiniChatPanel,
   ShellNavItem,
   ShellQuestTrackerPanel,
   ShellSaveSlotSummary,
@@ -60,8 +64,10 @@ import type { ServerDirectoryEntry } from "../../core/services/server-connection
     ShellTopbarComponent,
     ShellActionPanelComponent,
     ShellQuestTrackerComponent,
+    ShellMiniChatComponent,
     ShellSaveManagerModalComponent,
     ShellServerSelectModalComponent,
+    WhatsNewModalComponent,
   ],
   templateUrl: "./shell-view.component.html",
   styleUrl: "./shell-view.component.scss",
@@ -74,9 +80,15 @@ export class ShellViewComponent {
   readonly statusItems = input.required<readonly ShellStatusItem[]>();
   readonly saveSummary = input.required<ShellTopbarSaveSummary>();
   readonly topbarActions = input.required<readonly ShellTopbarAction[]>();
+  readonly whatsNewUnreadCount = input(0);
+  readonly isWhatsNewOpen = input.required<boolean>();
+  readonly whatsNewReleases = input.required<readonly ChangelogRelease[]>();
+  readonly isWhatsNewLoading = input.required<boolean>();
+  readonly whatsNewErrorMessage = input<string | null>(null);
   readonly actionGroups = input.required<readonly ShellActionGroup[]>();
   readonly characterPanel = input.required<ShellCharacterPanel>();
   readonly questTrackerPanel = input.required<ShellQuestTrackerPanel>();
+  readonly miniChatPanel = input.required<ShellMiniChatPanel>();
   readonly questLogQuests = input.required<readonly QuestViewModel[]>();
   readonly trackedQuestIds = input.required<readonly string[]>();
   readonly saveSlots = input.required<readonly ShellSaveSlotSummary[]>();
@@ -137,6 +149,9 @@ export class ShellViewComponent {
   readonly gegVisualizerOpenRequested = output<void>();
   readonly gegVisualizerCloseRequested = output<void>();
   readonly topbarActionSelected = output<string>();
+  readonly whatsNewOpenRequested = output<void>();
+  readonly whatsNewCloseRequested = output<void>();
+  readonly whatsNewMarkReadRequested = output<void>();
   readonly saveSlotLoadRequested = output<string>();
   readonly saveSlotDeleteRequested = output<string>();
   readonly saveSlotExportRequested = output<string>();

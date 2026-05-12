@@ -1,0 +1,40 @@
+<section class="gv-changelog-page">
+  <header class="gv-changelog-page__header">
+    <div class="gv-changelog-page__copy">
+      <p class="gv-changelog-page__eyebrow">Archive</p>
+      <h2 class="gv-changelog-page__title">Release Notes</h2>
+      <p class="gv-changelog-page__subtitle">
+        Track shipped updates without burying the main UI in long-form notes.
+      </p>
+    </div>
+
+    <div class="gv-changelog-page__filters" aria-label="Changelog type filters">
+      @for (option of filterOptions(); track option.id) {
+        <button
+          type="button"
+          class="gv-changelog-page__filter"
+          [class.gv-changelog-page__filter--active]="selectedType() === option.id"
+          (click)="typeSelected.emit(option.id)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="gv-changelog-page__state">Loading release notes...</p>
+  } @else if (errorMessage()) {
+    <p class="gv-changelog-page__state gv-changelog-page__state--error">
+      {{ errorMessage() }}
+    </p>
+  } @else if (!releases().length) {
+    <p class="gv-changelog-page__state">No published release notes match this filter yet.</p>
+  } @else {
+    <div class="gv-changelog-page__list">
+      @for (release of releases(); track release.id) {
+        <gv-changelog-release-card [release]="release" />
+      }
+    </div>
+  }
+</section>

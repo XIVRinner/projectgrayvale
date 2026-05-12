@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added gameplay log and execution-graph debugging surfaces",
+  "body": "The build exposes shell-accessible debug tools for gameplay logging and GEG inspection so developers can trace authored and runtime behavior more easily.",
+  "audience": "developer",
+  "impact": "medium",
+  "tags": ["developer", "debug", "logs", "geg"]
+}

@@ -38,6 +38,17 @@ export async function seedJsonResources(
       );
     }
 
+    if (resources.length === 0) {
+      await db.exec("DELETE FROM json_resources");
+    } else {
+      const placeholders = resources.map(() => "?").join(", ");
+      const resourceKeys = resources.map((resource) => resource.resourceKey);
+      await db.run(
+        `DELETE FROM json_resources WHERE resource_key NOT IN (${placeholders})`,
+        ...resourceKeys
+      );
+    }
+
     await db.exec("COMMIT");
   } catch (error) {
     await db.exec("ROLLBACK");

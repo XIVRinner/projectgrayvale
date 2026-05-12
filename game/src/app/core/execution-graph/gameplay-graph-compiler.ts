@@ -111,6 +111,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   // --- 2. Build context nodes (one per location + one per sublocation) ------
 
   const contextMap = new Map<ContextId, ContextNode>();
+  const sublocationLookup = new Map<string, { locationId: string; sublocationId: string }>();
 
   for (const location of input.locationsCatalog.locations) {
     const topLevelContextId = buildContextId(location.id);
@@ -123,6 +124,23 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
 
     for (const sublocation of location.sublocations) {
       const subContextId = buildContextId(location.id, sublocation.id);
+
+      const existingSublocation = sublocationLookup.get(sublocation.id);
+      if (!existingSublocation) {
+        sublocationLookup.set(sublocation.id, {
+          locationId: location.id,
+          sublocationId: sublocation.id
+        });
+      } else if (existingSublocation.locationId !== location.id) {
+        diagnostics.push(
+          warningDiagnostic(
+            "GEG_W007",
+            `Sublocation id "${sublocation.id}" is duplicated across locations. Activity shorthand resolution for this id is disabled.`,
+            { path: `world-locations.${location.id}.sublocations.${sublocation.id}` }
+          )
+        );
+        sublocationLookup.delete(sublocation.id);
+      }
 
       contextMap.set(subContextId, {
         id: subContextId,
@@ -292,14 +310,9 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   // --- 5. Generate activity actions ------------------------------------------
 
   for (const activity of input.activities) {
-    const authoredContextId = buildContextId(
-      activity.location.locationId,
-      activity.location.sublocationId
-    );
-    const locationContextId = buildContextId(activity.location.locationId);
-    const activityContextId = contextMap.has(authoredContextId)
-      ? authoredContextId
-      : locationContextId;
+    const resolution = resolveActivityContextId(activity, contextMap, sublocationLookup);
+    const authoredContextId = resolution.authoredContextId;
+    const activityContextId = resolution.resolvedContextId;
 
     if (!contextMap.has(activityContextId)) {
       diagnostics.push(
@@ -409,6 +422,43 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   return { graph, diagnostics };
 }
 
+function resolveActivityContextId(
+  activity: GameActivityDefinition,
+  contextMap: ReadonlyMap<ContextId, ContextNode>,
+  sublocationLookup: ReadonlyMap<string, { locationId: string; sublocationId: string }>
+): { authoredContextId: ContextId; resolvedContextId: ContextId } {
+  const authoredContextId = buildContextId(
+    activity.location.locationId,
+    activity.location.sublocationId
+  );
+
+  if (contextMap.has(authoredContextId)) {
+    return { authoredContextId, resolvedContextId: authoredContextId };
+  }
+
+  if (activity.location.sublocationId) {
+    const locationContextId = buildContextId(activity.location.locationId);
+    return { authoredContextId, resolvedContextId: locationContextId };
+  }
+
+  const shorthand = sublocationLookup.get(activity.location.locationId);
+  if (shorthand) {
+    const shorthandContextId = buildContextId(
+      shorthand.locationId,
+      shorthand.sublocationId
+    );
+    if (contextMap.has(shorthandContextId)) {
+      return {
+        authoredContextId,
+        resolvedContextId: shorthandContextId
+      };
+    }
+  }
+
+  const locationContextId = buildContextId(activity.location.locationId);
+  return { authoredContextId, resolvedContextId: locationContextId };
+}
+
 // ---------------------------------------------------------------------------
 // Story action constants
 // These are fixed game-logic actions that are not driven by JSON data files.
@@ -431,6 +481,12 @@ const STORY_BRIDGITTE_REPORT_BACK_ACTION_ID = "story:bridgitte-report-back";
 const STORY_BRIDGITTE_REPORT_BACK_CONTEXT_ID = "village-arkama:bridgitte-house";
 const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_ACTION_ID = "story:bridgitte-repeatables:post-coyote";
 const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_CONTEXT_ID = "village-arkama:bridgitte-house";
+
+const STORY_BARTENDER_INTRO_ACTION_ID = "story:bartender-intro";
+const STORY_BARTENDER_INTRO_CONTEXT_ID = "village-arkama:tavern";
+
+const STORY_SELF_TEND_INJURIES_ACTION_ID = "story:self-tend-injuries-unlock";
+const STORY_SELF_TEND_INJURIES_CONTEXT_ID = "camp:default";
 
 function buildStoryActions(
   contextMap: Map<ContextId, ContextNode>,
@@ -588,6 +644,52 @@ function buildStoryActions(
       execution: {
         kind: "dialogue",
         dialogueTarget: "bridgitte-repeatables"
+      }
+    });
+  }
+
+  if (!contextMap.has(STORY_BARTENDER_INTRO_CONTEXT_ID)) {
+    diagnostics.push(
+      warningDiagnostic(
+        "GEG_W009",
+        `Story bartender-intro action context "${STORY_BARTENDER_INTRO_CONTEXT_ID}" does not exist. The bartender unlock action will not be compiled.`,
+        { id: STORY_BARTENDER_INTRO_ACTION_ID }
+      )
+    );
+  } else {
+    actions.push({
+      id: STORY_BARTENDER_INTRO_ACTION_ID,
+      contextId: STORY_BARTENDER_INTRO_CONTEXT_ID,
+      label: "Speak to Bartender",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [{ type: "activity_locked", params: { activityId: "tavern_work" } }],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "tavern-bartender-first-meeting"
+      }
+    });
+  }
+
+  if (!contextMap.has(STORY_SELF_TEND_INJURIES_CONTEXT_ID)) {
+    diagnostics.push(
+      warningDiagnostic(
+        "GEG_W010",
+        `Story self-tend-injuries action context "${STORY_SELF_TEND_INJURIES_CONTEXT_ID}" does not exist. The self-unlock action will not be compiled.`,
+        { id: STORY_SELF_TEND_INJURIES_ACTION_ID }
+      )
+    );
+  } else {
+    actions.push({
+      id: STORY_SELF_TEND_INJURIES_ACTION_ID,
+      contextId: STORY_SELF_TEND_INJURIES_CONTEXT_ID,
+      label: "Reflect on Your Wounds",
+      groupKind: "talk",
+      hiddenByDefault: false,
+      visibleWhen: [{ type: "activity_locked", params: { activityId: "tend_injuries" } }],
+      execution: {
+        kind: "dialogue",
+        dialogueTarget: "camp-self-tend-injuries"
       }
     });
   }

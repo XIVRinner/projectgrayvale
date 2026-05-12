@@ -47,6 +47,88 @@
           }
         }
       ]
+    },
+    {
+      "id": "tavern_work",
+      "name": "Work in the Tavern",
+      "description": "Serve drinks, clean tables, and earn coin from the tavern keeper.",
+      "tags": ["labour", "service", "indoor"],
+      "governingAttributes": ["tavern_work"],
+      "difficulty": 5,
+      "location": {
+        "locationId": "tavern"
+      },
+      "rewards": [
+        {
+          "type": "currency",
+          "value": {
+            "type": "range",
+            "min": 1,
+            "max": 2
+          },
+          "distribution": {
+            "type": "random_interval",
+            "tickMin": 5,
+            "tickMax": 10
+          }
+        },
+        {
+          "type": "skill",
+          "targetId": "tavern_work",
+          "value": {
+            "type": "flat",
+            "amount": 0.02
+          },
+          "distribution": {
+            "type": "deterministic"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tend_injuries",
+      "name": "Tend Injuries",
+      "description": "Use medicine knowledge to slowly recover health at camp.",
+      "tags": ["healing", "camp", "indoor"],
+      "governingAttributes": ["medicine"],
+      "difficulty": 2,
+      "location": {
+        "locationId": "camp"
+      },
+      "rewards": [
+        {
+          "type": "attribute",
+          "targetId": "hp",
+          "value": {
+            "type": "scaled",
+            "base": 2,
+            "scaling": {
+              "source": "skill",
+              "id": "medicine",
+              "factor": 2
+            }
+          },
+          "distribution": {
+            "type": "deterministic"
+          },
+          "maxHealPercent": 80
+        },
+        {
+          "type": "skill",
+          "targetId": "medicine",
+          "value": {
+            "type": "scaled",
+            "base": 0.02,
+            "scaling": {
+              "source": "healing_done",
+              "factor": 0.1
+            }
+          },
+          "distribution": {
+            "type": "deterministic"
+          }
+        }
+      ]
     }
   ],
   "tickDeltas": [
@@ -59,6 +141,26 @@
         "tags": ["gathering", "resource"],
         "tickDelta": 1,
         "itemId": "copper_ore"
+      }
+    },
+    {
+      "type": "activity_tick",
+      "payload": {
+        "activityId": "tavern_work",
+        "difficulty": 5,
+        "governingAttributes": ["tavern_work"],
+        "tags": ["labour", "service", "indoor"],
+        "tickDelta": 1
+      }
+    },
+    {
+      "type": "activity_tick",
+      "payload": {
+        "activityId": "tend_injuries",
+        "difficulty": 2,
+        "governingAttributes": ["medicine"],
+        "tags": ["healing", "camp", "indoor"],
+        "tickDelta": 1
       }
     }
   ]

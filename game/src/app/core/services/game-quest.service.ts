@@ -17,6 +17,7 @@ import { QuestsLoader } from "../../data/loaders/quests.loader";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import { CharacterRosterService } from "./character-roster.service";
 import { DebugLogService } from "./game-log/debug-log.service";
+import type { SaveSlotHealthState } from "./health-balance";
 import type { GameQuestEvent } from "./game-quest.types";
 import {
   QuestTracker,
@@ -104,6 +105,7 @@ export class GameQuestService {
       this.roster.activeSlotId();
       this.roster.activeCharacter();
       this.authoredQuestsState();
+      this.activitiesState();
 
       if (this.authoredQuestsState().length === 0 && this.pendingQuestStartIds.size > 0) {
         this.ensureAuthoredQuestsLoaded();
@@ -111,7 +113,51 @@ export class GameQuestService {
 
       this.flushPendingQuestStarts();
       this.syncQuestState();
+      this.reconcileEnabledActivitySkillUnlocks();
     });
+  }
+
+  private reconcileEnabledActivitySkillUnlocks(): void {
+    const player = this.roster.activeCharacter();
+    const slot = this.roster.activeSlot();
+
+    if (!player || !slot) {
+      return;
+    }
+
+    const availability = player.activityState?.availability ?? {};
+    const activitiesById = new Map(this.activitiesState().map((activity) => [activity.id, activity]));
+
+    const missingUnlocks = new Set<string>();
+
+    for (const [activityId, entry] of Object.entries(availability)) {
+      if (entry.status !== "enabled") {
+        continue;
+      }
+
+      const activity = activitiesById.get(activityId);
+      if (!activity) {
+        continue;
+      }
+
+      for (const governingId of activity.governingAttributes) {
+        const isAttribute = player.attributes[governingId] !== undefined;
+        const isUnlocked = slot.statUnlocks.skills[governingId] === true;
+
+        if (!isAttribute && !isUnlocked) {
+          missingUnlocks.add(governingId);
+        }
+      }
+    }
+
+    for (const skillId of missingUnlocks) {
+      this.debugLog.logMessage(
+        "quest",
+        "Reconciling missing skill unlock from enabled activity.",
+        { skillId }
+      );
+      this.roster.setActiveSkillUnlocked(skillId, true);
+    }
   }
 
   private reconcileScriptedQuestState(): boolean {
@@ -396,20 +442,33 @@ export class GameQuestService {
       return false;
     }
 
-    const deltas = buildActivityRewardDeltas(activity, player);
+    const rewardOutcome = buildActivityTickRewardOutcome(
+      activity,
+      player,
+      this.roster.activeHealth()
+    );
 
-    if (deltas.length === 0) {
+    if (rewardOutcome.deltas.length === 0 && rewardOutcome.nextHealth === undefined) {
       this.debugLog.logMessage("quest", "Quest activity produced no reward deltas.", {
         activityId
       });
       return false;
     }
 
-    const applied = this.roster.applyActiveCharacterDeltas(deltas) !== null;
+    let applied = true;
+
+    if (rewardOutcome.deltas.length > 0) {
+      applied = this.roster.applyActiveCharacterDeltas(rewardOutcome.deltas) !== null;
+    }
+
+    if (applied && rewardOutcome.nextHealth) {
+      applied = this.roster.updateActiveHealth(rewardOutcome.nextHealth) !== null;
+    }
 
     this.debugLog.logMessage("quest", applied ? "Quest activity applied reward deltas." : "Quest activity failed while applying reward deltas.", {
       activityId,
-      deltaCount: deltas.length
+      deltaCount: rewardOutcome.deltas.length,
+      healedAmount: rewardOutcome.healedAmount
     });
 
     return applied;
@@ -441,17 +500,29 @@ export class GameQuestService {
       return [];
     }
 
-    const deltas = buildActivityRewardDeltas(activity, player);
+    const rewardOutcome = buildActivityTickRewardOutcome(
+      activity,
+      player,
+      this.roster.activeHealth()
+    );
 
-    if (deltas.length > 0) {
-      this.roster.applyActiveCharacterDeltas(deltas);
+    if (rewardOutcome.deltas.length > 0) {
+      this.roster.applyActiveCharacterDeltas(rewardOutcome.deltas);
+    }
+
+    if (rewardOutcome.nextHealth) {
+      this.roster.updateActiveHealth(rewardOutcome.nextHealth);
+    }
+
+    if (rewardOutcome.deltas.length > 0 || rewardOutcome.healedAmount > 0) {
       this.debugLog.logMessage("quest", "Activity tick applied reward deltas.", {
         activityId,
-        deltaCount: deltas.length
+        deltaCount: rewardOutcome.deltas.length,
+        healedAmount: rewardOutcome.healedAmount
       });
     }
 
-    return deltas;
+    return rewardOutcome.deltas;
   }
 
   private refreshActiveQuests(): void {
@@ -839,6 +910,63 @@ function buildActivityRewardDeltas(
   return deltas;
 }
 
+function buildActivityTickRewardOutcome(
+  activity: GameActivityDefinition,
+  player: Player,
+  health: SaveSlotHealthState | null
+): {
+  deltas: Delta[];
+  nextHealth?: SaveSlotHealthState;
+  healedAmount: number;
+} {
+  const deltas: Delta[] = [];
+  let attachedActivityMeta = false;
+  let healedAmount = 0;
+
+  let nextHp = health?.currentHp ?? 0;
+  const maxHp = health?.maxHp ?? 0;
+
+  for (const reward of activity.rewards ?? []) {
+    const resolvedAmount = resolveActivityRewardAmount(reward, player, {
+      healingDone: healedAmount
+    });
+
+    if (resolvedAmount === null || resolvedAmount === 0) {
+      continue;
+    }
+
+    if (isHealthReward(reward) && health) {
+      const capHp = resolveHealingCapHp(reward, maxHp);
+      const safeCapHp = Math.max(0, Math.min(maxHp, capHp));
+      const roundedHeal = Math.max(0, Math.round(resolvedAmount));
+      const allowedHeal = Math.max(0, safeCapHp - nextHp);
+      const appliedHeal = Math.min(roundedHeal, allowedHeal);
+
+      if (appliedHeal > 0) {
+        nextHp += appliedHeal;
+        healedAmount += appliedHeal;
+      }
+
+      continue;
+    }
+
+    deltas.push(
+      buildActivityRewardDelta(activity, reward, resolvedAmount, !attachedActivityMeta)
+    );
+    attachedActivityMeta = true;
+  }
+
+  const nextHealth =
+    health && healedAmount > 0
+      ? {
+          currentHp: nextHp,
+          maxHp
+        }
+      : undefined;
+
+  return { deltas, nextHealth, healedAmount };
+}
+
 function buildQuestRewardDeltas(rewards: readonly QuestReward[] | undefined): Delta[] {
   return (rewards ?? []).flatMap((reward) => {
     switch (reward.type) {
@@ -891,10 +1019,6 @@ function buildActivityRewardDelta(
   amount: number,
   attachActivityMeta: boolean
 ): Delta {
-  if (typeof reward.targetId !== "string" || reward.targetId.trim().length === 0) {
-    throw new Error("Activity reward is missing a targetId.");
-  }
-
   const meta = attachActivityMeta
     ? {
         activityTick: {
@@ -910,40 +1034,76 @@ function buildActivityRewardDelta(
     : undefined;
 
   switch (reward.type) {
-    case "attribute":
+    case "attribute": {
+      const targetId = ensureRewardTargetId(reward, "attribute");
       return {
         type: "add",
         target: "player",
-        path: ["attributes", reward.targetId],
+        path: ["attributes", targetId],
         value: amount,
         meta
       };
-    case "skill":
+    }
+    case "skill": {
+      const targetId = ensureRewardTargetId(reward, "skill");
       return {
         type: "add",
         target: "player",
-        path: ["skills", reward.targetId],
+        path: ["skills", targetId],
         value: amount,
         meta
       };
-    case "item":
+    }
+    case "item": {
+      const targetId = ensureRewardTargetId(reward, "item");
       return {
         type: "add",
         target: "player",
-        path: ["inventory", "items", reward.targetId],
+        path: ["inventory", "items", targetId],
         value: normalizeInventoryRewardAmount(amount),
         meta
       };
-    case "currency":
-      throw new Error(
-        `Activity "${activity.id}" uses currency rewards, but player inventory currencies are not implemented yet.`
-      );
+    }
+    case "currency": {
+      const currencyTarget = reward.targetId?.trim();
+
+      if (currencyTarget) {
+        return {
+          type: "add",
+          target: "player",
+          path: ["currencies", currencyTarget],
+          value: normalizeCurrencyRewardAmount(amount),
+          meta
+        };
+      }
+
+      return {
+        type: "add",
+        target: "player",
+        path: ["money"],
+        value: normalizeCurrencyRewardAmount(amount),
+        meta
+      };
+    }
   }
+}
+
+function ensureRewardTargetId(reward: ActivityReward, rewardType: string): string {
+  const targetId = reward.targetId?.trim();
+
+  if (!targetId) {
+    throw new Error(`Activity ${rewardType} reward is missing a targetId.`);
+  }
+
+  return targetId;
 }
 
 function resolveActivityRewardAmount(
   reward: ActivityReward,
-  player: Player
+  player: Player,
+  context: {
+    healingDone?: number;
+  } = {}
 ): number | null {
   if (!shouldApplyActivityReward(reward)) {
     return null;
@@ -955,8 +1115,20 @@ function resolveActivityRewardAmount(
     case "range":
       return resolveRangeRewardAmount(reward.value.min, reward.value.max);
     case "scaled":
-      return reward.value.base + readRewardScalingSource(player, reward.value.scaling);
+      return reward.value.base + readRewardScalingSource(player, reward.value.scaling, context);
   }
+}
+
+function isHealthReward(reward: ActivityReward): boolean {
+  return reward.type === "attribute" && reward.targetId === "hp";
+}
+
+function resolveHealingCapHp(reward: ActivityReward, maxHp: number): number {
+  if (typeof reward.maxHealPercent !== "number") {
+    return maxHp;
+  }
+
+  return Math.floor((maxHp * reward.maxHealPercent) / 100);
 }
 
 function shouldApplyActivityReward(reward: ActivityReward): boolean {
@@ -964,8 +1136,14 @@ function shouldApplyActivityReward(reward: ActivityReward): boolean {
     return true;
   }
 
-  const chance = reward.distribution.chance ?? 1;
-  return Math.random() <= chance;
+  if (reward.distribution.type === "random") {
+    const chance = reward.distribution.chance ?? 1;
+    return Math.random() <= chance;
+  }
+
+  // random_interval: not applicable in quest context
+  // (used only for activity ticking)
+  return true;
 }
 
 function resolveRangeRewardAmount(min: number, max: number): number {
@@ -982,16 +1160,27 @@ function resolveRangeRewardAmount(min: number, max: number): number {
 function readRewardScalingSource(
   player: Player,
   scaling: {
-    source: "skill" | "attribute";
-    id: string;
+    source: "skill" | "attribute" | "healing_done";
+    id?: string;
     factor: number;
+  },
+  context: {
+    healingDone?: number;
   }
 ): number {
-  if (scaling.source === "attribute") {
+  if (scaling.source === "attribute" && scaling.id) {
     return (player.attributes[scaling.id] ?? 0) * scaling.factor;
   }
 
-  return (player.skills[scaling.id] ?? 0) * scaling.factor;
+  if (scaling.source === "skill" && scaling.id) {
+    return (player.skills[scaling.id] ?? 0) * scaling.factor;
+  }
+
+  if (scaling.source === "healing_done") {
+    return (context.healingDone ?? 0) * scaling.factor;
+  }
+
+  return 0;
 }
 
 function normalizeInventoryRewardAmount(amount: number): number {
@@ -1002,6 +1191,10 @@ function normalizeInventoryRewardAmount(amount: number): number {
   }
 
   return roundedAmount;
+}
+
+function normalizeCurrencyRewardAmount(amount: number): number {
+  return Math.max(0, Math.round(amount));
 }
 
 function describeQuestInstruction(quest: Quest, stepId?: string): string {

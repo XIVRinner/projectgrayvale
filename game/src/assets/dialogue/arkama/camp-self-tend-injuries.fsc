@@ -1,0 +1,8 @@
+chapter START:
+	narrator "You sit by the campfire and inspect old cuts that never fully healed."
+	player "I cannot keep ignoring this. If I am going to survive, I need to learn how to tend my wounds."
+	narrator "You organize your bandages, clean your tools, and practice a steady routine."
+	call unlockSkillById("medicine")
+	call unlockActivity("tend_injuries")
+	player "Better. Not perfect, but better."
+	narrator "You've unlocked: Tend Injuries activity."
