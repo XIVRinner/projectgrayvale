@@ -85,3 +85,31 @@
 - JSON files remain the editable source of truth; SQLite is rebuilt from the files during server startup.
 - Duplicate IDs and file-name/id mismatches now fail startup clearly.
 - The sync path skips underscore-prefixed metadata files such as `locations/_defaults.json`.
+
+## Epic 3 — Server definition APIs
+
+### Completed
+
+- Added public list/info/batch/get-by-id endpoints for items, materials, locations, activities, and actions.
+- Added legacy full-definition endpoints backed by the new server-owned definitions for the current game client.
+- Rewired the current activity, action, and inventory readers to server-owned definition endpoints.
+
+### Public endpoints
+
+- `GET /api/items`
+- `GET /api/materials`
+- `GET /api/locations`
+- `GET /api/activities`
+- `GET /api/actions`
+- `GET /api/definitions/:type/:id`
+- `POST /api/definitions/:type/info`
+- `POST /api/definitions/:type/batch`
+
+### Legacy compatibility endpoints
+
+- `GET /api/inventory-items`
+- `GET /api/equipment-items`
+- `GET /api/activity-definitions`
+- `GET /api/action-definitions`
+- `GET /api/world-locations`
+- `GET /api/world-default-state/default`

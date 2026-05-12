@@ -204,8 +204,8 @@ export class InventoryPanelContainerComponent {
   constructor() {
     this.apiCache
       .getJsonWithFallback<unknown>(
-        [apiPath("items"), dataApiPath("inventory-items")],
-        { cacheKey: apiPath("items") }
+        [apiPath("inventory-items"), dataApiPath("inventory-items")],
+        { cacheKey: apiPath("inventory-items") }
       )
       .pipe(
         map((raw) =>

@@ -5,6 +5,7 @@ import { HttpClient } from "@angular/common/http";
 import { of } from "rxjs";
 import { catchError, map, switchMap, withLatestFrom } from "rxjs/operators";
 import { actionDefinitionSchema, type Delta } from "@rinner/grayvale-core";
+import { apiPath, dataApiPath } from "../../../data/api-paths";
 import * as ActionActions from "./action.actions";
 import { selectActionById, selectCurrentLocation, selectAvailableActions } from "./action.selectors";
 import { ActionCostService } from "../services/action-cost.service";
@@ -22,7 +23,8 @@ export class ActionEffects {
     this.actions$.pipe(
       ofType(ActionActions.loadActions),
       switchMap(({ location }) =>
-        this.http.get<unknown>("assets/data/actions.json").pipe(
+        this.http.get<unknown>(apiPath("action-definitions")).pipe(
+          catchError(() => this.http.get<unknown>(dataApiPath("actions"))),
           map((raw) => {
             const actions = actionDefinitionSchema.array().parse(raw);
             // Filter by location requirements

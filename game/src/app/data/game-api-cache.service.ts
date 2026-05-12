@@ -367,7 +367,10 @@ function resolveCacheTtl(url: string): number {
 function isHotDataUrl(url: string): boolean {
   return [
     "/api/items",
+    "/api/inventory-items",
     "/api/equipment-items",
+    "/api/activity-definitions",
+    "/api/action-definitions",
     "/api/quests",
     "/api/dialogues",
     "/api/world-locations",
