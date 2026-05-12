@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, sep } from "node:path";
 
 import type { DefinitionAssetService } from "./definition-asset-service";
 import { DefinitionRepository } from "./definition-repository";
@@ -28,7 +28,19 @@ export class AdminDefinitionService {
     definition: unknown,
   ): Promise<HydratedDefinition<Record<string, unknown>>> {
     const validated = await this.validationService.validate(type, id, definition);
-    const sourcePath = resolve(this.definitionRoot, type, `${id}.json`);
+    const validatedId =
+      typeof validated["id"] === "string" ? validated["id"] : id;
+    const fileName = toSafeDefinitionFileName(validatedId);
+    const definitionDirectory = resolve(this.definitionRoot, type);
+    const sourcePath = resolve(definitionDirectory, fileName);
+    const expectedPrefix = `${definitionDirectory}${sep}`;
+
+    if (
+      sourcePath !== definitionDirectory &&
+      !sourcePath.startsWith(expectedPrefix)
+    ) {
+      throw new Error("Resolved definition path escapes the definition root.");
+    }
     const json = `${JSON.stringify(validated, null, 2)}\n`;
     const hash = createHash("sha1").update(json).digest("hex");
 
@@ -36,17 +48,19 @@ export class AdminDefinitionService {
     await writeFile(sourcePath, json, "utf8");
     await this.repository.upsert({
       type,
-      id,
+      id: validatedId,
       version: hash,
       hash,
       json,
       sourcePath,
     });
 
-    const saved = await this.repository.get(type, id);
+    const saved = await this.repository.get(type, validatedId);
 
     if (!saved) {
-      throw new Error(`Failed to reload saved ${type} definition "${id}".`);
+      throw new Error(
+        `Failed to reload saved ${type} definition "${validatedId}".`,
+      );
     }
 
     return {
@@ -57,4 +71,14 @@ export class AdminDefinitionService {
       definition: JSON.parse(saved.json) as Record<string, unknown>,
     };
   }
+}
+
+function toSafeDefinitionFileName(id: string): string {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(id)) {
+    throw new Error(
+      "Definition ids must use lowercase letters, numbers, underscores, or hyphens.",
+    );
+  }
+
+  return `${id}.json`;
 }
