@@ -113,3 +113,17 @@
 - `GET /api/action-definitions`
 - `GET /api/world-locations`
 - `GET /api/world-default-state/default`
+
+## Epic 7 — Centralized tag registry
+
+### Current tag handling findings
+
+- Core schemas still model tags as `string[]`.
+- Server-side extracted entities also store tags as plain strings in `api_entity_tags`.
+- Current item, material, action, activity, and skill data all use string tag arrays; no object-backed tag model exists yet.
+
+### Completed
+
+- Added a server-owned `server/data/tag-registry.json`.
+- Added `GET /api/tags` to expose categories, labels, descriptions, and allowed usage metadata.
+- Kept runtime compatibility with existing string tags in all definitions.

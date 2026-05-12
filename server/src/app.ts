@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 
 import express, {
   type Express,
@@ -32,6 +33,7 @@ import { registerEntityRoutes } from "./entities/entity-routes";
 import { seedApiEntities } from "./entities/entity-seed";
 import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
+import { createTagRegistryRouter } from "./tags/tag-registry";
 
 let appPromise: Promise<Express> | null = null;
 let configCache: ServerConfig | null = null;
@@ -115,6 +117,10 @@ export async function createApp(
   app.use("/api/data", createContentRouter(repository));
   app.use("/api/changelog", createChangelogRouter(changelogController));
   app.use("/api/admin", createAdminChangelogRouter(changelogController));
+  app.use(
+    "/api/tags",
+    createTagRegistryRouter(resolve(config.definitionRoot, "..", "tag-registry.json")),
+  );
   app.use(
     "/api/server",
     createMultiplayerRouter(multiplayerRepository, config),
