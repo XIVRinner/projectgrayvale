@@ -12,7 +12,6 @@ import {
 import {
   compareItemAgainstSlot,
   type EquipmentSlot,
-  type InventoryItemDefinition,
   type Loadout,
   type Player,
   sampleLoadoutDefault
@@ -23,6 +22,7 @@ import {
   checkEquipmentRequirements
 } from "../character-sheet-equipment-requirements";
 import { DefinitionImageService } from "../../../data/definition-image.service";
+import type { GameInventoryItemDefinition } from "../../../data/definition-parsers";
 import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "./inventory-panel.types";
 import { isEquipmentItem } from "./inventory-panel.types";
@@ -60,12 +60,12 @@ export class InventoryPanelContainerComponent {
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
-  private readonly inventoryItems = signal<readonly InventoryItemDefinition[]>([]);
+  private readonly inventoryItems = signal<readonly GameInventoryItemDefinition[]>([]);
 
   protected readonly items = computed<readonly InventoryPanelItemView[]>(() => {
     const loadout = this.activeLoadout();
     const player = this.player();
-    const registry = new Map<string, InventoryItemDefinition>();
+      const registry = new Map<string, GameInventoryItemDefinition>();
 
     if (!player) {
       return [];
@@ -82,7 +82,7 @@ export class InventoryPanelContainerComponent {
 
     return visibleItemIds
       .map((itemId) => registry.get(itemId))
-      .filter((item): item is InventoryItemDefinition => item !== undefined)
+        .filter((item): item is GameInventoryItemDefinition => item !== undefined)
       .map((item) => {
       const ownedQuantity = ownedItemCounts[item.id] ?? 0;
       const searchTerms = [item.name, item.rarity, item.category, ...(item.tags ?? [])].map((term) =>
@@ -240,7 +240,7 @@ export class InventoryPanelContainerComponent {
         return;
       }
 
-      this.inventoryItems.set(hydratedItems as readonly InventoryItemDefinition[]);
+      this.inventoryItems.set(hydratedItems);
       this.isLoading.set(false);
     } catch (err: unknown) {
       if (generation !== this.loadGeneration) {

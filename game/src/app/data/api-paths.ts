@@ -2,6 +2,10 @@ const API_ROOT = "/api";
 const DATA_API_ROOT = "/api/data";
 let apiOriginOverride: string | null = null;
 
+/**
+ * Definition/asset categories mirrored by the server definition and asset routes.
+ * Keep this union aligned with the server's DefinitionType route registry.
+ */
 export type DefinitionApiType =
   | "items"
   | "materials"

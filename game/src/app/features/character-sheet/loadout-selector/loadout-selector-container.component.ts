@@ -190,7 +190,7 @@ export class LoadoutSelectorContainerComponent {
           ...item,
           iconPath: await this.definitionImageService.getImageUrl(
             "items",
-            (item as { imageId?: string }).imageId
+            item.imageId ?? null
           )
         }))
       );

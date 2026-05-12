@@ -29,7 +29,7 @@ export class DefinitionAssetService {
 
     return {
       id: assetId,
-      hash: createHash("sha1").update(body).digest("hex"),
+      hash: createHash("sha256").update(body).digest("hex"),
       contentType: toContentType(filePath),
       updatedAt: fileStats.mtime.toISOString(),
     };
@@ -46,7 +46,7 @@ export class DefinitionAssetService {
 
     return {
       id: assetId,
-      hash: createHash("sha1").update(body).digest("hex"),
+      hash: createHash("sha256").update(body).digest("hex"),
       contentType: toContentType(filePath),
       updatedAt: fileStats.mtime.toISOString(),
       body,
