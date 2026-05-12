@@ -1,9 +1,13 @@
 import type { WorldGraph } from "@rinner/grayvale-worldgraph";
 
+import type { AuthoredActionDefinition } from "../../data/loaders/actions.loader";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import type { WorldGuardCatalog } from "../../data/loaders/world-guards.loader";
 import type { WorldLocationsCatalog } from "../../data/loaders/world-locations.loader";
-import { errorDiagnostic, warningDiagnostic } from "./gameplay-graph-diagnostics";
+import {
+  errorDiagnostic,
+  warningDiagnostic,
+} from "./gameplay-graph-diagnostics";
 import type {
   ActionId,
   ActionNode,
@@ -11,7 +15,7 @@ import type {
   CompileResult,
   ContextId,
   ContextNode,
-  GameplayExecutionGraph
+  GameplayExecutionGraph,
 } from "./gameplay-execution-graph.types";
 
 // ---------------------------------------------------------------------------
@@ -23,6 +27,7 @@ export type CompileInput = {
   readonly locationsCatalog: WorldLocationsCatalog;
   readonly guardCatalog: WorldGuardCatalog;
   readonly activities: readonly GameActivityDefinition[];
+  readonly authoredActions: readonly AuthoredActionDefinition[];
 };
 
 // ---------------------------------------------------------------------------
@@ -32,7 +37,7 @@ export type CompileInput = {
 
 export function buildEnterSublocationActionId(
   sublocationId: string,
-  locationId?: string
+  locationId?: string,
 ): string {
   if (locationId) {
     return `enter-${locationId}-${sublocationId}`;
@@ -43,7 +48,7 @@ export function buildEnterSublocationActionId(
 
 export function buildExitSublocationActionId(
   sublocationId: string,
-  locationId?: string
+  locationId?: string,
 ): string {
   if (locationId) {
     return `leave-${locationId}-${sublocationId}`;
@@ -60,12 +65,21 @@ export function buildActivityActionId(activityId: string): string {
   return `activity:${activityId}`;
 }
 
+export function buildAuthoredActionActionId(actionId: string): string {
+  return `system:action:${actionId}`;
+}
+
 // ---------------------------------------------------------------------------
 // Context ID helper
 // ---------------------------------------------------------------------------
 
-export function buildContextId(locationId: string, sublocationId?: string): ContextId {
-  return sublocationId ? `${locationId}:${sublocationId}` : `${locationId}:default`;
+export function buildContextId(
+  locationId: string,
+  sublocationId?: string,
+): ContextId {
+  return sublocationId
+    ? `${locationId}:${sublocationId}`
+    : `${locationId}:default`;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,7 +96,9 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
 
   // --- 1. Resolve location IDs from catalog and cross-check with the graph --
 
-  const catalogLocationIds = new Set(input.locationsCatalog.locations.map((l) => l.id));
+  const catalogLocationIds = new Set(
+    input.locationsCatalog.locations.map((l) => l.id),
+  );
 
   for (const locationId of Object.keys(input.worldGraph.locations)) {
     if (!catalogLocationIds.has(locationId)) {
@@ -90,8 +106,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         warningDiagnostic(
           "GEG_W001",
           `Location "${locationId}" is in the world graph but has no metadata entry.`,
-          { id: locationId }
-        )
+          { id: locationId },
+        ),
       );
     }
   }
@@ -102,8 +118,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         errorDiagnostic(
           "GEG_E001",
           `Location "${location.id}" is in the location catalog but is missing from the world graph.`,
-          { id: location.id }
-        )
+          { id: location.id },
+        ),
       );
     }
   }
@@ -111,7 +127,10 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   // --- 2. Build context nodes (one per location + one per sublocation) ------
 
   const contextMap = new Map<ContextId, ContextNode>();
-  const sublocationLookup = new Map<string, { locationId: string; sublocationId: string }>();
+  const sublocationLookup = new Map<
+    string,
+    { locationId: string; sublocationId: string }
+  >();
 
   for (const location of input.locationsCatalog.locations) {
     const topLevelContextId = buildContextId(location.id);
@@ -119,7 +138,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
     contextMap.set(topLevelContextId, {
       id: topLevelContextId,
       locationId: location.id,
-      actionIds: []
+      actionIds: [],
     });
 
     for (const sublocation of location.sublocations) {
@@ -129,15 +148,17 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       if (!existingSublocation) {
         sublocationLookup.set(sublocation.id, {
           locationId: location.id,
-          sublocationId: sublocation.id
+          sublocationId: sublocation.id,
         });
       } else if (existingSublocation.locationId !== location.id) {
         diagnostics.push(
           warningDiagnostic(
             "GEG_W007",
             `Sublocation id "${sublocation.id}" is duplicated across locations. Activity shorthand resolution for this id is disabled.`,
-            { path: `world-locations.${location.id}.sublocations.${sublocation.id}` }
-          )
+            {
+              path: `world-locations.${location.id}.sublocations.${sublocation.id}`,
+            },
+          ),
         );
         sublocationLookup.delete(sublocation.id);
       }
@@ -146,7 +167,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         id: subContextId,
         locationId: location.id,
         sublocationId: sublocation.id,
-        actionIds: []
+        actionIds: [],
       });
     }
   }
@@ -160,7 +181,10 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       const subContextId = buildContextId(location.id, sublocation.id);
 
       // Sublocation enter — visible at the parent location context
-      const enterId = buildEnterSublocationActionId(sublocation.id, location.id);
+      const enterId = buildEnterSublocationActionId(
+        sublocation.id,
+        location.id,
+      );
 
       // Validate entry guard references
       for (const guard of sublocation.entryGuards ?? []) {
@@ -169,8 +193,11 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
             errorDiagnostic(
               "GEG_E007",
               `Sublocation "${sublocation.id}" entry guard references unknown guard type "${guard.type}".`,
-              { id: sublocation.id, path: `${location.id}.sublocations.${sublocation.id}.entryGuards` }
-            )
+              {
+                id: sublocation.id,
+                path: `${location.id}.sublocations.${sublocation.id}.entryGuards`,
+              },
+            ),
           );
         }
       }
@@ -182,13 +209,15 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         groupKind: "movement",
         hiddenByDefault: false,
         disabledReason: sublocation.entryDisabledReason,
-        visibleWhen: sublocation.entryGuards?.length ? [...sublocation.entryGuards] : undefined,
+        visibleWhen: sublocation.entryGuards?.length
+          ? [...sublocation.entryGuards]
+          : undefined,
         execution: {
           kind: "movement",
           movementKind: "sublocation-enter",
-          targetSublocationId: sublocation.id
+          targetSublocationId: sublocation.id,
         },
-        debug: { generated: true }
+        debug: { generated: true },
       });
 
       // Sublocation exit — visible only while inside the sublocation
@@ -201,8 +230,11 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
             errorDiagnostic(
               "GEG_E002",
               `Sublocation "${sublocation.id}" exit guard references unknown guard type "${guard.type}".`,
-              { id: sublocation.id, path: `${location.id}.sublocations.${sublocation.id}.exitGuards` }
-            )
+              {
+                id: sublocation.id,
+                path: `${location.id}.sublocations.${sublocation.id}.exitGuards`,
+              },
+            ),
           );
         }
       }
@@ -213,13 +245,15 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         label: sublocation.exitActionLabel ?? `Leave ${sublocation.label}`,
         groupKind: "movement",
         hiddenByDefault: false,
-        enabledWhen: sublocation.exitGuards?.length ? [...sublocation.exitGuards] : undefined,
+        enabledWhen: sublocation.exitGuards?.length
+          ? [...sublocation.exitGuards]
+          : undefined,
         execution: {
           kind: "movement",
           movementKind: "sublocation-exit",
-          targetSublocationId: sublocation.id
+          targetSublocationId: sublocation.id,
         },
-        debug: { generated: true }
+        debug: { generated: true },
       });
     }
   }
@@ -230,15 +264,17 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
     const fromContextId = buildContextId(edge.from);
 
     // Validate the destination has metadata
-    const destMeta = input.locationsCatalog.locations.find((l) => l.id === edge.to);
+    const destMeta = input.locationsCatalog.locations.find(
+      (l) => l.id === edge.to,
+    );
 
     if (!destMeta) {
       diagnostics.push(
         warningDiagnostic(
           "GEG_W002",
           `Travel edge from "${edge.from}" to "${edge.to}" has no destination metadata.`,
-          { path: `edges.${edge.from}->${edge.to}` }
-        )
+          { path: `edges.${edge.from}->${edge.to}` },
+        ),
       );
     }
 
@@ -249,8 +285,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
           errorDiagnostic(
             "GEG_E003",
             `Travel edge from "${edge.from}" to "${edge.to}" references unknown guard type "${guard.type}".`,
-            { path: `edges.${edge.from}->${edge.to}.guards` }
-          )
+            { path: `edges.${edge.from}->${edge.to}.guards` },
+          ),
         );
       }
     }
@@ -264,8 +300,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
           errorDiagnostic(
             "GEG_E004",
             `Location "${edge.to}" references unknown guard type "${guard.type}".`,
-            { id: edge.to }
-          )
+            { id: edge.to },
+          ),
         );
       }
     }
@@ -275,8 +311,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         errorDiagnostic(
           "GEG_E005",
           `Travel edge originates from unknown context "${fromContextId}".`,
-          { path: `edges.${edge.from}->${edge.to}` }
-        )
+          { path: `edges.${edge.from}->${edge.to}` },
+        ),
       );
       continue;
     }
@@ -288,7 +324,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
     // Both edge guards and destination location guards are modelled as enabledWhen.
     const enabledGuards = [
       ...(edge.guards ?? []),
-      ...(destGraphEntry?.guards ?? [])
+      ...(destGraphEntry?.guards ?? []),
     ];
 
     allActions.push({
@@ -301,16 +337,20 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       execution: {
         kind: "movement",
         movementKind: "travel",
-        targetLocationId: edge.to
+        targetLocationId: edge.to,
       },
-      debug: { generated: true }
+      debug: { generated: true },
     });
   }
 
   // --- 5. Generate activity actions ------------------------------------------
 
   for (const activity of input.activities) {
-    const resolution = resolveActivityContextId(activity, contextMap, sublocationLookup);
+    const resolution = resolveActivityContextId(
+      activity,
+      contextMap,
+      sublocationLookup,
+    );
     const authoredContextId = resolution.authoredContextId;
     const activityContextId = resolution.resolvedContextId;
 
@@ -319,8 +359,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         warningDiagnostic(
           "GEG_W003",
           `Activity "${activity.id}" references unknown context "${authoredContextId}".`,
-          { id: activity.id }
-        )
+          { id: activity.id },
+        ),
       );
       continue;
     }
@@ -330,8 +370,8 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         warningDiagnostic(
           "GEG_W006",
           `Activity "${activity.id}" sublocation context "${authoredContextId}" was not found. Falling back to "${activityContextId}".`,
-          { id: activity.id }
-        )
+          { id: activity.id },
+        ),
       );
     }
 
@@ -342,24 +382,72 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
       groupKind: activity.questSignal?.type === "kill" ? "combat" : "activity",
       hiddenByDefault: false,
       visibleWhen: [
-        { type: "activity_available", params: { activityId: activity.id } }
+        { type: "activity_available", params: { activityId: activity.id } },
       ],
       enabledWhen: [
-        { type: "activity_enabled", params: { activityId: activity.id } }
+        { type: "activity_enabled", params: { activityId: activity.id } },
       ],
       execution: {
         kind: "activity",
-        activityId: activity.id
+        activityId: activity.id,
       },
-      debug: { generated: false }
+      debug: { generated: false },
     });
   }
 
-  // --- 6. Compile story/system actions (game-logic constants) ----------------
+  // --- 6. Generate authored system actions -----------------------------------
+
+  for (const action of input.authoredActions) {
+    const resolvedContextId = resolveAuthoredActionContextId(
+      action,
+      contextMap,
+      sublocationLookup,
+    );
+
+    if (!resolvedContextId) {
+      diagnostics.push(
+        warningDiagnostic(
+          "GEG_W011",
+          `Authored action "${action.id}" could not resolve a gameplay context from its location requirement.`,
+          { id: action.id, path: "actions.json" },
+        ),
+      );
+      continue;
+    }
+
+    allActions.push({
+      id: buildAuthoredActionActionId(action.id),
+      contextId: resolvedContextId,
+      label: action.name,
+      groupKind: deriveAuthoredActionGroupKind(action),
+      hiddenByDefault: false,
+      enabledWhen:
+        typeof action.requirements?.minLevel === "number"
+          ? [
+              {
+                type: "player_level_at_least",
+                params: {
+                  minimumLevel: action.requirements.minLevel,
+                },
+              },
+            ]
+          : undefined,
+      execution: {
+        kind: "system",
+        command: `authored-action:${action.id}`,
+      },
+      debug: {
+        generated: false,
+        sourceFile: "actions.json",
+      },
+    });
+  }
+
+  // --- 7. Compile story/system actions (game-logic constants) ----------------
 
   allActions.push(...buildStoryActions(contextMap, diagnostics));
 
-  // --- 7. Validate duplicate action IDs -------------------------------------
+  // --- 8. Validate duplicate action IDs -------------------------------------
 
   const actionIdCounts = new Map<ActionId, number>();
 
@@ -373,13 +461,13 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
         errorDiagnostic(
           "GEG_E006",
           `Duplicate action id "${actionId}" compiled ${count} times.`,
-          { id: actionId }
-        )
+          { id: actionId },
+        ),
       );
     }
   }
 
-  // --- 8. Build final maps --------------------------------------------------
+  // --- 9. Build final maps --------------------------------------------------
 
   const actionsById = new Map<ActionId, ActionNode>();
   const actionsByContextId = new Map<ContextId, ActionId[]>();
@@ -406,7 +494,7 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
   for (const [contextId, context] of contextMap) {
     finalContextMap.set(contextId, {
       ...context,
-      actionIds: actionsByContextId.get(contextId) ?? []
+      actionIds: actionsByContextId.get(contextId) ?? [],
     });
   }
 
@@ -415,21 +503,71 @@ export function compileGameplayGraph(input: CompileInput): CompileResult {
     contextsById: finalContextMap,
     actionsById,
     actionsByContextId: new Map(
-      [...actionsByContextId.entries()].map(([k, v]) => [k, v as readonly ActionId[]])
-    )
+      [...actionsByContextId.entries()].map(([k, v]) => [
+        k,
+        v as readonly ActionId[],
+      ]),
+    ),
   };
 
   return { graph, diagnostics };
 }
 
+function resolveAuthoredActionContextId(
+  action: AuthoredActionDefinition,
+  contextMap: ReadonlyMap<ContextId, ContextNode>,
+  sublocationLookup: ReadonlyMap<
+    string,
+    { locationId: string; sublocationId: string }
+  >,
+): ContextId | null {
+  const locationRequirement = action.requirements?.location?.trim();
+
+  if (!locationRequirement) {
+    return null;
+  }
+
+  const directLocationContext = buildContextId(locationRequirement);
+  if (contextMap.has(directLocationContext)) {
+    return directLocationContext;
+  }
+
+  const shorthand = sublocationLookup.get(locationRequirement);
+  if (shorthand) {
+    const sublocationContext = buildContextId(
+      shorthand.locationId,
+      shorthand.sublocationId,
+    );
+
+    if (contextMap.has(sublocationContext)) {
+      return sublocationContext;
+    }
+  }
+
+  return null;
+}
+
+function deriveAuthoredActionGroupKind(
+  action: AuthoredActionDefinition,
+): ActionNode["groupKind"] {
+  if (action.tags.includes("tavern") || action.cost.base > 0) {
+    return "shop";
+  }
+
+  return "activity";
+}
+
 function resolveActivityContextId(
   activity: GameActivityDefinition,
   contextMap: ReadonlyMap<ContextId, ContextNode>,
-  sublocationLookup: ReadonlyMap<string, { locationId: string; sublocationId: string }>
+  sublocationLookup: ReadonlyMap<
+    string,
+    { locationId: string; sublocationId: string }
+  >,
 ): { authoredContextId: ContextId; resolvedContextId: ContextId } {
   const authoredContextId = buildContextId(
     activity.location.locationId,
-    activity.location.sublocationId
+    activity.location.sublocationId,
   );
 
   if (contextMap.has(authoredContextId)) {
@@ -445,12 +583,12 @@ function resolveActivityContextId(
   if (shorthand) {
     const shorthandContextId = buildContextId(
       shorthand.locationId,
-      shorthand.sublocationId
+      shorthand.sublocationId,
     );
     if (contextMap.has(shorthandContextId)) {
       return {
         authoredContextId,
-        resolvedContextId: shorthandContextId
+        resolvedContextId: shorthandContextId,
       };
     }
   }
@@ -475,12 +613,16 @@ const STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID = "village-arkama:default";
 
 const STORY_BRIDGITTE_HOUSE_ACTION_ID = "story:bridgitte-house";
 const STORY_BRIDGITTE_HOUSE_CONTEXT_ID = "village-arkama:bridgitte-house";
-const STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_ACTION_ID = "story:bridgitte-repeatables:pre-hunt";
-const STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_CONTEXT_ID = "village-arkama:bridgitte-house";
+const STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_ACTION_ID =
+  "story:bridgitte-repeatables:pre-hunt";
+const STORY_BRIDGITTE_PRE_HUNT_REPEATABLES_CONTEXT_ID =
+  "village-arkama:bridgitte-house";
 const STORY_BRIDGITTE_REPORT_BACK_ACTION_ID = "story:bridgitte-report-back";
 const STORY_BRIDGITTE_REPORT_BACK_CONTEXT_ID = "village-arkama:bridgitte-house";
-const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_ACTION_ID = "story:bridgitte-repeatables:post-coyote";
-const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_CONTEXT_ID = "village-arkama:bridgitte-house";
+const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_ACTION_ID =
+  "story:bridgitte-repeatables:post-coyote";
+const STORY_BRIDGITTE_POST_COYOTE_REPEATABLES_CONTEXT_ID =
+  "village-arkama:bridgitte-house";
 
 const STORY_BARTENDER_INTRO_ACTION_ID = "story:bartender-intro";
 const STORY_BARTENDER_INTRO_CONTEXT_ID = "village-arkama:tavern";
@@ -490,7 +632,7 @@ const STORY_SELF_TEND_INJURIES_CONTEXT_ID = "camp:default";
 
 function buildStoryActions(
   contextMap: Map<ContextId, ContextNode>,
-  diagnostics: CompileDiagnostic[]
+  diagnostics: CompileDiagnostic[],
 ): ActionNode[] {
   const actions: ActionNode[] = [];
 
@@ -499,8 +641,8 @@ function buildStoryActions(
       warningDiagnostic(
         "GEG_W004",
         `Story wake-up action context "${STORY_WAKE_UP_CONTEXT_ID}" does not exist. The prologue action will not be compiled.`,
-        { id: STORY_WAKE_UP_ACTION_ID }
-      )
+        { id: STORY_WAKE_UP_ACTION_ID },
+      ),
     );
 
     return actions;
@@ -515,8 +657,8 @@ function buildStoryActions(
     visibleWhen: [{ type: "story_prologue_pending" }],
     execution: {
       kind: "dialogue",
-      dialogueTarget: "prologue"
-    }
+      dialogueTarget: "prologue",
+    },
   });
 
   if (!contextMap.has(STORY_CHIEF_LABOUR_CONTEXT_ID)) {
@@ -524,8 +666,8 @@ function buildStoryActions(
       warningDiagnostic(
         "GEG_W005",
         `Story chief-labour action context "${STORY_CHIEF_LABOUR_CONTEXT_ID}" does not exist. The chief labour action will not be compiled.`,
-        { id: STORY_CHIEF_LABOUR_ACTION_ID }
-      )
+        { id: STORY_CHIEF_LABOUR_ACTION_ID },
+      ),
     );
   } else {
     actions.push({
@@ -536,12 +678,15 @@ function buildStoryActions(
       hiddenByDefault: false,
       visibleWhen: [
         { type: "quest_completed", params: { questId: "quest_recovery" } },
-        { type: "quest_not_started", params: { questId: "quest_chief_labour" } }
+        {
+          type: "quest_not_started",
+          params: { questId: "quest_chief_labour" },
+        },
       ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "chief-labour"
-      }
+        dialogueTarget: "chief-labour",
+      },
     });
   }
 
@@ -550,8 +695,8 @@ function buildStoryActions(
       warningDiagnostic(
         "GEG_W007",
         `Story chief-bridgitte-handoff action context "${STORY_CHIEF_BRIDGITTE_HANDOFF_CONTEXT_ID}" does not exist. The chief follow-up action will not be compiled.`,
-        { id: STORY_CHIEF_BRIDGITTE_HANDOFF_ACTION_ID }
-      )
+        { id: STORY_CHIEF_BRIDGITTE_HANDOFF_ACTION_ID },
+      ),
     );
   } else {
     actions.push({
@@ -563,13 +708,13 @@ function buildStoryActions(
       visibleWhen: [
         {
           type: "quest_step_active",
-          params: { questId: "quest_chief_labour", stepId: "report_to_chief" }
-        }
+          params: { questId: "quest_chief_labour", stepId: "report_to_chief" },
+        },
       ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "chief-bridgitte-handoff"
-      }
+        dialogueTarget: "chief-bridgitte-handoff",
+      },
     });
   }
 
@@ -578,8 +723,8 @@ function buildStoryActions(
       warningDiagnostic(
         "GEG_W008",
         `Story bridgitte-house action context "${STORY_BRIDGITTE_HOUSE_CONTEXT_ID}" does not exist. The Bridgitte intro action will not be compiled.`,
-        { id: STORY_BRIDGITTE_HOUSE_ACTION_ID }
-      )
+        { id: STORY_BRIDGITTE_HOUSE_ACTION_ID },
+      ),
     );
   } else {
     actions.push({
@@ -590,12 +735,15 @@ function buildStoryActions(
       hiddenByDefault: false,
       visibleWhen: [
         { type: "quest_completed", params: { questId: "quest_chief_labour" } },
-        { type: "quest_not_started", params: { questId: "cull_arkama_coyote" } }
+        {
+          type: "quest_not_started",
+          params: { questId: "cull_arkama_coyote" },
+        },
       ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "bridgitte-house"
-      }
+        dialogueTarget: "bridgitte-house",
+      },
     });
 
     actions.push({
@@ -607,13 +755,13 @@ function buildStoryActions(
       visibleWhen: [
         {
           type: "quest_step_active",
-          params: { questId: "cull_arkama_coyote", stepId: "cull_the_coyote" }
-        }
+          params: { questId: "cull_arkama_coyote", stepId: "cull_the_coyote" },
+        },
       ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "bridgitte-repeatables"
-      }
+        dialogueTarget: "bridgitte-repeatables",
+      },
     });
 
     actions.push({
@@ -625,13 +773,16 @@ function buildStoryActions(
       visibleWhen: [
         {
           type: "quest_step_active",
-          params: { questId: "cull_arkama_coyote", stepId: "report_back_to_bridgitte" }
-        }
+          params: {
+            questId: "cull_arkama_coyote",
+            stepId: "report_back_to_bridgitte",
+          },
+        },
       ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "bridgitte-report-back"
-      }
+        dialogueTarget: "bridgitte-report-back",
+      },
     });
 
     actions.push({
@@ -640,11 +791,13 @@ function buildStoryActions(
       label: "Speak to Bridgitte",
       groupKind: "talk",
       hiddenByDefault: false,
-      visibleWhen: [{ type: "quest_completed", params: { questId: "cull_arkama_coyote" } }],
+      visibleWhen: [
+        { type: "quest_completed", params: { questId: "cull_arkama_coyote" } },
+      ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "bridgitte-repeatables"
-      }
+        dialogueTarget: "bridgitte-repeatables",
+      },
     });
   }
 
@@ -653,8 +806,8 @@ function buildStoryActions(
       warningDiagnostic(
         "GEG_W009",
         `Story bartender-intro action context "${STORY_BARTENDER_INTRO_CONTEXT_ID}" does not exist. The bartender unlock action will not be compiled.`,
-        { id: STORY_BARTENDER_INTRO_ACTION_ID }
-      )
+        { id: STORY_BARTENDER_INTRO_ACTION_ID },
+      ),
     );
   } else {
     actions.push({
@@ -663,11 +816,13 @@ function buildStoryActions(
       label: "Speak to Bartender",
       groupKind: "talk",
       hiddenByDefault: false,
-      visibleWhen: [{ type: "activity_locked", params: { activityId: "tavern_work" } }],
+      visibleWhen: [
+        { type: "activity_locked", params: { activityId: "tavern_work" } },
+      ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "tavern-bartender-first-meeting"
-      }
+        dialogueTarget: "tavern-bartender-first-meeting",
+      },
     });
   }
 
@@ -676,8 +831,8 @@ function buildStoryActions(
       warningDiagnostic(
         "GEG_W010",
         `Story self-tend-injuries action context "${STORY_SELF_TEND_INJURIES_CONTEXT_ID}" does not exist. The self-unlock action will not be compiled.`,
-        { id: STORY_SELF_TEND_INJURIES_ACTION_ID }
-      )
+        { id: STORY_SELF_TEND_INJURIES_ACTION_ID },
+      ),
     );
   } else {
     actions.push({
@@ -686,11 +841,13 @@ function buildStoryActions(
       label: "Reflect on Your Wounds",
       groupKind: "talk",
       hiddenByDefault: false,
-      visibleWhen: [{ type: "activity_locked", params: { activityId: "tend_injuries" } }],
+      visibleWhen: [
+        { type: "activity_locked", params: { activityId: "tend_injuries" } },
+      ],
       execution: {
         kind: "dialogue",
-        dialogueTarget: "camp-self-tend-injuries"
-      }
+        dialogueTarget: "camp-self-tend-injuries",
+      },
     });
   }
 

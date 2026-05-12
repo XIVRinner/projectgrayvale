@@ -1,13 +1,11 @@
-import { computed, Injectable, inject } from "@angular/core";
+import { computed, effect, Injectable, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import type { Delta, Player } from "@rinner/grayvale-core";
 import { Subject, type Observable } from "rxjs";
 
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
-import type {
-  ActivityTickSnapshotView
-} from "../../shared/components/activity-tick-feed/activity-tick-feed.types";
+import type { ActivityTickSnapshotView } from "../../shared/components/activity-tick-feed/activity-tick-feed.types";
 import { CharacterRosterService } from "./character-roster.service";
 import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
 import { DebugLogService } from "./game-log/debug-log.service";
@@ -28,14 +26,17 @@ export class ActivityService {
   private readonly combatEncounter = inject(CombatEncounterService);
   private readonly debugLog = inject(DebugLogService);
 
-  private readonly activitiesState: GameActivityDefinition[] = [];
+  private readonly activitiesState = signal<readonly GameActivityDefinition[]>(
+    [],
+  );
   private readonly tickAppliedSubject = new Subject<ActivityTickSnapshotView>();
   private readonly runItemTotals = new Map<string, number>();
   private emptyGrowthTickStreak = 0;
 
   /** Signal: the id of the currently active (ticking) activity, or null. */
   readonly activeActivityId = computed(
-    () => this.roster.activeCharacter()?.activityState?.activeActivityId ?? null
+    () =>
+      this.roster.activeCharacter()?.activityState?.activeActivityId ?? null,
   );
 
   /** Emits an `ActivityTickSnapshotView` after every processed activity tick. */
@@ -45,13 +46,34 @@ export class ActivityService {
   constructor() {
     this.activitiesLoader.load().subscribe({
       next: (activities) => {
-        this.activitiesState.length = 0;
-        this.activitiesState.push(...activities);
+        this.activitiesState.set(activities);
       },
       error: () => {
-        this.debugLog.logMessage("activity", "Failed to load activity definitions.");
-      }
+        this.debugLog.logMessage(
+          "activity",
+          "Failed to load activity definitions.",
+        );
+      },
     });
+
+    effect(
+      () => {
+        const activities = this.activitiesState();
+        const player = this.roster.activeCharacter();
+        this.roster.activeHealth();
+
+        if (!player || activities.length === 0) {
+          return;
+        }
+
+        for (const activity of activities) {
+          if (isHealingActivity(activity)) {
+            this.reconcileHealingAvailability(activity.id, activity);
+          }
+        }
+      },
+      { allowSignalWrites: true },
+    );
 
     this.ticks.registerTickType("activity", 1000);
     this.ticks.start();
@@ -84,18 +106,25 @@ export class ActivityService {
       return false;
     }
 
-    const activity = this.activitiesState.find((entry) => entry.id === activityId);
+    const activity = this.activitiesState().find(
+      (entry) => entry.id === activityId,
+    );
     if (activity) {
       this.reconcileHealingAvailability(activityId, activity);
     }
 
-    const availability = this.roster.activeCharacter()?.activityState?.availability?.[activityId];
+    const availability =
+      this.roster.activeCharacter()?.activityState?.availability?.[activityId];
 
     if (!availability || availability.status !== "enabled") {
-      this.debugLog.logMessage("activity", "Activity start rejected — not enabled.", {
-        activityId,
-        status: availability?.status ?? "missing"
-      });
+      this.debugLog.logMessage(
+        "activity",
+        "Activity start rejected — not enabled.",
+        {
+          activityId,
+          status: availability?.status ?? "missing",
+        },
+      );
       return false;
     }
 
@@ -103,7 +132,7 @@ export class ActivityService {
       type: "set",
       target: "player",
       path: ["activityState", "activeActivityId"],
-      value: activityId
+      value: activityId,
     };
 
     const applied = this.roster.applyActiveCharacterDeltas([delta]) !== null;
@@ -122,8 +151,8 @@ export class ActivityService {
               type: "set",
               target: "player",
               path: ["activityState", "activeActivityId"],
-              value: null
-            }
+              value: null,
+            },
           ]);
           return false;
         }
@@ -143,7 +172,7 @@ export class ActivityService {
       type: "set",
       target: "player",
       path: ["activityState", "activeActivityId"],
-      value: null
+      value: null,
     };
 
     const applied = this.roster.applyActiveCharacterDeltas([delta]) !== null;
@@ -165,7 +194,9 @@ export class ActivityService {
       return;
     }
 
-    const activity = this.activitiesState.find((entry) => entry.id === activityId);
+    const activity = this.activitiesState().find(
+      (entry) => entry.id === activityId,
+    );
 
     if (activity && this.combatEncounter.isCombatActivity(activity)) {
       return;
@@ -188,7 +219,9 @@ export class ActivityService {
     }
 
     const hasValuableGrowth = growth.hasValuableGrowth || hpGain > 0;
-    this.emptyGrowthTickStreak = hasValuableGrowth ? 0 : this.emptyGrowthTickStreak + 1;
+    this.emptyGrowthTickStreak = hasValuableGrowth
+      ? 0
+      : this.emptyGrowthTickStreak + 1;
 
     const cutoffRule = this.resolveCutoffRule(activityId, hasValuableGrowth);
 
@@ -199,14 +232,17 @@ export class ActivityService {
       tickNumber: event.tickNumber,
       occurredAtLabel: new Date(event.at).toLocaleTimeString(),
       attributeSkillDeltaLabel: growth.attributeSkillTickLabel,
-      currentAttributeSkillLevelLabel: buildCurrentLevelLabel(appliedDeltas, player),
+      currentAttributeSkillLevelLabel: buildCurrentLevelLabel(
+        appliedDeltas,
+        player,
+      ),
       attributeSkillPerHourLabel: growth.attributeSkillPerHourLabel,
       itemGainLabel: growth.itemGainLabel,
       itemTotalGainLabel: formatAggregateLabel(this.runItemTotals),
       hpGainLabel: hpGain > 0 ? `HP +${hpGain}` : "None",
       currentHpLabel: formatCurrentHpLabel(healthAfter),
       cutoffRuleLabel: cutoffRule.label,
-      isCutoffTriggered: cutoffRule.shouldCutoff
+      isCutoffTriggered: cutoffRule.shouldCutoff,
     };
 
     this.tickAppliedSubject.next(snapshot);
@@ -216,7 +252,7 @@ export class ActivityService {
       this.debugLog.logMessage("activity", "Activity auto-cutoff reached.", {
         activityId,
         rule: cutoffRule.label,
-        emptyGrowthTickStreak: this.emptyGrowthTickStreak
+        emptyGrowthTickStreak: this.emptyGrowthTickStreak,
       });
       this.stopActivity();
     }
@@ -224,45 +260,53 @@ export class ActivityService {
 
   private resolveCutoffRule(
     activityId: string,
-    hasValuableGrowth: boolean
+    hasValuableGrowth: boolean,
   ): { shouldCutoff: boolean; label: string } {
-    const activity = this.activitiesState.find((entry) => entry.id === activityId);
+    const activity = this.activitiesState().find(
+      (entry) => entry.id === activityId,
+    );
     if (activity && isHealingActivity(activity)) {
       const health = this.roster.activeHealth();
       if (!canHealAtCurrentState(activity, health)) {
         return {
           shouldCutoff: true,
-          label: "Cutoff reached: not injured enough to continue healing."
+          label: "Cutoff reached: not injured enough to continue healing.",
         };
       }
     }
 
-    const availability = this.roster.activeCharacter()?.activityState?.availability?.[activityId];
+    const availability =
+      this.roster.activeCharacter()?.activityState?.availability?.[activityId];
 
     if (!availability || availability.status !== "enabled") {
-      const reason = availability?.disabledReason ?? "activity is no longer enabled";
+      const reason =
+        availability?.disabledReason ?? "activity is no longer enabled";
       return {
         shouldCutoff: true,
-        label: `Cutoff reached: ${reason}.`
+        label: `Cutoff reached: ${reason}.`,
       };
     }
 
-    if (!hasValuableGrowth && this.emptyGrowthTickStreak >= ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD) {
+    if (
+      !hasValuableGrowth &&
+      this.emptyGrowthTickStreak >=
+        ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD
+    ) {
       return {
         shouldCutoff: true,
-        label: `Cutoff reached: no valuable growth for ${ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD} consecutive ticks.`
+        label: `Cutoff reached: no valuable growth for ${ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD} consecutive ticks.`,
       };
     }
 
     return {
       shouldCutoff: false,
-      label: `Auto-cutoff when growth stops being valuable (${this.emptyGrowthTickStreak}/${ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD} empty ticks).`
+      label: `Auto-cutoff when growth stops being valuable (${this.emptyGrowthTickStreak}/${ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD} empty ticks).`,
     };
   }
 
   private reconcileHealingAvailability(
     activityId: string,
-    activity: GameActivityDefinition
+    activity: GameActivityDefinition,
   ): void {
     if (!isHealingActivity(activity)) {
       return;
@@ -297,12 +341,13 @@ export class ActivityService {
         value: shouldDisable
           ? {
               status: "disabled",
-              disabledReason: "Not injured enough to use this healing activity."
+              disabledReason:
+                "Not injured enough to use this healing activity.",
             }
           : {
-              status: "enabled"
-            }
-      }
+              status: "enabled",
+            },
+      },
     ]);
   }
 }
@@ -319,7 +364,10 @@ type GrowthSummary = {
   readonly hasValuableGrowth: boolean;
 };
 
-function summarizeGrowth(deltas: readonly Delta[], elapsedMs: number): GrowthSummary {
+function summarizeGrowth(
+  deltas: readonly Delta[],
+  elapsedMs: number,
+): GrowthSummary {
   const attributeSkill = new Map<string, number>();
   const itemTick = new Map<string, number>();
 
@@ -358,7 +406,7 @@ function summarizeGrowth(deltas: readonly Delta[], elapsedMs: number): GrowthSum
     attributeSkillPerHourLabel: formatAggregateLabel(perHour, "/h"),
     itemGainLabel: formatAggregateLabel(itemTick),
     itemTotalsByKey: itemTick,
-    hasValuableGrowth
+    hasValuableGrowth,
   };
 }
 
@@ -372,7 +420,10 @@ function hasPositiveAmount(values: ReadonlyMap<string, number>): boolean {
   return false;
 }
 
-function formatAggregateLabel(values: ReadonlyMap<string, number>, suffix = ""): string {
+function formatAggregateLabel(
+  values: ReadonlyMap<string, number>,
+  suffix = "",
+): string {
   if (values.size === 0) {
     return "None";
   }
@@ -382,7 +433,9 @@ function formatAggregateLabel(values: ReadonlyMap<string, number>, suffix = ""):
     .join(", ");
 }
 
-function classifyDeltaPath(path: readonly string[]): "attribute" | "skill" | "item" | "currency" | "unknown" {
+function classifyDeltaPath(
+  path: readonly string[],
+): "attribute" | "skill" | "item" | "currency" | "unknown" {
   if (path[0] === "attributes") return "attribute";
   if (path[0] === "skills") return "skill";
   if (path[0] === "inventory" && path[1] === "items") return "item";
@@ -391,7 +444,8 @@ function classifyDeltaPath(path: readonly string[]): "attribute" | "skill" | "it
 }
 
 function deriveLabel(path: readonly string[]): string {
-  if (path[0] === "attributes" && path[1]) return `Attribute: ${prettyId(path[1])}`;
+  if (path[0] === "attributes" && path[1])
+    return `Attribute: ${prettyId(path[1])}`;
   if (path[0] === "skills" && path[1]) return `Skill: ${prettyId(path[1])}`;
   if (path[0] === "inventory" && path[1] === "items" && path[2]) {
     return `Item: ${prettyId(path[2])}`;
@@ -415,7 +469,10 @@ function toDeltaAmount(delta: Delta): number | null {
   return null;
 }
 
-function buildCurrentLevelLabel(deltas: readonly Delta[], player: Player | null): string {
+function buildCurrentLevelLabel(
+  deltas: readonly Delta[],
+  player: Player | null,
+): string {
   if (!player) {
     return "Unavailable";
   }
@@ -452,7 +509,7 @@ function buildCurrentLevelLabel(deltas: readonly Delta[], player: Player | null)
 
 function resolveHpGain(
   before: SaveSlotHealthState | null,
-  after: SaveSlotHealthState | null
+  after: SaveSlotHealthState | null,
 ): number {
   if (!before || !after) {
     return 0;
@@ -471,27 +528,28 @@ function formatCurrentHpLabel(health: SaveSlotHealthState | null): string {
 
 function isHealingActivity(activity: GameActivityDefinition): boolean {
   return (activity.rewards ?? []).some(
-    (reward) => reward.type === "attribute" && reward.targetId === "hp"
+    (reward) => reward.type === "attribute" && reward.targetId === "hp",
   );
 }
 
 function canHealAtCurrentState(
   activity: GameActivityDefinition,
-  health: SaveSlotHealthState | null
+  health: SaveSlotHealthState | null,
 ): boolean {
   if (!health) {
     return false;
   }
 
   const hpReward = (activity.rewards ?? []).find(
-    (reward) => reward.type === "attribute" && reward.targetId === "hp"
+    (reward) => reward.type === "attribute" && reward.targetId === "hp",
   );
 
   if (!hpReward) {
     return true;
   }
 
-  const capPercent = typeof hpReward.maxHealPercent === "number" ? hpReward.maxHealPercent : 100;
+  const capPercent =
+    typeof hpReward.maxHealPercent === "number" ? hpReward.maxHealPercent : 100;
   const capHp = Math.floor((health.maxHp * capPercent) / 100);
   return health.currentHp < capHp;
 }
@@ -506,7 +564,7 @@ function prettyId(value: string): string {
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+    maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
   }).format(value);
 }
 

@@ -6,7 +6,7 @@ import type {
   CompiledRotation,
   EquipmentDefinition,
   EnemyDefinition,
-  Player
+  Player,
 } from "@rinner/grayvale-core";
 import {
   attackDamageDownEffect,
@@ -22,12 +22,12 @@ import {
   playerActor,
   shortBladeSkill,
   slashingCut,
-  storyDifficultyProfile
+  storyDifficultyProfile,
 } from "@rinner/grayvale-core";
 import type { CombatTickContext } from "@rinner/grayvale-combat";
 import {
   compileCoyoteRotation,
-  compileShortBladeRotation
+  compileShortBladeRotation,
 } from "@rinner/grayvale-combat";
 
 import type { SaveSlotHealthState } from "../../core/services/health-balance";
@@ -37,7 +37,7 @@ import type {
   CombatEncounterView,
   CombatLogLineView,
   CombatRewardLineView,
-  CombatRotationRuleView
+  CombatRotationRuleView,
 } from "./combat.types";
 
 // GAP: General combat encounter registry
@@ -54,11 +54,11 @@ import type {
 const TUTORIAL_ACTIVITY_ID = "coyote_culling";
 const HUNT_COYOTE_ACTIVITY_ID = "hunt_coyote";
 const GAME_TO_COMBAT_SKILL_ID = {
-  skill_short_blade: "short_blade"
+  skill_short_blade: "short_blade",
 } as const satisfies Record<string, string>;
 const GAME_TO_COMBAT_WEAPON_ID = {
   weapon_dagger_rustleaf: oldDagger.id,
-  weapon_dagger_coyote_fang: "item_coyote_fang_dagger"
+  weapon_dagger_coyote_fang: "item_coyote_fang_dagger",
 } as const satisfies Record<string, string>;
 
 const huntCoyoteEnemy: EnemyDefinition = {
@@ -70,8 +70,8 @@ const huntCoyoteEnemy: EnemyDefinition = {
   xp: {
     characterXp: 16,
     offensiveSkillXp: 6,
-    armorSkillXp: 4
-  }
+    armorSkillXp: 4,
+  },
 };
 
 const coyoteFangDagger: EquipmentDefinition = {
@@ -81,30 +81,34 @@ const coyoteFangDagger: EquipmentDefinition = {
   itemLevel: 3,
   damage: {
     piercing: { min: 5, max: 11 },
-    slashing: { min: 3, max: 7 }
+    slashing: { min: 3, max: 7 },
   },
   modifiers: [
     {
       id: "mod_coyote_fang_strength",
       target: "strength",
       operation: "add",
-      value: 2
-    }
+      value: 2,
+    },
   ],
-  tags: [...oldDagger.tags, "beast"]
+  tags: [...oldDagger.tags, "beast"],
 };
 
 export interface CombatEncounterBundle {
   readonly activity: CombatActivityDefinition;
+  readonly sourceActivityDifficulty: number;
   readonly player: ActorDefinition;
   readonly enemies: readonly EnemyDefinition[];
   readonly context: CombatTickContext;
   readonly rotationPreview: readonly CombatRotationRuleView[];
 }
 
-export function isSupportedCombatActivity(activity: GameActivityDefinition): boolean {
+export function isSupportedCombatActivity(
+  activity: GameActivityDefinition,
+): boolean {
   return (
-    (activity.id === TUTORIAL_ACTIVITY_ID && activity.questSignal?.type === "kill") ||
+    (activity.id === TUTORIAL_ACTIVITY_ID &&
+      activity.questSignal?.type === "kill") ||
     activity.id === HUNT_COYOTE_ACTIVITY_ID
   );
 }
@@ -112,7 +116,7 @@ export function isSupportedCombatActivity(activity: GameActivityDefinition): boo
 export function buildCombatEncounterBundle(
   activity: GameActivityDefinition,
   player: Player,
-  health: SaveSlotHealthState | null
+  health: SaveSlotHealthState | null,
 ): CombatEncounterBundle | null {
   if (!isSupportedCombatActivity(activity)) {
     return null;
@@ -120,14 +124,17 @@ export function buildCombatEncounterBundle(
 
   const enemy = resolveEncounterEnemy(activity.id);
   const adaptedPlayer = buildTutorialPlayerActor(player, health);
-  const playerRotation = compileShortBladeRotation([oldDagger, coyoteFangDagger], shortBladeSkill);
+  const playerRotation = compileShortBladeRotation(
+    [oldDagger, coyoteFangDagger],
+    shortBladeSkill,
+  );
   const enemyRotation = compileCoyoteRotation();
   const adaptedActivity: CombatActivityDefinition = {
     ...mvpCombatActivity,
     id: activity.id,
     displayName: activity.name,
     playerActorId: adaptedPlayer.id,
-    enemyActorIds: [enemy.id]
+    enemyActorIds: [enemy.id],
   };
 
   const context: CombatTickContext = {
@@ -137,36 +144,37 @@ export function buildCombatEncounterBundle(
       ability_coyote_scratch: coyoteScratch,
       ability_instant_pierce: instantPierce,
       ability_piercing_finisher: piercingFinisher,
-      ability_slashing_cut: slashingCut
+      ability_slashing_cut: slashingCut,
     },
     effects: {
       effect_attack_damage_down: attackDamageDownEffect,
       effect_bleeding: bleedingEffect,
-      effect_piercing_talon: piercingTalonStack
+      effect_piercing_talon: piercingTalonStack,
     },
     rotations: {
       [adaptedPlayer.id]: playerRotation,
-      [enemy.id]: enemyRotation
+      [enemy.id]: enemyRotation,
     },
     enemyXp: {
-      [enemy.id]: enemy.xp
+      [enemy.id]: enemy.xp,
     },
     difficultyProfiles: {
-      [storyDifficultyProfile.id]: storyDifficultyProfile
+      [storyDifficultyProfile.id]: storyDifficultyProfile,
     },
     equipment: {
       [oldDagger.id]: oldDagger,
-      [coyoteFangDagger.id]: coyoteFangDagger
+      [coyoteFangDagger.id]: coyoteFangDagger,
     },
-    playerEquipment: adaptedPlayer.equipment
+    playerEquipment: adaptedPlayer.equipment,
   };
 
   return {
     activity: adaptedActivity,
+    sourceActivityDifficulty: activity.difficulty,
     player: adaptedPlayer,
     enemies: [enemy],
     context,
-    rotationPreview: buildRotationPreview(playerRotation, context)
+    rotationPreview: buildRotationPreview(playerRotation, context),
   };
 }
 
@@ -174,16 +182,16 @@ export function buildCombatEncounterView(
   bundle: CombatEncounterBundle,
   state: CombatRunState,
   rewards: readonly CombatRewardLineView[],
-  summary: string
+  summary: string,
 ): CombatEncounterView {
   const player = buildActorCardView(
     bundle.player.id,
     bundle.player.displayName,
     "player",
-    state
+    state,
   );
   const enemies = bundle.enemies.map((enemy) =>
-    buildActorCardView(enemy.id, enemy.displayName, "enemy", state)
+    buildActorCardView(enemy.id, enemy.displayName, "enemy", state),
   );
 
   return {
@@ -197,16 +205,18 @@ export function buildCombatEncounterView(
     enemies,
     logs: buildLogLines(state.logs, {
       [bundle.player.id]: bundle.player.displayName,
-      ...Object.fromEntries(bundle.enemies.map((enemy) => [enemy.id, enemy.displayName]))
+      ...Object.fromEntries(
+        bundle.enemies.map((enemy) => [enemy.id, enemy.displayName]),
+      ),
     }),
     rotation: bundle.rotationPreview,
-    rewards
+    rewards,
   };
 }
 
 export function getCombatRoutePreview(
   player: Player | null,
-  health: SaveSlotHealthState | null
+  health: SaveSlotHealthState | null,
 ): readonly CombatRotationRuleView[] {
   if (!player) {
     return [];
@@ -217,7 +227,7 @@ export function getCombatRoutePreview(
     name: "Cull the Coyote",
     description: "",
     location: {
-      locationId: "forest_edge"
+      locationId: "forest_edge",
     },
     tags: ["forest", "quest"],
     governingAttributes: ["agility", "vitality"],
@@ -225,11 +235,13 @@ export function getCombatRoutePreview(
     questSignal: {
       type: "kill",
       target: "arkama_coyote",
-      count: 1
-    }
+      count: 1,
+    },
   };
 
-  return buildCombatEncounterBundle(activity, player, health)?.rotationPreview ?? [];
+  return (
+    buildCombatEncounterBundle(activity, player, health)?.rotationPreview ?? []
+  );
 }
 
 function resolveEncounterEnemy(activityId: string): EnemyDefinition {
@@ -240,17 +252,24 @@ function resolveEncounterEnemy(activityId: string): EnemyDefinition {
   return coyoteEnemy;
 }
 
-export function mapCombatSkillIdToPlayerSkillId(skillId: string): string | null {
-  return GAME_TO_COMBAT_SKILL_ID[skillId as keyof typeof GAME_TO_COMBAT_SKILL_ID] ?? null;
+export function mapCombatSkillIdToPlayerSkillId(
+  skillId: string,
+): string | null {
+  return (
+    GAME_TO_COMBAT_SKILL_ID[skillId as keyof typeof GAME_TO_COMBAT_SKILL_ID] ??
+    null
+  );
 }
 
 function buildTutorialPlayerActor(
   player: Player,
-  health: SaveSlotHealthState | null
+  health: SaveSlotHealthState | null,
 ): ActorDefinition {
   const equippedWeaponId =
     player.equippedItems.mainHand &&
-    GAME_TO_COMBAT_WEAPON_ID[player.equippedItems.mainHand as keyof typeof GAME_TO_COMBAT_WEAPON_ID]
+    GAME_TO_COMBAT_WEAPON_ID[
+      player.equippedItems.mainHand as keyof typeof GAME_TO_COMBAT_WEAPON_ID
+    ]
       ? GAME_TO_COMBAT_WEAPON_ID[
           player.equippedItems.mainHand as keyof typeof GAME_TO_COMBAT_WEAPON_ID
         ]
@@ -264,22 +283,28 @@ function buildTutorialPlayerActor(
     maxHp: health?.maxHp ?? playerActor.maxHp,
     tags: ["player", player.raceId],
     equipment: {
-      main_hand: equippedWeaponId
-    }
+      main_hand: equippedWeaponId,
+    },
   };
 }
 
 function buildRotationPreview(
   rotation: CompiledRotation,
-  context: CombatTickContext
+  context: CombatTickContext,
 ): readonly CombatRotationRuleView[] {
   const abilityById = context.abilities;
   const rows = rotation.rules.map((rule, index) => ({
     id: `${rule.abilityId}:${index}`,
-    abilityLabel: abilityById[rule.abilityId]?.displayName ?? prettyLabel(rule.abilityId),
-    detail: describeRule(rule.abilityId, rule.condition, rule.isFallback === true, abilityById),
+    abilityLabel:
+      abilityById[rule.abilityId]?.displayName ?? prettyLabel(rule.abilityId),
+    detail: describeRule(
+      rule.abilityId,
+      rule.condition,
+      rule.isFallback === true,
+      abilityById,
+    ),
     isFallback: rule.isFallback === true,
-    isReaction: false
+    isReaction: false,
   }));
 
   if (rotation.onDodgeReactionAbilityId) {
@@ -290,7 +315,7 @@ function buildRotationPreview(
         prettyLabel(rotation.onDodgeReactionAbilityId),
       detail: "Free reaction after a successful dodge.",
       isFallback: false,
-      isReaction: true
+      isReaction: true,
     });
   }
 
@@ -301,7 +326,7 @@ function buildActorCardView(
   actorId: string,
   name: string,
   role: "player" | "enemy",
-  state: CombatRunState
+  state: CombatRunState,
 ): CombatActorCardView {
   const actor = state.actors[actorId];
   const currentHp = Math.max(0, actor?.currentHp ?? 0);
@@ -313,26 +338,36 @@ function buildActorCardView(
     role,
     currentHp,
     maxHp,
-    hpPercent: Math.max(0, Math.min(100, Math.round((currentHp / maxHp) * 100))),
+    hpPercent: Math.max(
+      0,
+      Math.min(100, Math.round((currentHp / maxHp) * 100)),
+    ),
     statusLabel: actor?.defeated ? "Defeated" : `${currentHp}/${maxHp} HP`,
-    effectLabels: (actor?.activeEffects ?? []).map((effect) => formatEffectLabel(effect.effectId, effect.stacks))
+    effectLabels: (actor?.activeEffects ?? []).map((effect) =>
+      formatEffectLabel(effect.effectId, effect.stacks),
+    ),
   };
 }
 
 function buildLogLines(
   logs: readonly CombatLogEntry[],
-  actorDisplayNames: Record<string, string>
+  actorDisplayNames: Record<string, string>,
 ): readonly CombatLogLineView[] {
   return logs.slice(-18).map((log, index) => ({
     id: `${log.tick}:${log.type}:${index}`,
     tick: log.tick,
     text: resolveCombatLogText(log.message, actorDisplayNames),
-    type: log.type
+    type: log.type,
   }));
 }
 
-function resolveCombatLogText(message: string, actorDisplayNames: Record<string, string>): string {
-  const actorIds = Object.keys(actorDisplayNames).sort((left, right) => right.length - left.length);
+function resolveCombatLogText(
+  message: string,
+  actorDisplayNames: Record<string, string>,
+): string {
+  const actorIds = Object.keys(actorDisplayNames).sort(
+    (left, right) => right.length - left.length,
+  );
   let next = message;
 
   for (const actorId of actorIds) {
@@ -352,7 +387,7 @@ function describeRule(
   abilityId: string,
   condition: CompiledRotation["rules"][number]["condition"] | undefined,
   isFallback: boolean,
-  abilityById: CombatTickContext["abilities"]
+  abilityById: CombatTickContext["abilities"],
 ): string {
   if (isFallback) {
     return "Fallback when no higher-priority rule is available.";
@@ -381,7 +416,9 @@ function toPhaseLabel(phase: CombatRunState["phase"]): string {
   }
 }
 
-function toOutcomeLabel(outcome: NonNullable<CombatRunState["outcome"]>): string {
+function toOutcomeLabel(
+  outcome: NonNullable<CombatRunState["outcome"]>,
+): string {
   switch (outcome) {
     case "victory":
       return "Victory";
@@ -393,10 +430,14 @@ function toOutcomeLabel(outcome: NonNullable<CombatRunState["outcome"]>): string
 }
 
 function prettyLabel(value: string): string {
-  return value.replace(/^(ability_|effect_|item_|skill_)/, "").replace(/_/g, " ");
+  return value
+    .replace(/^(ability_|effect_|item_|skill_)/, "")
+    .replace(/_/g, " ");
 }
 
 function formatEffectLabel(effectId: string, stacks: number): string {
-  const baseLabel = prettyLabel(effectId).replace(/\b\w/g, (char) => char.toUpperCase());
+  const baseLabel = prettyLabel(effectId).replace(/\b\w/g, (char) =>
+    char.toUpperCase(),
+  );
   return stacks > 1 ? `${baseLabel} x${stacks}` : baseLabel;
 }

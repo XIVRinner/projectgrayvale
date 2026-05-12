@@ -1,16 +1,15 @@
-import {
-  Injectable,
-  computed,
-  inject,
-  signal
-} from "@angular/core";
+import { Injectable, computed, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import type { GuardContext } from "@rinner/grayvale-worldgraph";
 
 import {
   mergeActionPanelGroups,
-  type ActionPanelGroupView
+  type ActionPanelGroupView,
 } from "../../shared/models/action-panel-group.model";
+import {
+  ActionsLoader,
+  type AuthoredActionDefinition,
+} from "../../data/loaders/actions.loader";
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import type { WorldGuardCatalog } from "../../data/loaders/world-guards.loader";
@@ -21,7 +20,7 @@ import {
   buildActivityActionId,
   buildContextId,
   compileGameplayGraph,
-  type CompileInput
+  type CompileInput,
 } from "./gameplay-graph-compiler";
 import { evaluateExecutionGuards } from "./gameplay-guard-runner";
 import { logDiagnostics } from "./gameplay-graph-diagnostics";
@@ -32,7 +31,7 @@ import type {
   ActionView,
   CompileResult,
   ExecutionResult,
-  GameplayExecutionGraph
+  GameplayExecutionGraph,
 } from "./gameplay-execution-graph.types";
 
 export type { ActionView };
@@ -83,7 +82,9 @@ export type GameplayGraphDebugSnapshot = {
   readonly compiledActivityCount: number;
   readonly currentContextId: string | null;
   readonly contexts: readonly GameplayGraphDebugContext[];
-  readonly actionsByContextId: Readonly<Record<string, readonly GameplayGraphDebugAction[]>>;
+  readonly actionsByContextId: Readonly<
+    Record<string, readonly GameplayGraphDebugAction[]>
+  >;
   readonly activities: readonly GameplayGraphDebugActivity[];
   readonly diagnostics: CompileResult["diagnostics"];
 };
@@ -93,12 +94,20 @@ export class GameplayGraphRuntime {
   private readonly roster = inject(CharacterRosterService);
   private readonly worldState = inject(WorldStateService);
   private readonly activitiesLoader = inject(ActivitiesLoader);
+  private readonly actionsLoader = inject(ActionsLoader);
   private readonly triggerRunner = inject(GameplayTriggerRunner);
   private readonly debugLog = inject(DebugLogService);
 
-  private readonly activitiesState = signal<readonly GameActivityDefinition[]>([]);
+  private readonly activitiesState = signal<readonly GameActivityDefinition[]>(
+    [],
+  );
+  private readonly authoredActionsState = signal<
+    readonly AuthoredActionDefinition[]
+  >([]);
   private readonly activitiesLoadedState = signal(false);
+  private readonly actionsLoadedState = signal(false);
   private readonly activityLoadErrorState = signal<string | null>(null);
+  private readonly actionLoadErrorState = signal<string | null>(null);
 
   /**
    * The compiled execution graph, derived reactively from loaded data.
@@ -118,22 +127,23 @@ export class GameplayGraphRuntime {
       worldGraph,
       locationsCatalog,
       guardCatalog,
-      activities: this.activitiesState()
+      activities: this.activitiesState(),
+      authoredActions: this.authoredActionsState(),
     };
 
     const result = compileGameplayGraph(input);
 
     logDiagnostics(
       result.diagnostics.filter(
-        (d) => d.severity === "error" || d.severity === "warning"
-      )
+        (d) => d.severity === "error" || d.severity === "warning",
+      ),
     );
 
     return result;
   });
 
   private readonly graph = computed<GameplayExecutionGraph | null>(
-    () => this.compiledResult()?.graph ?? null
+    () => this.compiledResult()?.graph ?? null,
   );
 
   readonly loadError = computed(() => this.worldState.loadError());
@@ -142,8 +152,9 @@ export class GameplayGraphRuntime {
     () =>
       this.worldState.isReady() &&
       this.activitiesLoadedState() &&
+      this.actionsLoadedState() &&
       this.graph() !== null &&
-      this.loadError() === null
+      this.loadError() === null,
   );
 
   readonly debugSnapshot = computed<GameplayGraphDebugSnapshot | null>(() => {
@@ -168,10 +179,13 @@ export class GameplayGraphRuntime {
         locationId: context.locationId,
         sublocationId: context.sublocationId,
         actionCount: context.actionIds.length,
-        isCurrent: currentContextId === context.id
+        isCurrent: currentContextId === context.id,
       }));
 
-    const actionsByContextId: Record<string, readonly GameplayGraphDebugAction[]> = {};
+    const actionsByContextId: Record<
+      string,
+      readonly GameplayGraphDebugAction[]
+    > = {};
 
     for (const context of contexts) {
       const graphContext = graph.contextsById.get(context.id);
@@ -181,17 +195,18 @@ export class GameplayGraphRuntime {
         continue;
       }
 
-      const guardContext: GuardContext | null =
-        activeSlot
-          ? {
-              player: activeSlot.player,
-              npcs: {},
-              world: {
-                currentLocation: context.locationId,
-                sublocations: context.sublocationId ? [context.sublocationId] : []
-              }
-            }
-          : null;
+      const guardContext: GuardContext | null = activeSlot
+        ? {
+            player: activeSlot.player,
+            npcs: {},
+            world: {
+              currentLocation: context.locationId,
+              sublocations: context.sublocationId
+                ? [context.sublocationId]
+                : [],
+            },
+          }
+        : null;
 
       const contextActions: GameplayGraphDebugAction[] = [];
 
@@ -204,9 +219,17 @@ export class GameplayGraphRuntime {
 
         const visibleResult =
           guardContext && guardCatalog
-            ? evaluateExecutionGuards(action.visibleWhen, guardContext, guardCatalog)
+            ? evaluateExecutionGuards(
+                action.visibleWhen,
+                guardContext,
+                guardCatalog,
+              )
             : { passes: true };
-        const enabledResult = resolveActionEnabledState(action, guardContext, guardCatalog);
+        const enabledResult = resolveActionEnabledState(
+          action,
+          guardContext,
+          guardCatalog,
+        );
         const isVisible = visibleResult.passes;
         const isEnabled = isVisible && enabledResult.passes;
 
@@ -223,30 +246,34 @@ export class GameplayGraphRuntime {
             ? isEnabled
               ? undefined
               : enabledResult.failureReason
-            : visibleResult.failureReason
+            : visibleResult.failureReason,
         });
       }
 
       actionsByContextId[context.id] = contextActions;
     }
 
-    const activities: GameplayGraphDebugActivity[] = this.activitiesState().map((activity) => {
-      const authoredContextId = buildContextId(
-        activity.location.locationId,
-        activity.location.sublocationId
-      );
-      const compiledAction = graph.actionsById.get(buildActivityActionId(activity.id));
-      const isCompiled =
-        compiledAction !== undefined &&
-        compiledAction.execution.kind === "activity";
+    const activities: GameplayGraphDebugActivity[] = this.activitiesState().map(
+      (activity) => {
+        const authoredContextId = buildContextId(
+          activity.location.locationId,
+          activity.location.sublocationId,
+        );
+        const compiledAction = graph.actionsById.get(
+          buildActivityActionId(activity.id),
+        );
+        const isCompiled =
+          compiledAction !== undefined &&
+          compiledAction.execution.kind === "activity";
 
-      return {
-        id: activity.id,
-        authoredContextId,
-        compiled: isCompiled,
-        compiledContextId: isCompiled ? compiledAction.contextId : undefined
-      };
-    });
+        return {
+          id: activity.id,
+          authoredContextId,
+          compiled: isCompiled,
+          compiledContextId: isCompiled ? compiledAction.contextId : undefined,
+        };
+      },
+    );
 
     const diagnostics = [...(compiled?.diagnostics ?? [])];
 
@@ -255,28 +282,45 @@ export class GameplayGraphRuntime {
         severity: "info",
         code: "GEG_I010",
         message: "Activity registry load is still pending.",
-        source: { path: "activities-loader" }
+        source: { path: "activities-loader" },
       });
     } else if (this.activityLoadErrorState()) {
       diagnostics.push({
         severity: "error",
         code: "GEG_E010",
         message: `Activity registry failed to load: ${this.activityLoadErrorState()}`,
-        source: { path: "activities-loader" }
+        source: { path: "activities-loader" },
       });
     } else if (activities.length === 0) {
       diagnostics.push({
         severity: "warning",
         code: "GEG_W010",
         message: "Activity registry loaded but returned zero activities.",
-        source: { path: "activities-loader" }
+        source: { path: "activities-loader" },
       });
     } else if (activities.every((activity) => !activity.compiled)) {
       diagnostics.push({
         severity: "warning",
         code: "GEG_W011",
-        message: "Activities loaded but none compiled into the execution graph.",
-        source: { path: "graph-compiler" }
+        message:
+          "Activities loaded but none compiled into the execution graph.",
+        source: { path: "graph-compiler" },
+      });
+    }
+
+    if (!this.actionsLoadedState()) {
+      diagnostics.push({
+        severity: "info",
+        code: "GEG_I011",
+        message: "Authored action registry load is still pending.",
+        source: { path: "actions-loader" },
+      });
+    } else if (this.actionLoadErrorState()) {
+      diagnostics.push({
+        severity: "error",
+        code: "GEG_E011",
+        message: `Authored action registry failed to load: ${this.actionLoadErrorState()}`,
+        source: { path: "actions-loader" },
       });
     }
 
@@ -287,12 +331,13 @@ export class GameplayGraphRuntime {
       activitiesLoaded: this.activitiesLoadedState(),
       activityLoadError: this.activityLoadErrorState(),
       activityRegistryCount: activities.length,
-      compiledActivityCount: activities.filter((entry) => entry.compiled).length,
+      compiledActivityCount: activities.filter((entry) => entry.compiled)
+        .length,
       currentContextId,
       contexts,
       actionsByContextId,
       activities,
-      diagnostics
+      diagnostics,
     };
   });
 
@@ -313,7 +358,7 @@ export class GameplayGraphRuntime {
 
     const contextId = buildContextId(
       world.currentLocation,
-      world.sublocations.at(-1)
+      world.sublocations.at(-1),
     );
 
     const context = graph.contextsById.get(contextId);
@@ -327,8 +372,8 @@ export class GameplayGraphRuntime {
       npcs: {},
       world: {
         currentLocation: world.currentLocation,
-        sublocations: [...world.sublocations]
-      }
+        sublocations: [...world.sublocations],
+      },
     };
 
     const views: ActionView[] = [];
@@ -343,7 +388,7 @@ export class GameplayGraphRuntime {
       const visibilityResult = evaluateExecutionGuards(
         action.visibleWhen,
         guardContext,
-        guardCatalog
+        guardCatalog,
       );
 
       if (!visibilityResult.passes) {
@@ -353,7 +398,7 @@ export class GameplayGraphRuntime {
       const effectiveEnabledResult = resolveActionEnabledState(
         action,
         guardContext,
-        guardCatalog
+        guardCatalog,
       );
 
       views.push({
@@ -364,7 +409,7 @@ export class GameplayGraphRuntime {
         disabledReason: effectiveEnabledResult.passes
           ? undefined
           : effectiveEnabledResult.failureReason,
-        groupKind: action.groupKind
+        groupKind: action.groupKind,
       });
     }
 
@@ -377,22 +422,61 @@ export class GameplayGraphRuntime {
       .pipe(takeUntilDestroyed())
       .subscribe({
         next: (activities) => {
-          this.debugLog.logMessage("execution-graph", "Loaded activities for execution graph.", {
-            activityCount: activities.length
-          });
+          this.debugLog.logMessage(
+            "execution-graph",
+            "Loaded activities for execution graph.",
+            {
+              activityCount: activities.length,
+            },
+          );
           this.activitiesState.set(activities);
           this.activitiesLoadedState.set(true);
           this.activityLoadErrorState.set(null);
         },
         error: (error: unknown) => {
           const message = normalizeErrorMessage(error);
-          this.debugLog.logMessage("execution-graph", "Failed to load activities for execution graph.", {
-            reason: message
-          });
+          this.debugLog.logMessage(
+            "execution-graph",
+            "Failed to load activities for execution graph.",
+            {
+              reason: message,
+            },
+          );
           this.activitiesState.set([]);
           this.activitiesLoadedState.set(true);
           this.activityLoadErrorState.set(message);
-        }
+        },
+      });
+
+    this.actionsLoader
+      .load()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (actions) => {
+          this.debugLog.logMessage(
+            "execution-graph",
+            "Loaded authored actions for execution graph.",
+            {
+              actionCount: actions.length,
+            },
+          );
+          this.authoredActionsState.set(actions);
+          this.actionsLoadedState.set(true);
+          this.actionLoadErrorState.set(null);
+        },
+        error: (error: unknown) => {
+          const message = normalizeErrorMessage(error);
+          this.debugLog.logMessage(
+            "execution-graph",
+            "Failed to load authored actions for execution graph.",
+            {
+              reason: message,
+            },
+          );
+          this.authoredActionsState.set([]);
+          this.actionsLoadedState.set(true);
+          this.actionLoadErrorState.set(message);
+        },
       });
   }
 
@@ -400,18 +484,26 @@ export class GameplayGraphRuntime {
     const graph = this.graph();
 
     if (!graph) {
-      this.debugLog.logMessage("execution-graph", "Execute rejected: graph not compiled.", {
-        actionId
-      });
+      this.debugLog.logMessage(
+        "execution-graph",
+        "Execute rejected: graph not compiled.",
+        {
+          actionId,
+        },
+      );
       return { ok: false, actionId, reason: "GRAPH_NOT_COMPILED" };
     }
 
     const action = graph.actionsById.get(actionId);
 
     if (!action) {
-      this.debugLog.logMessage("execution-graph", "Execute rejected: action not found.", {
-        actionId
-      });
+      this.debugLog.logMessage(
+        "execution-graph",
+        "Execute rejected: action not found.",
+        {
+          actionId,
+        },
+      );
       return { ok: false, actionId, reason: "ACTION_NOT_FOUND" };
     }
 
@@ -424,7 +516,7 @@ export class GameplayGraphRuntime {
 
     const currentContextId = buildContextId(
       world.currentLocation,
-      world.sublocations.at(-1)
+      world.sublocations.at(-1),
     );
 
     if (action.contextId !== currentContextId) {
@@ -434,8 +526,8 @@ export class GameplayGraphRuntime {
         {
           actionId,
           actionContextId: action.contextId,
-          currentContextId
-        }
+          currentContextId,
+        },
       );
       return { ok: false, actionId, reason: "ACTION_NOT_IN_CONTEXT" };
     }
@@ -451,42 +543,54 @@ export class GameplayGraphRuntime {
       npcs: {},
       world: {
         currentLocation: world.currentLocation,
-        sublocations: [...world.sublocations]
-      }
+        sublocations: [...world.sublocations],
+      },
     };
 
     const visibilityResult = evaluateExecutionGuards(
       action.visibleWhen,
       guardContext,
-      guardCatalog
+      guardCatalog,
     );
 
     if (!visibilityResult.passes) {
-      this.debugLog.logMessage("execution-graph", "Execute rejected: action not visible.", {
-        actionId,
-        reason: visibilityResult.failureReason
-      });
+      this.debugLog.logMessage(
+        "execution-graph",
+        "Execute rejected: action not visible.",
+        {
+          actionId,
+          reason: visibilityResult.failureReason,
+        },
+      );
       return { ok: false, actionId, reason: "ACTION_NOT_VISIBLE" };
     }
 
-    const enabledResult = resolveActionEnabledState(action, guardContext, guardCatalog);
+    const enabledResult = resolveActionEnabledState(
+      action,
+      guardContext,
+      guardCatalog,
+    );
 
     if (!enabledResult.passes) {
-      this.debugLog.logMessage("execution-graph", "Execute rejected: action disabled.", {
-        actionId,
-        reason: enabledResult.failureReason
-      });
+      this.debugLog.logMessage(
+        "execution-graph",
+        "Execute rejected: action disabled.",
+        {
+          actionId,
+          reason: enabledResult.failureReason,
+        },
+      );
       return {
         ok: false,
         actionId,
-        reason: enabledResult.failureReason ?? "ACTION_DISABLED"
+        reason: enabledResult.failureReason ?? "ACTION_DISABLED",
       };
     }
 
     this.debugLog.logMessage("execution-graph", "Executing action.", {
       actionId,
       contextId: action.contextId,
-      kind: action.execution.kind
+      kind: action.execution.kind,
     });
 
     const result = this.triggerRunner.run(action);
@@ -494,7 +598,7 @@ export class GameplayGraphRuntime {
     this.debugLog.logMessage(
       "execution-graph",
       result.ok ? "Action executed." : "Action execution failed.",
-      { actionId, reason: result.ok ? undefined : result.reason }
+      { actionId, reason: result.ok ? undefined : result.reason },
     );
 
     return result;
@@ -504,25 +608,29 @@ export class GameplayGraphRuntime {
 function resolveActionEnabledState(
   action: ActionNode,
   guardContext: GuardContext | null,
-  guardCatalog: WorldGuardCatalog | null
+  guardCatalog: WorldGuardCatalog | null,
 ): { passes: boolean; failureReason?: string } {
   const staticDisabledReason = action.disabledReason?.trim();
 
   if (staticDisabledReason) {
     return {
       passes: false,
-      failureReason: staticDisabledReason
+      failureReason: staticDisabledReason,
     };
   }
 
   if (!guardContext || !guardCatalog) {
     return {
       passes: false,
-      failureReason: "No active guard context."
+      failureReason: "No active guard context.",
     };
   }
 
-  return evaluateExecutionGuards(action.enabledWhen, guardContext, guardCatalog);
+  return evaluateExecutionGuards(
+    action.enabledWhen,
+    guardContext,
+    guardCatalog,
+  );
 }
 
 function normalizeErrorMessage(error: unknown): string {
@@ -546,7 +654,7 @@ function normalizeErrorMessage(error: unknown): string {
 // ---------------------------------------------------------------------------
 
 function buildActionGroups(
-  views: readonly ActionView[]
+  views: readonly ActionView[],
 ): readonly GameplayActionGroup[] {
   const drafts = views
     .filter((v) => v.visible)
@@ -557,9 +665,9 @@ function buildActionGroups(
           id: v.id,
           label: v.label,
           disabled: v.enabled ? undefined : true,
-          disabledReason: v.disabledReason
-        } as GameplayActionChoice
-      ]
+          disabledReason: v.disabledReason,
+        } as GameplayActionChoice,
+      ],
     }));
 
   return mergeActionPanelGroups(drafts);

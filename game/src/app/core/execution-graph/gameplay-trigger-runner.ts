@@ -1,15 +1,22 @@
 import { Injectable, inject } from "@angular/core";
 
 import { ActivityService } from "../services/activity.service";
+import { AuthoredActionService } from "../../features/action/services/authored-action.service";
 import { DebugLogService } from "../services/game-log/debug-log.service";
 import { GameDialogService } from "../services/game-dialog.service";
 import { GameQuestService } from "../services/game-quest.service";
 import { WorldStateService } from "../services/world-state.service";
-import type { ActionNode, ExecutionResult, MovementExecution } from "./gameplay-execution-graph.types";
+import { AUTHORED_ACTION_COMMAND_PREFIX } from "./gameplay-execution-graph.types";
+import type {
+  ActionNode,
+  ExecutionResult,
+  MovementExecution,
+} from "./gameplay-execution-graph.types";
 
 @Injectable({ providedIn: "root" })
 export class GameplayTriggerRunner {
   private readonly activityService = inject(ActivityService);
+  private readonly authoredActionService = inject(AuthoredActionService);
   private readonly worldState = inject(WorldStateService);
   private readonly gameQuests = inject(GameQuestService);
   private readonly gameDialog = inject(GameDialogService);
@@ -47,7 +54,9 @@ export class GameplayTriggerRunner {
         if (!movement.targetSublocationId) {
           return blocked(action.id, "MISSING_TARGET_SUBLOCATION");
         }
-        committed = this.worldState.executeEnterSublocation(movement.targetSublocationId);
+        committed = this.worldState.executeEnterSublocation(
+          movement.targetSublocationId,
+        );
         break;
       }
       case "sublocation-exit": {
@@ -62,16 +71,23 @@ export class GameplayTriggerRunner {
         if (!world) {
           return blocked(action.id, "NO_ACTIVE_WORLD");
         }
-        committed = this.worldState.executeTravel(world.currentLocation, movement.targetLocationId);
+        committed = this.worldState.executeTravel(
+          world.currentLocation,
+          movement.targetLocationId,
+        );
         break;
       }
     }
 
     if (!committed) {
-      this.debugLog.logMessage("execution-graph", "Movement execution failed.", {
-        actionId: action.id,
-        movementKind: movement.movementKind
-      });
+      this.debugLog.logMessage(
+        "execution-graph",
+        "Movement execution failed.",
+        {
+          actionId: action.id,
+          movementKind: movement.movementKind,
+        },
+      );
       return blocked(action.id, "MOVEMENT_COMMIT_FAILED");
     }
 
@@ -111,10 +127,22 @@ export class GameplayTriggerRunner {
       return blocked(action.id, "EXECUTION_KIND_MISMATCH");
     }
 
+    if (execution.command.startsWith(AUTHORED_ACTION_COMMAND_PREFIX)) {
+      const authoredActionId = execution.command.slice(
+        AUTHORED_ACTION_COMMAND_PREFIX.length,
+      );
+      const result =
+        this.authoredActionService.executeActionById(authoredActionId);
+
+      return result.ok
+        ? { ok: true, actionId: action.id }
+        : blocked(action.id, result.reason ?? "ACTION_REJECTED");
+    }
+
     this.debugLog.logMessage(
       "execution-graph",
       `System command "${execution.command}" is not yet handled.`,
-      { actionId: action.id }
+      { actionId: action.id },
     );
 
     return blocked(action.id, "UNHANDLED_SYSTEM_COMMAND");

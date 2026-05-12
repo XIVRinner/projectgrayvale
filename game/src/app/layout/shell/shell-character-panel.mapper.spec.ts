@@ -4,7 +4,7 @@ import type { CharacterStatUnlockState } from "../../core/services/character-ros
 import type { AttributeDefinition } from "../../data/loaders/attribute-definitions.loader";
 import {
   buildShellCharacterPanel,
-  type ShellCharacterMetadata
+  type ShellCharacterMetadata,
 } from "./shell-character-panel.mapper";
 
 describe("buildShellCharacterPanel", () => {
@@ -15,19 +15,39 @@ describe("buildShellCharacterPanel", () => {
       undefined,
       null,
       undefined,
-      undefined
+      undefined,
     );
 
     expect(panel.attributes).toEqual([
-      expect.objectContaining({ abbreviation: "VIT", isLocked: false, value: 10 }),
-      expect.objectContaining({ abbreviation: "STR", isLocked: true, value: 7 }),
-      expect.objectContaining({ abbreviation: "AGI", isLocked: true, value: 10 }),
-      expect.objectContaining({ abbreviation: "MEN", isLocked: true, value: 6 })
+      expect.objectContaining({
+        abbreviation: "VIT",
+        isLocked: false,
+        value: 10,
+      }),
+      expect.objectContaining({
+        abbreviation: "STR",
+        isLocked: true,
+        value: 7,
+      }),
+      expect.objectContaining({
+        abbreviation: "AGI",
+        isLocked: true,
+        value: 10,
+      }),
+      expect.objectContaining({
+        abbreviation: "MEN",
+        isLocked: true,
+        value: 6,
+      }),
     ]);
     expect(panel.skills).toHaveLength(3);
     expect(panel.skills.every((skill) => skill.isLocked)).toBe(true);
-    expect(panel.focusItems.find((item) => item.title === "Skills")?.detail).toBe("All skills locked");
-    expect(panel.skills.some((skill) => skill.label === "Survival")).toBe(false);
+    expect(
+      panel.focusItems.find((item) => item.title === "Skills")?.detail,
+    ).toBe("All skills locked");
+    expect(panel.skills.some((skill) => skill.label === "Survival")).toBe(
+      false,
+    );
   });
 
   it("reveals only the explicitly unlocked skills and attributes", () => {
@@ -39,31 +59,77 @@ describe("buildShellCharacterPanel", () => {
           vitality: true,
           strength: true,
           agility: false,
-          mentality: false
+          mentality: false,
         },
         skills: {
           short_blade: true,
           bow: false,
           blacksmithing: false,
-          survival: false
-        }
+          survival: false,
+        },
       } satisfies CharacterStatUnlockState,
       null,
       undefined,
-      undefined
+      undefined,
     );
 
-    expect(panel.attributes.find((attribute) => attribute.abbreviation === "STR")?.isLocked).toBe(false);
-    expect(panel.skills.find((skill) => skill.label === "Short Blade")).toMatchObject({
+    expect(
+      panel.attributes.find((attribute) => attribute.abbreviation === "STR")
+        ?.isLocked,
+    ).toBe(false);
+    expect(
+      panel.skills.find((skill) => skill.label === "Short Blade"),
+    ).toMatchObject({
       value: 2,
-      isLocked: false
+      isLocked: false,
     });
-    expect(panel.skills.find((skill) => skill.label === "Blacksmithing")).toMatchObject({
+    expect(
+      panel.skills.find((skill) => skill.label === "Blacksmithing"),
+    ).toMatchObject({
       value: 3,
-      isLocked: true
+      isLocked: true,
     });
-    expect(panel.skills.some((skill) => skill.label === "Survival")).toBe(false);
-    expect(panel.focusItems.find((item) => item.title === "Skills")?.detail).toBe("Short Blade 2");
+    expect(panel.skills.some((skill) => skill.label === "Survival")).toBe(
+      false,
+    );
+    expect(
+      panel.focusItems.find((item) => item.title === "Skills")?.detail,
+    ).toBe("Short Blade 2");
+  });
+
+  it("formats fractional and large skill values in the focus summary", () => {
+    const player = clonePlayer(samplePlayer);
+    player.skills = {
+      ...player.skills,
+      short_blade: 0.4,
+      blacksmithing: 1250,
+    };
+
+    const panel = buildShellCharacterPanel(
+      player,
+      buildMetadata(),
+      {
+        attributes: {
+          vitality: true,
+          strength: false,
+          agility: false,
+          mentality: false,
+        },
+        skills: {
+          short_blade: true,
+          bow: false,
+          blacksmithing: true,
+          survival: false,
+        },
+      } satisfies CharacterStatUnlockState,
+      null,
+      undefined,
+      undefined,
+    );
+
+    expect(
+      panel.focusItems.find((item) => item.title === "Skills")?.detail,
+    ).toBe("Blacksmithing 1.3K | Short Blade 0.4");
   });
 
   it("hides completely unknown skills", () => {
@@ -76,11 +142,13 @@ describe("buildShellCharacterPanel", () => {
       undefined,
       null,
       undefined,
-      undefined
+      undefined,
     );
 
     expect(panel.skills).toEqual([]);
-    expect(panel.focusItems.find((item) => item.title === "Skills")?.detail).toBe("No known skills");
+    expect(
+      panel.focusItems.find((item) => item.title === "Skills")?.detail,
+    ).toBe("No known skills");
   });
 
   it("derives a flat purse breakdown from money", () => {
@@ -93,7 +161,7 @@ describe("buildShellCharacterPanel", () => {
       undefined,
       null,
       undefined,
-      undefined
+      undefined,
     );
 
     expect(panel.purse.totalDisplay).toBe("1 mark 20 pennies");
@@ -101,7 +169,7 @@ describe("buildShellCharacterPanel", () => {
       expect.objectContaining({ id: "throne", amount: 0 }),
       expect.objectContaining({ id: "crown", amount: 0 }),
       expect.objectContaining({ id: "mark", amount: 1 }),
-      expect.objectContaining({ id: "penny", amount: 20 })
+      expect.objectContaining({ id: "penny", amount: 20 }),
     ]);
     expect(panel.purse.currencyValue).toBeNull();
   });
@@ -114,62 +182,65 @@ function buildMetadata(): ShellCharacterMetadata {
       name: "Vitality",
       abbreviation: "VIT",
       description: "Resilience, stamina, and physical staying power.",
-      displayOrder: 1
+      displayOrder: 1,
     },
     {
       id: "strength",
       name: "Strength",
       abbreviation: "STR",
       description: "Raw force, burden handling, and direct physical pressure.",
-      displayOrder: 2
+      displayOrder: 2,
     },
     {
       id: "agility",
       name: "Agility",
       abbreviation: "AGI",
       description: "Speed, finesse, and precision under motion.",
-      displayOrder: 3
+      displayOrder: 3,
     },
     {
       id: "mentality",
       name: "Mentality",
       abbreviation: "MEN",
       description: "Focus, reasoning, and control of disciplined intent.",
-      displayOrder: 4
-    }
+      displayOrder: 4,
+    },
   ];
   const skills: readonly Skill[] = [
     {
       id: "short_blade",
       name: "Short Blade",
       description: "Training with daggers, knives, and compact edged weapons.",
-      tags: ["combat", "melee"]
+      tags: ["combat", "melee"],
     },
     {
       id: "bow",
       name: "Bow",
       description: "Handling bows, distance control, and ranged accuracy.",
-      tags: ["combat", "ranged"]
+      tags: ["combat", "ranged"],
     },
     {
       id: "blacksmithing",
       name: "Blacksmithing",
       description: "Forging, tempering, and metalwork for tools and arms.",
-      tags: ["general"]
+      tags: ["general"],
     },
     {
       id: "survival",
       name: "Survival",
-      description: "Fieldcraft, endurance, and self-sufficiency away from settlements.",
-      tags: ["general"]
-    }
+      description:
+        "Fieldcraft, endurance, and self-sufficiency away from settlements.",
+      tags: ["general"],
+    },
   ];
 
   return {
     racesById: new Map(),
     classesById: new Map(),
-    attributesById: new Map(attributes.map((attribute) => [attribute.id, attribute])),
-    skillsById: new Map(skills.map((skill) => [skill.id, skill]))
+    attributesById: new Map(
+      attributes.map((attribute) => [attribute.id, attribute]),
+    ),
+    skillsById: new Map(skills.map((skill) => [skill.id, skill])),
   };
 }
 
