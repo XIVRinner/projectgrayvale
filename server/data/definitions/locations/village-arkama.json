@@ -2,7 +2,6 @@
   "id": "village-arkama",
   "label": "Arkama Village",
   "subtitle": "The unofficial name the locals use for their nameless settlement.",
-  "sceneImagePath": "assets/images/location-backgrounds/village.png",
   "availableNpcIds": [
     "village-chief"
   ],
@@ -11,7 +10,6 @@
       "id": "chief-house",
       "label": "Chief House",
       "subtitle": "A quiet recovery room under the village chief's roof.",
-      "sceneImagePath": "assets/images/location-backgrounds/prologue.png",
       "availableNpcIds": [
         "village-chief"
       ],
@@ -40,25 +38,25 @@
             "minimumValue": 10
           }
         }
-      ]
+      ],
+      "sceneImageId": "village-arkama__chief-house"
     },
     {
       "id": "tavern",
       "label": "Tavern",
       "subtitle": "A warm common room built on gossip, soup, and stubborn planks.",
-      "sceneImagePath": "assets/images/location-backgrounds/tavern.png",
       "availableNpcIds": [
         "bartender"
       ],
       "isReturnable": true,
       "entryActionLabel": "Enter tavern",
-      "exitActionLabel": "Leave tavern"
+      "exitActionLabel": "Leave tavern",
+      "sceneImageId": "village-arkama__tavern"
     },
     {
       "id": "bridgitte-house",
       "label": "Bridgitte's House",
       "subtitle": "A quiet house where an old adventurer keeps her past within arm's reach.",
-      "sceneImagePath": "assets/images/location-backgrounds/bridgette-house.png",
       "availableNpcIds": [
         "bridgitte"
       ],
@@ -72,13 +70,13 @@
             "questId": "quest_chief_labour"
           }
         }
-      ]
+      ],
+      "sceneImageId": "village-arkama__bridgitte-house"
     },
     {
       "id": "smithy",
       "label": "Smithy",
       "subtitle": "A hot forge where Lydia keeps tools, hinges, and tempers in working order.",
-      "sceneImagePath": "assets/images/location-backgrounds/smithy.png",
       "availableNpcIds": [
         "lydia"
       ],
@@ -92,13 +90,13 @@
             "questId": "lydia_smithing_intro"
           }
         }
-      ]
+      ],
+      "sceneImageId": "village-arkama__smithy"
     },
     {
       "id": "shopkeep",
       "label": "Shop",
       "subtitle": "A tidy supply shop that has not opened up to gameplay yet.",
-      "sceneImagePath": "assets/images/location-backgrounds/village.png",
       "availableNpcIds": [
         "shopkeeper"
       ],
@@ -113,7 +111,9 @@
             "questId": "shopkeep_forest_supplies"
           }
         }
-      ]
+      ],
+      "sceneImageId": "village-arkama__shopkeep"
     }
-  ]
+  ],
+  "sceneImageId": "village-arkama"
 }

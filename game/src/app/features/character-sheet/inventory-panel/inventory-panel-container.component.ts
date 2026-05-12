@@ -1,18 +1,16 @@
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal
 } from "@angular/core";
-import { catchError, map, of } from "rxjs";
 
 import {
   compareItemAgainstSlot,
-  inventoryItemDefinitionSchema,
   type EquipmentSlot,
   type InventoryItemDefinition,
   type Loadout,
@@ -20,13 +18,12 @@ import {
   sampleLoadoutDefault
 } from "@rinner/grayvale-core";
 
-import { parseInventoryItemArrayWithGameFields } from "../character-sheet-item-assets";
 import {
   buildEquipmentRequirementStatuses,
   checkEquipmentRequirements
 } from "../character-sheet-equipment-requirements";
-import { apiPath, dataApiPath } from "../../../data/api-paths";
-import { GameApiCacheService } from "../../../data/game-api-cache.service";
+import { DefinitionImageService } from "../../../data/definition-image.service";
+import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
 import type { InventoryEquipEvent, InventoryPanelItemView } from "./inventory-panel.types";
 import { isEquipmentItem } from "./inventory-panel.types";
 import { InventoryPanelViewComponent } from "./inventory-panel-view.component";
@@ -49,7 +46,9 @@ import { InventoryPanelViewComponent } from "./inventory-panel-view.component";
   `
 })
 export class InventoryPanelContainerComponent {
-  private readonly apiCache = inject(GameApiCacheService);
+  private readonly definitionRepository = inject(DefinitionRepositoryService);
+  private readonly definitionImageService = inject(DefinitionImageService);
+  private loadGeneration = 0;
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
   readonly comparedItemId = input<string | null>(null);
@@ -202,28 +201,54 @@ export class InventoryPanelContainerComponent {
   });
 
   constructor() {
-    this.apiCache
-      .getJsonWithFallback<unknown>(
-        [apiPath("inventory-items"), dataApiPath("inventory-items")],
-        { cacheKey: apiPath("inventory-items") }
-      )
-      .pipe(
-        map((raw) =>
-          parseInventoryItemArrayWithGameFields(raw, (entry) =>
-            inventoryItemDefinitionSchema.parse(entry)
+    effect(() => {
+      const player = this.player();
+      const itemIds = player
+        ? Object.entries(player.inventory.items)
+            .filter(([, quantity]) => quantity > 0)
+            .map(([itemId]) => itemId)
+        : [];
+      void this.loadInventoryItems(itemIds);
+    });
+  }
+
+  private async loadInventoryItems(itemIds: readonly string[]): Promise<void> {
+    const generation = ++this.loadGeneration;
+    this.error.set(null);
+
+    if (itemIds.length === 0) {
+      this.inventoryItems.set([]);
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    try {
+      const items = await this.definitionRepository.getItems(itemIds);
+      const hydratedItems = await Promise.all(
+        items.map(async (item) => ({
+          ...item,
+          iconPath: await this.definitionImageService.getImageUrl(
+            item.category === "material" ? "materials" : "items",
+            item.imageId
           )
-        ),
-        catchError((err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to load inventory items.";
-          this.error.set(message);
-          this.isLoading.set(false);
-          return of([] as InventoryItemDefinition[]);
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe((items) => {
-        this.inventoryItems.set(items);
-        this.isLoading.set(false);
-      });
+        }))
+      );
+
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.inventoryItems.set(hydratedItems as readonly InventoryItemDefinition[]);
+      this.isLoading.set(false);
+    } catch (err: unknown) {
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.error.set(err instanceof Error ? err.message : "Failed to load inventory items.");
+      this.isLoading.set(false);
+    }
   }
 }

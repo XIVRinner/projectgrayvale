@@ -3,7 +3,6 @@
   "name": "Coyote Fang Dagger",
   "category": "equipment",
   "rarity": "rare",
-  "iconPath": "assets/images/resources/items/equipment/shadow-fangs.png",
   "tags": [
     "dagger",
     "melee",
@@ -46,5 +45,6 @@
       "+5% Dodge Chance"
     ],
     "flavorText": "Built from a coyote's bite and made for someone learning to bite back."
-  }
+  },
+  "imageId": "weapon_dagger_coyote_fang"
 }

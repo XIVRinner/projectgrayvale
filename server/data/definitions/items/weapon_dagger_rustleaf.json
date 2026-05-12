@@ -3,7 +3,6 @@
   "name": "Old Dagger",
   "category": "equipment",
   "rarity": "uncommon",
-  "iconPath": "assets/images/resources/items/equipment/rusty-dagger.svg",
   "tags": [
     "dagger",
     "melee",
@@ -40,5 +39,6 @@
       "+4% Dodge Chance"
     ],
     "flavorText": "Bridgitte's old loaner blade. It has survived worse hands than yours."
-  }
+  },
+  "imageId": "weapon_dagger_rustleaf"
 }

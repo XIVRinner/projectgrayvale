@@ -2,17 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   signal
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { catchError, map, of } from "rxjs";
 
 import {
   computeStatBreakdowns,
   type DamageType,
-  inventoryEquipmentItemSchema,
   sampleLoadoutDefault,
   type BalanceProfile,
   type DamageInterval,
@@ -24,9 +22,8 @@ import {
   type StatBreakdown
 } from "@rinner/grayvale-core";
 
-import { apiPath, dataApiPath } from "../../../data/api-paths";
-import { GameApiCacheService } from "../../../data/game-api-cache.service";
-import { parseEquipmentItemArrayWithGameFields } from "../character-sheet-item-assets";
+import { DefinitionImageService } from "../../../data/definition-image.service";
+import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
 import type { CharacterStatUnlockState } from "../../../core/services/character-roster.service";
 import { GameSettingsService } from "../../../core/services/game-settings.service";
 import {
@@ -271,8 +268,10 @@ const toTitleCase = (value: string): string =>
   `
 })
 export class CombatStatsContainerComponent {
-  private readonly apiCache = inject(GameApiCacheService);
+  private readonly definitionRepository = inject(DefinitionRepositoryService);
+  private readonly definitionImageService = inject(DefinitionImageService);
   private readonly gameSettings = inject(GameSettingsService);
+  private loadGeneration = 0;
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
   readonly player = input<Player | null>(null);
@@ -327,39 +326,12 @@ export class CombatStatsContainerComponent {
   });
 
   constructor() {
-    this.apiCache
-      .getJsonWithFallback<unknown>(
-        [apiPath("equipment-items"), dataApiPath("equipment-items")],
-        { cacheKey: apiPath("equipment-items") }
-      )
-      .pipe(
-        map((rawItems) => {
-          const items = parseEquipmentItemArrayWithGameFields(
-            rawItems,
-            (entry) => inventoryEquipmentItemSchema.parse(entry)
-          );
-
-          const registry = new Map<string, InventoryEquipmentItem>();
-          for (const item of items) {
-            registry.set(item.id, item);
-          }
-
-          return registry;
-        }),
-        catchError((err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to load combat stats.";
-          this.error.set(message);
-          this.isLoading.set(false);
-          return of(null);
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe((registry) => {
-        if (registry) {
-          this.itemRegistry.set(registry);
-        }
-        this.isLoading.set(false);
-      });
+    effect(() => {
+      const itemIds = Object.values(this.activeLoadout().slots).filter(
+        (itemId): itemId is string => typeof itemId === "string" && itemId.length > 0
+      );
+      void this.loadEquipmentRegistry(itemIds);
+    });
   }
 
   protected onStatSelected(key: string): void {
@@ -377,5 +349,47 @@ export class CombatStatsContainerComponent {
 
   protected onDrawerClosed(): void {
     this.selectedKey.set(null);
+  }
+
+  private async loadEquipmentRegistry(itemIds: readonly string[]): Promise<void> {
+    const generation = ++this.loadGeneration;
+    this.error.set(null);
+
+    if (itemIds.length === 0) {
+      this.itemRegistry.set(new Map());
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    try {
+      const items = await this.definitionRepository.getEquipmentItems(itemIds);
+      const hydratedItems = await Promise.all(
+        items.map(async (item) => ({
+          ...item,
+          iconPath: await this.definitionImageService.getImageUrl("items", item.imageId)
+        }))
+      );
+      const registry = new Map<string, InventoryEquipmentItem>();
+
+      for (const item of hydratedItems) {
+        registry.set(item.id, item as InventoryEquipmentItem);
+      }
+
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.itemRegistry.set(registry);
+      this.isLoading.set(false);
+    } catch (err: unknown) {
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.error.set(err instanceof Error ? err.message : "Failed to load combat stats.");
+      this.isLoading.set(false);
+    }
   }
 }

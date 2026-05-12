@@ -2,6 +2,6 @@
   "id": "forest_edge",
   "label": "Forest Edge",
   "subtitle": "Brush, roots, and animal trails press close to the village path.",
-  "sceneImagePath": "assets/images/location-backgrounds/forest.png",
-  "availableNpcIds": []
+  "availableNpcIds": [],
+  "sceneImageId": "forest_edge"
 }

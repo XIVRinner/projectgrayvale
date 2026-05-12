@@ -2,6 +2,6 @@
   "id": "camp",
   "label": "Camp",
   "subtitle": "A placeholder camp route kept live for future flows and testing.",
-  "sceneImagePath": "assets/images/location-backgrounds/camp.png",
-  "availableNpcIds": []
+  "availableNpcIds": [],
+  "sceneImageId": "camp"
 }

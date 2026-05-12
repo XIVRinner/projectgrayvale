@@ -3,7 +3,6 @@
   "name": "Brittle Copper (T1)",
   "category": "material",
   "rarity": "common",
-  "iconPath": "assets/images/resources/materials/copper-ore.png",
   "tags": [
     "metal",
     "ore",
@@ -16,5 +15,6 @@
   "craftingTags": [
     "smithing"
   ],
-  "source": "Forest Edge"
+  "source": "Forest Edge",
+  "imageId": "mat_brittle_copper_t1"
 }

@@ -58,14 +58,14 @@ export class DefinitionService {
     ]);
 
     return [...items, ...materials]
-      .map((entry) => entry.definition)
+      .map((entry) => toLegacyDefinitionPayload(entry.definition, entry.type))
       .sort(compareDefinitionsById);
   }
 
   async listEquipmentDefinitions(): Promise<readonly unknown[]> {
     const items = await this.listDefinitions("items");
     return items
-      .map((entry) => entry.definition)
+      .map((entry) => toLegacyDefinitionPayload(entry.definition, entry.type))
       .filter((definition) => hasStringField(definition, "slot"))
       .sort(compareDefinitionsById);
   }
@@ -97,7 +97,7 @@ export class DefinitionService {
 
     return {
       defaultState,
-      locations,
+      locations: locations.map((location) => toLegacyDefinitionPayload(location, "locations")),
     };
   }
 
@@ -158,4 +158,34 @@ function hasStringField(
     value !== null &&
     typeof (value as Record<string, unknown>)[key] === "string"
   );
+}
+
+function toLegacyDefinitionPayload(definition: unknown, type: DefinitionType): unknown {
+  if (typeof definition !== "object" || definition === null || Array.isArray(definition)) {
+    return definition;
+  }
+
+  const record = { ...(definition as Record<string, unknown>) };
+
+  if ((type === "items" || type === "materials") && typeof record["imageId"] === "string") {
+    record["iconPath"] = toDefinitionAssetPath(type, record["imageId"]);
+  }
+
+  if (type === "locations") {
+    if (typeof record["sceneImageId"] === "string") {
+      record["sceneImagePath"] = toDefinitionAssetPath(type, record["sceneImageId"]);
+    }
+
+    if (Array.isArray(record["sublocations"])) {
+      record["sublocations"] = record["sublocations"].map((entry) =>
+        toLegacyDefinitionPayload(entry, "locations"),
+      );
+    }
+  }
+
+  return record;
+}
+
+function toDefinitionAssetPath(type: DefinitionType, assetId: unknown): string {
+  return `/api/assets/${type}/${encodeURIComponent(String(assetId))}`;
 }

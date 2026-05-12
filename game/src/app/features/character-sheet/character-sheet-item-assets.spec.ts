@@ -16,6 +16,7 @@ describe("character-sheet item asset parsing", () => {
         name: "Old Dagger",
         category: "equipment",
         rarity: "uncommon",
+        imageId: "weapon_dagger_rustleaf",
         iconPath: "assets/images/resources/items/equipment/rusty-dagger.svg",
         tags: ["dagger", "melee", "short_blade"],
         slot: "main_hand",
@@ -29,6 +30,7 @@ describe("character-sheet item asset parsing", () => {
       (entry) => inventoryEquipmentItemSchema.parse(entry)
     );
 
+    expect(item.imageId).toBe("weapon_dagger_rustleaf");
     expect(item.iconPath).toBe("assets/images/resources/items/equipment/rusty-dagger.svg");
     expect(item.damage).toEqual({
       piercing: { min: 5, max: 10 },

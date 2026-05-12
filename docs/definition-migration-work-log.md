@@ -141,3 +141,49 @@
 - Added `GET /api/auth/me`.
 - The endpoint returns `authenticated`, `admin`, and `username`.
 - Anonymous, invalid-session, missing-player, and banned-player requests all resolve to a safe anonymous response.
+
+## Epic 4 — Server-side images/assets
+
+### Completed
+
+- Moved migrated definition image ownership into `server/public/assets/definitions/{items,materials,locations,activities,actions}`.
+- Updated migrated item/material/location definitions to use server-owned `imageId` / `sceneImageId` fields instead of bundled client asset paths.
+- Added server asset endpoints and metadata endpoints for definition images.
+
+### Public endpoints
+
+- `GET /api/assets/:type/:assetId`
+- `GET /api/assets/:type/:assetId/info`
+
+### Notes
+
+- Asset endpoints resolve files by asset ID, compute hash metadata from the file contents, and return content-type-specific responses.
+- Missing assets return a clean JSON `404`.
+- Legacy definition payloads still expose `iconPath` / `sceneImagePath` compatibility fields backed by the new server asset routes.
+
+## Epic 5 — Game client definition cache
+
+### Completed
+
+- Added `DefinitionRepositoryService` for ID-based item/material/location/activity/action reads.
+- Added IndexedDB-backed cached definition records keyed by `(type, id)` using the shared Grayvale cache database.
+- Added metadata-driven stale detection and batch definition refresh flow for item IDs.
+
+### Notes
+
+- The client now supports `listItemIds()`, `getItem()`, `getItems()`, `getMaterial()`, `getLocation()`, `getActivity()`, and `getAction()`.
+- Cached definitions store `hash`, `version`, `updatedAt`, `cachedAt`, and the full definition payload.
+- Character sheet consumers now request only the definitions they need instead of loading the full legacy item payloads.
+
+## Epic 6 — Game client image cache
+
+### Completed
+
+- Added `DefinitionImageService` with IndexedDB-backed blob caching for server-served definition images.
+- Added transparent image resolution by asset ID for item/material/location definition images.
+- Rewired current character sheet and world-location consumers to resolve cached object URLs instead of bundled static image paths.
+
+### Notes
+
+- Cached image records store `assetType`, `assetId`, `hash`, `contentType`, `blob`, and `cachedAt`.
+- Image URLs now fall back cleanly to the existing placeholder texture when an asset is missing.

@@ -3,7 +3,6 @@
   "name": "Flax (T1)",
   "category": "material",
   "rarity": "common",
-  "iconPath": "assets/images/resources/materials/flax.png",
   "tags": [
     "fiber",
     "cloth",
@@ -16,5 +15,6 @@
     "tailoring",
     "medical"
   ],
-  "source": "Forest Edge"
+  "source": "Forest Edge",
+  "imageId": "mat_flax_t1"
 }

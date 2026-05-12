@@ -2,26 +2,23 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { catchError, map, of } from "rxjs";
 
 import {
   type EquipmentSlot,
   type InventoryEquipmentItem,
   type Loadout,
   type Player,
-  inventoryEquipmentItemSchema,
   sampleLoadoutDefault
 } from "@rinner/grayvale-core";
 
-import { apiPath, dataApiPath } from "../../../data/api-paths";
-import { GameApiCacheService } from "../../../data/game-api-cache.service";
-import { parseEquipmentItemArrayWithGameFields } from "../character-sheet-item-assets";
+import { DefinitionImageService } from "../../../data/definition-image.service";
+import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
 import { buildEquipmentRequirementStatuses } from "../character-sheet-equipment-requirements";
 import { EquipmentPanelViewComponent } from "./equipment-panel-view.component";
 import type { EquipmentSlotView } from "./equipment-panel.types";
@@ -69,7 +66,9 @@ const SLOT_LABELS: Record<EquipmentSlot, string> = {
   `
 })
 export class EquipmentPanelContainerComponent {
-  private readonly apiCache = inject(GameApiCacheService);
+  private readonly definitionRepository = inject(DefinitionRepositoryService);
+  private readonly definitionImageService = inject(DefinitionImageService);
+  private loadGeneration = 0;
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -116,37 +115,65 @@ export class EquipmentPanelContainerComponent {
   });
 
   constructor() {
-    this.apiCache
-      .getJsonWithFallback<unknown>(
-        [apiPath("equipment-items"), dataApiPath("equipment-items")],
-        { cacheKey: apiPath("equipment-items") }
-      )
-      .pipe(
-        map((raw) =>
-          parseEquipmentItemArrayWithGameFields(raw, (entry) =>
-            inventoryEquipmentItemSchema.parse(entry)
-          )
-        ),
-        catchError((err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to load equipment items.";
-          this.error.set(message);
-          this.isLoading.set(false);
-          return of([] as InventoryEquipmentItem[]);
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe((items) => {
-        const registry = new Map<string, InventoryEquipmentItem>();
-        for (const item of items) {
-          registry.set(item.id, item);
-        }
-        this.itemRegistry.set(registry);
-        this.isLoading.set(false);
-      });
+    effect(() => {
+      const loadout = this.activeLoadout();
+      const comparedItemId = this.comparedItemId();
+      const itemIds = dedupeItemIds([
+        ...Object.values(loadout.slots),
+        comparedItemId
+      ]);
+      void this.loadEquipmentItems(itemIds);
+    });
   }
 
   protected onCompareRequested(slotId: EquipmentSlot): void {
     const itemId = this.activeLoadout().slots[slotId] ?? null;
     this.compareItemChanged.emit(itemId);
   }
+
+  private async loadEquipmentItems(itemIds: readonly string[]): Promise<void> {
+    const generation = ++this.loadGeneration;
+    this.error.set(null);
+
+    if (itemIds.length === 0) {
+      this.itemRegistry.set(new Map());
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    try {
+      const items = await this.definitionRepository.getEquipmentItems(itemIds);
+      const hydratedItems = await Promise.all(
+        items.map(async (item) => ({
+          ...item,
+          iconPath: await this.definitionImageService.getImageUrl("items", item.imageId)
+        }))
+      );
+      const registry = new Map<string, InventoryEquipmentItem>();
+
+      for (const item of hydratedItems) {
+        registry.set(item.id, item as InventoryEquipmentItem);
+      }
+
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.itemRegistry.set(registry);
+      this.isLoading.set(false);
+    } catch (err: unknown) {
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.error.set(err instanceof Error ? err.message : "Failed to load equipment items.");
+      this.isLoading.set(false);
+    }
+  }
+}
+
+function dedupeItemIds(ids: readonly (string | null | undefined)[]): string[] {
+  return Array.from(new Set(ids.filter((id): id is string => typeof id === "string" && id.length > 0)));
 }

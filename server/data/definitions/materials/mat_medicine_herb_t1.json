@@ -3,7 +3,6 @@
   "name": "Medicine Herb (T1)",
   "category": "material",
   "rarity": "common",
-  "iconPath": "assets/images/resources/materials/healing-herb.png",
   "tags": [
     "herb",
     "alchemy",
@@ -16,5 +15,6 @@
     "alchemy",
     "medical"
   ],
-  "source": "Forest Edge"
+  "source": "Forest Edge",
+  "imageId": "mat_medicine_herb_t1"
 }
