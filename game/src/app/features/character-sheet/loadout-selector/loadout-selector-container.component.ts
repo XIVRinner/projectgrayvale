@@ -11,13 +11,13 @@ import {
 
 import {
   type EquipmentSlot,
-  type InventoryEquipmentItem,
   type Loadout,
   type Player
 } from "@rinner/grayvale-core";
 
 import { DefinitionImageService } from "../../../data/definition-image.service";
 import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
+import type { GameInventoryEquipmentItem } from "../../../data/definition-parsers";
 import {
   buildEquipmentRequirementStatuses,
   checkEquipmentRequirements
@@ -97,7 +97,7 @@ export class LoadoutSelectorContainerComponent {
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
-  private readonly itemRegistry = signal<Map<string, InventoryEquipmentItem>>(new Map());
+  private readonly itemRegistry = signal<Map<string, GameInventoryEquipmentItem>>(new Map());
 
   protected readonly loadoutRows = computed<readonly LoadoutRowView[]>(() => {
     const record = this.loadoutsRecord();
@@ -156,10 +156,11 @@ export class LoadoutSelectorContainerComponent {
 
   constructor() {
     effect(() => {
+      const player = this.player();
       const loadoutItemIds = Object.values(this.loadoutsRecord())
         .flatMap((loadout) => Object.values(loadout.slots));
-      const ownedItemIds = this.player()
-        ? Object.entries(this.player()!.inventory.items)
+      const ownedItemIds = player
+        ? Object.entries(player.inventory.items)
             .filter(([, quantity]) => quantity > 0)
             .map(([itemId]) => itemId)
         : [];
@@ -181,14 +182,19 @@ export class LoadoutSelectorContainerComponent {
 
     try {
       const items = await this.definitionRepository.getItems(itemIds);
-      const equipmentItems = items.filter((item): item is InventoryEquipmentItem => item.category === "equipment");
+      const equipmentItems = items.filter(
+        (item): item is GameInventoryEquipmentItem => item.category === "equipment"
+      );
       const hydratedItems = await Promise.all(
         equipmentItems.map(async (item) => ({
           ...item,
-          iconPath: await this.definitionImageService.getImageUrl("items", "imageId" in item ? item.imageId : undefined)
+          iconPath: await this.definitionImageService.getImageUrl(
+            "items",
+            (item as { imageId?: string }).imageId
+          )
         }))
       );
-      const map = new Map<string, InventoryEquipmentItem>();
+      const map = new Map<string, GameInventoryEquipmentItem>();
 
       for (const item of hydratedItems) {
         map.set(item.id, item);

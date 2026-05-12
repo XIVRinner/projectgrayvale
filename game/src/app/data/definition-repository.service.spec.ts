@@ -75,7 +75,7 @@ describe("DefinitionRepositoryService", () => {
     expect(first[0]?.id).toBe("weapon_dagger_rustleaf");
     expect(first[0]?.imageId).toBe("weapon_dagger_rustleaf");
     expect(second[0]?.id).toBe("weapon_dagger_rustleaf");
-    expect(http.post).toHaveBeenCalledTimes(3);
+    expect(http.post).toHaveBeenCalledTimes(2);
     expect(http.post).toHaveBeenCalledWith(
       "/api/definitions/items/batch",
       ["weapon_dagger_rustleaf"],

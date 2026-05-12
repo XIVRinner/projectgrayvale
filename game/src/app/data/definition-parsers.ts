@@ -4,7 +4,6 @@ import {
   inventoryEquipmentItemSchema,
   inventoryItemDefinitionSchema,
   inventoryMaterialItemSchema,
-  type ActionDefinition,
   type ActivityDefinition,
   type DamageInterval,
   type DamageType,
@@ -28,6 +27,7 @@ export type GameInventoryEquipmentItem = InventoryEquipmentItem & GameDefinition
 };
 
 export type GameInventoryMaterialItem = InventoryMaterialItem & GameDefinitionImageFields;
+export type GameActionDefinition = z.infer<typeof actionDefinitionSchema>;
 
 const damageIntervalSchema = z
   .object({
@@ -103,7 +103,7 @@ export function parseActivityDefinition(raw: unknown): ActivityDefinition {
   return activityDefinitionSchema.parse(raw);
 }
 
-export function parseActionDefinition(raw: unknown): ActionDefinition {
+export function parseActionDefinition(raw: unknown): GameActionDefinition {
   return actionDefinitionSchema.parse(raw);
 }
 

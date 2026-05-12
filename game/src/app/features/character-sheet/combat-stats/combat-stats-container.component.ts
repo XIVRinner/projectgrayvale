@@ -14,7 +14,6 @@ import {
   sampleLoadoutDefault,
   type BalanceProfile,
   type DamageInterval,
-  type InventoryEquipmentItem,
   type LabeledModifier,
   type Loadout,
   type Player,
@@ -24,6 +23,7 @@ import {
 
 import { DefinitionImageService } from "../../../data/definition-image.service";
 import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
+import type { GameInventoryEquipmentItem } from "../../../data/definition-parsers";
 import type { CharacterStatUnlockState } from "../../../core/services/character-roster.service";
 import { GameSettingsService } from "../../../core/services/game-settings.service";
 import {
@@ -83,7 +83,7 @@ const formatDelta = (delta: number, isPercent: boolean): string | null => {
 
 const buildLabeledModifiers = (
   loadout: Loadout,
-  registry: Map<string, InventoryEquipmentItem>
+  registry: Map<string, GameInventoryEquipmentItem>
 ): LabeledModifier[] => {
   const modifiers: LabeledModifier[] = [];
   const equippedIds = Object.values(loadout.slots).filter(
@@ -162,7 +162,7 @@ const DAMAGE_TYPE_ORDER: readonly DamageType[] = [
 
 const buildWeaponDamageRows = (
   loadout: Loadout,
-  registry: Map<string, InventoryEquipmentItem>
+  registry: Map<string, GameInventoryEquipmentItem>
 ): readonly CombatWeaponDamageRowView[] => {
   const mainHandId = loadout.slots.main_hand;
 
@@ -280,7 +280,7 @@ export class CombatStatsContainerComponent {
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
-  private readonly itemRegistry = signal<Map<string, InventoryEquipmentItem>>(new Map());
+  private readonly itemRegistry = signal<Map<string, GameInventoryEquipmentItem>>(new Map());
 
   protected readonly selectedKey = signal<string | null>(null);
   private readonly healthProfile = computed(
@@ -371,10 +371,10 @@ export class CombatStatsContainerComponent {
           iconPath: await this.definitionImageService.getImageUrl("items", item.imageId)
         }))
       );
-      const registry = new Map<string, InventoryEquipmentItem>();
+      const registry = new Map<string, GameInventoryEquipmentItem>();
 
       for (const item of hydratedItems) {
-        registry.set(item.id, item as InventoryEquipmentItem);
+        registry.set(item.id, item);
       }
 
       if (generation !== this.loadGeneration) {

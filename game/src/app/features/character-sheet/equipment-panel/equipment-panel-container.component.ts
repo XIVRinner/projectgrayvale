@@ -11,7 +11,6 @@ import {
 
 import {
   type EquipmentSlot,
-  type InventoryEquipmentItem,
   type Loadout,
   type Player,
   sampleLoadoutDefault
@@ -19,6 +18,7 @@ import {
 
 import { DefinitionImageService } from "../../../data/definition-image.service";
 import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
+import type { GameInventoryEquipmentItem } from "../../../data/definition-parsers";
 import { buildEquipmentRequirementStatuses } from "../character-sheet-equipment-requirements";
 import { EquipmentPanelViewComponent } from "./equipment-panel-view.component";
 import type { EquipmentSlotView } from "./equipment-panel.types";
@@ -72,7 +72,7 @@ export class EquipmentPanelContainerComponent {
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
-  private readonly itemRegistry = signal<Map<string, InventoryEquipmentItem>>(new Map());
+  private readonly itemRegistry = signal<Map<string, GameInventoryEquipmentItem>>(new Map());
 
   /** Active loadout provided by the parent character-sheet container. */
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
@@ -151,10 +151,10 @@ export class EquipmentPanelContainerComponent {
           iconPath: await this.definitionImageService.getImageUrl("items", item.imageId)
         }))
       );
-      const registry = new Map<string, InventoryEquipmentItem>();
+      const registry = new Map<string, GameInventoryEquipmentItem>();
 
       for (const item of hydratedItems) {
-        registry.set(item.id, item as InventoryEquipmentItem);
+        registry.set(item.id, item);
       }
 
       if (generation !== this.loadGeneration) {

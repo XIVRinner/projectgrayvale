@@ -58,14 +58,19 @@ export class DefinitionService {
     ]);
 
     return [...items, ...materials]
-      .map((entry) => toLegacyDefinitionPayload(entry.definition, entry.type))
+      .map((entry) =>
+        toLegacyDefinitionPayload(
+          entry.definition,
+          hasStringField(entry.definition, "slot") ? "items" : "materials",
+        ),
+      )
       .sort(compareDefinitionsById);
   }
 
   async listEquipmentDefinitions(): Promise<readonly unknown[]> {
     const items = await this.listDefinitions("items");
     return items
-      .map((entry) => toLegacyDefinitionPayload(entry.definition, entry.type))
+      .map((entry) => toLegacyDefinitionPayload(entry.definition, "items"))
       .filter((definition) => hasStringField(definition, "slot"))
       .sort(compareDefinitionsById);
   }

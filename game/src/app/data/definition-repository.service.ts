@@ -1,7 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import {
-  type ActionDefinition,
   type ActivityDefinition,
 } from "@rinner/grayvale-core";
 import { firstValueFrom } from "rxjs";
@@ -22,6 +21,7 @@ import {
   parseEquipmentItemDefinition,
   parseInventoryItemDefinition,
   parseMaterialDefinition,
+  type GameActionDefinition,
   type GameInventoryEquipmentItem,
   type GameInventoryItemDefinition,
   type GameInventoryMaterialItem,
@@ -111,7 +111,7 @@ export class DefinitionRepositoryService {
     return activity;
   }
 
-  async getAction(id: string): Promise<ActionDefinition> {
+  async getAction(id: string): Promise<GameActionDefinition> {
     const [action] = await this.getDefinitions("actions", [id], parseActionDefinition);
     return action;
   }
