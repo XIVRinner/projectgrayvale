@@ -11,6 +11,13 @@ import helmet from "helmet";
 
 import { readServerConfig } from "./config";
 import type { ServerConfig } from "./config";
+import { ChangelogController } from "./changelog/changelog-controller";
+import {
+  createAdminChangelogRouter,
+  createChangelogRouter,
+} from "./changelog/changelog-routes";
+import { ChangelogRepository } from "./changelog/changelog-repository";
+import { ChangelogService } from "./changelog/changelog-service";
 import { ContentRepository } from "./content/content-repository";
 import { createContentRouter } from "./content/content-routes";
 import { seedJsonResources } from "./content/content-seed";
@@ -35,6 +42,13 @@ export async function createApp(
   const repository = new ContentRepository(db);
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
+  const changelogRepository = new ChangelogRepository(db);
+  const changelogService = new ChangelogService(changelogRepository);
+  const changelogController = new ChangelogController(
+    changelogService,
+    multiplayerRepository,
+    config.adminPassword,
+  );
 
   // Trust the first proxy hop so that req.ip and secure-cookie detection
   // work correctly on Vercel / behind a load-balancer.
@@ -88,6 +102,8 @@ export async function createApp(
   });
 
   app.use("/api/data", createContentRouter(repository));
+  app.use("/api/changelog", createChangelogRouter(changelogController));
+  app.use("/api/admin", createAdminChangelogRouter(changelogController));
   app.use(
     "/api/server",
     createMultiplayerRouter(multiplayerRepository, config),

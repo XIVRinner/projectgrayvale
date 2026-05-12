@@ -61,6 +61,28 @@
   --gv-color-quest-tag-secret-border: color-mix(in srgb, var(--gv-color-accent-purple) 70%, white 30%);
   --gv-color-quest-tag-secret-text: #f9e2ff;
 
+  --gv-color-changelog-character-bg: color-mix(in srgb, var(--gv-color-accent) 16%, var(--gv-color-bg-raised));
+  --gv-color-changelog-character-border: color-mix(in srgb, var(--gv-color-accent) 52%, var(--gv-color-border-subtle));
+  --gv-color-changelog-character-text: #fff4d3;
+  --gv-color-changelog-story-bg: color-mix(in srgb, var(--gv-color-accent-purple) 18%, var(--gv-color-bg-raised));
+  --gv-color-changelog-story-border: color-mix(in srgb, var(--gv-color-accent-purple) 54%, var(--gv-color-border-subtle));
+  --gv-color-changelog-story-text: #f3e9ff;
+  --gv-color-changelog-combat-bg: color-mix(in srgb, var(--gv-color-danger) 18%, var(--gv-color-bg-raised));
+  --gv-color-changelog-combat-border: color-mix(in srgb, var(--gv-color-danger) 54%, var(--gv-color-border-subtle));
+  --gv-color-changelog-combat-text: #ffe4de;
+  --gv-color-changelog-quest-bg: color-mix(in srgb, var(--gv-color-success) 18%, var(--gv-color-bg-raised));
+  --gv-color-changelog-quest-border: color-mix(in srgb, var(--gv-color-success) 52%, var(--gv-color-border-subtle));
+  --gv-color-changelog-quest-text: #e7ffef;
+  --gv-color-changelog-server-bg: color-mix(in srgb, var(--gv-color-accent-cool) 18%, var(--gv-color-bg-raised));
+  --gv-color-changelog-server-border: color-mix(in srgb, var(--gv-color-accent-cool) 56%, var(--gv-color-border-subtle));
+  --gv-color-changelog-server-text: #defefd;
+  --gv-color-changelog-dev-bg: color-mix(in srgb, var(--gv-color-action-travel) 18%, var(--gv-color-bg-raised));
+  --gv-color-changelog-dev-border: color-mix(in srgb, var(--gv-color-action-travel) 52%, var(--gv-color-border-subtle));
+  --gv-color-changelog-dev-text: #e1f2ff;
+  --gv-color-changelog-meta-bg: color-mix(in srgb, var(--gv-color-accent-warm) 18%, var(--gv-color-bg-raised));
+  --gv-color-changelog-meta-border: color-mix(in srgb, var(--gv-color-accent-warm) 52%, var(--gv-color-border-subtle));
+  --gv-color-changelog-meta-text: #fff1dd;
+
   /* Rarity hierarchy tokens:
    * - Base tiers progress from muted neutrals into vivid accent/signal tones.
    * - Legendary+ and special tiers intentionally blend accent, danger, and travel colors

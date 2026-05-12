@@ -59,6 +59,7 @@ const EXECUTION_GRAPH_GUARD_TYPES = new Set<string>([
   "story_arc_active",
   "story_prologue_pending",
   "activity_available",
+  "activity_locked",
   "activity_enabled",
   "activity_is_active"
 ]);
@@ -163,6 +164,26 @@ function evaluateKnownExecutionGuard(
       }
 
       return { passes: true };
+    }
+
+    /**
+     * Passes when the activity exists in player availability and is still locked.
+     * Useful for one-time unlock prompts/dialogues.
+     */
+    case "activity_locked": {
+      const activityId = readOptionalStringParam(guard.params, "activityId");
+
+      if (!activityId) {
+        return { passes: false, failureReason: "Guard is missing activityId parameter." };
+      }
+
+      const availability = context.player.activityState?.availability?.[activityId];
+
+      if (!availability || availability.status === "locked") {
+        return { passes: true };
+      }
+
+      return { passes: false, failureReason: "Activity is already unlocked." };
     }
 
     /**

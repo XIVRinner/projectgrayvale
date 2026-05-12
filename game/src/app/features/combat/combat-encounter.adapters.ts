@@ -195,7 +195,10 @@ export function buildCombatEncounterView(
     outcomeLabel: state.outcome ? toOutcomeLabel(state.outcome) : null,
     player,
     enemies,
-    logs: buildLogLines(state.logs),
+    logs: buildLogLines(state.logs, {
+      [bundle.player.id]: bundle.player.displayName,
+      ...Object.fromEntries(bundle.enemies.map((enemy) => [enemy.id, enemy.displayName]))
+    }),
     rotation: bundle.rotationPreview,
     rewards
   };
@@ -316,13 +319,33 @@ function buildActorCardView(
   };
 }
 
-function buildLogLines(logs: readonly CombatLogEntry[]): readonly CombatLogLineView[] {
+function buildLogLines(
+  logs: readonly CombatLogEntry[],
+  actorDisplayNames: Record<string, string>
+): readonly CombatLogLineView[] {
   return logs.slice(-18).map((log, index) => ({
     id: `${log.tick}:${log.type}:${index}`,
     tick: log.tick,
-    text: log.message,
+    text: resolveCombatLogText(log.message, actorDisplayNames),
     type: log.type
   }));
+}
+
+function resolveCombatLogText(message: string, actorDisplayNames: Record<string, string>): string {
+  const actorIds = Object.keys(actorDisplayNames).sort((left, right) => right.length - left.length);
+  let next = message;
+
+  for (const actorId of actorIds) {
+    const actorName = actorDisplayNames[actorId] ?? actorId;
+    const escapedActorId = escapeRegExp(actorId);
+    next = next.replace(new RegExp(`\\b${escapedActorId}\\b`, "g"), actorName);
+  }
+
+  return next;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function describeRule(

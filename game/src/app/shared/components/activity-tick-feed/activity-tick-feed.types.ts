@@ -9,6 +9,8 @@ export interface ActivityTickSnapshotView {
   readonly attributeSkillPerHourLabel: string;
   readonly itemGainLabel: string;
   readonly itemTotalGainLabel: string;
+  readonly hpGainLabel: string;
+  readonly currentHpLabel: string;
   readonly cutoffRuleLabel: string;
   readonly isCutoffTriggered: boolean;
 }

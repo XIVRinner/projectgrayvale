@@ -51,6 +51,13 @@ export class HomeContainerComponent {
 
   readonly quickLinks: readonly HomeQuickLink[] = [
     {
+      label: "Release Notes",
+      description: "Review the latest shipped fixes, additions, and balance passes.",
+      icon: "pi pi-megaphone",
+      route: "/changelog",
+      disabled: false
+    },
+    {
       label: "Activities",
       description: "Take on work, gather resources, and build your reputation.",
       icon: "pi pi-bolt",

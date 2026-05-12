@@ -4,8 +4,12 @@ import { descriptionSchema, idSchema, nameSchema } from "./shared";
 
 export const rewardScalingSchema = z
   .object({
-    source: z.union([z.literal("skill"), z.literal("attribute")]),
-    id: z.string().min(1),
+    source: z.union([
+      z.literal("skill"),
+      z.literal("attribute"),
+      z.literal("healing_done")
+    ]),
+    id: z.string().min(1).optional(),
     factor: z.number().finite()
   })
   .strict();
@@ -47,7 +51,17 @@ export const rewardDistributionSchema = z.union([
       type: z.literal("random"),
       chance: z.number().min(0).max(1).optional()
     })
+    .strict(),
+  z
+    .object({
+      type: z.literal("random_interval"),
+      tickMin: z.number().int().min(1),
+      tickMax: z.number().int().min(1)
+    })
     .strict()
+    .refine((value) => value.tickMin <= value.tickMax, {
+      message: "random_interval tickMin cannot be greater than tickMax"
+    })
 ]);
 
 export const activityRewardSchema = z
@@ -60,7 +74,8 @@ export const activityRewardSchema = z
     ]),
     targetId: z.string().min(1).optional(),
     value: rewardValueSchema,
-    distribution: rewardDistributionSchema.optional()
+    distribution: rewardDistributionSchema.optional(),
+    maxHealPercent: z.number().min(0).max(100).optional()
   })
   .strict();
 

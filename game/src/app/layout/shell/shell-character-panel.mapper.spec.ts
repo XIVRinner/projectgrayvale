@@ -82,6 +82,29 @@ describe("buildShellCharacterPanel", () => {
     expect(panel.skills).toEqual([]);
     expect(panel.focusItems.find((item) => item.title === "Skills")?.detail).toBe("No known skills");
   });
+
+  it("derives a flat purse breakdown from money", () => {
+    const player = clonePlayer(samplePlayer);
+    player.money = 120;
+
+    const panel = buildShellCharacterPanel(
+      player,
+      buildMetadata(),
+      undefined,
+      null,
+      undefined,
+      undefined
+    );
+
+    expect(panel.purse.totalDisplay).toBe("1 mark 20 pennies");
+    expect(panel.purse.coins).toEqual([
+      expect.objectContaining({ id: "throne", amount: 0 }),
+      expect.objectContaining({ id: "crown", amount: 0 }),
+      expect.objectContaining({ id: "mark", amount: 1 }),
+      expect.objectContaining({ id: "penny", amount: 20 })
+    ]);
+    expect(panel.purse.currencyValue).toBeNull();
+  });
 });
 
 function buildMetadata(): ShellCharacterMetadata {

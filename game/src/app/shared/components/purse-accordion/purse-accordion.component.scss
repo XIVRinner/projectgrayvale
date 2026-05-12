@@ -1,0 +1,96 @@
+:host {
+  display: block;
+}
+
+.gv-purse-accordion {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-purse-accordion__section {
+  display: grid;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-bg-primary) 30%, var(--gv-color-bg-raised));
+}
+
+.gv-purse-accordion__toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--gv-space-sm);
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--gv-color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gv-purse-accordion__summary {
+  justify-self: end;
+  color: var(--gv-color-accent-warm);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 700;
+}
+
+.gv-purse-accordion__body {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-purse-accordion__coins {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-purse-accordion__coin {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: var(--gv-space-sm);
+  align-items: center;
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  border-radius: var(--gv-radius-sm);
+  background: color-mix(in srgb, var(--gv-color-bg-primary) 25%, transparent);
+}
+
+.gv-purse-accordion__coin--empty {
+  opacity: 0.55;
+}
+
+.gv-purse-accordion__coin-icon {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+.gv-purse-accordion__coin-copy {
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 0.5);
+}
+
+.gv-purse-accordion__coin-label,
+.gv-purse-accordion__currency-label {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.gv-purse-accordion__coin-value,
+.gv-purse-accordion__currency-value {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-purse-accordion__currency {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+  padding-top: var(--gv-space-xs);
+  border-top: var(--gv-border-subtle);
+}

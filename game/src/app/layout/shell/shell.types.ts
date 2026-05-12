@@ -139,6 +139,20 @@ export interface ShellCharacterFocusItem {
   readonly tone: "accent" | "cool" | "warm";
 }
 
+export interface ShellPurseCoinItem {
+  readonly id: string;
+  readonly label: string;
+  readonly iconPath: string;
+  readonly amount: number;
+  readonly displayValue: string;
+}
+
+export interface ShellPursePanel {
+  readonly totalDisplay: string;
+  readonly coins: readonly ShellPurseCoinItem[];
+  readonly currencyValue: null;
+}
+
 export interface ShellQuestTrackerObjective {
   readonly id: string;
   readonly label: string;
@@ -185,7 +199,22 @@ export interface ShellCharacterPanel {
   readonly badges: readonly ShellCharacterBadge[];
   readonly progressBars: readonly ShellProgressBarItem[];
   readonly identityCards: readonly ShellCharacterIdentityCard[];
+  readonly purse: ShellPursePanel;
   readonly attributes: readonly ShellCharacterStatItem[];
   readonly skills: readonly ShellCharacterStatItem[];
   readonly focusItems: readonly ShellCharacterFocusItem[];
+}
+
+export interface ShellMiniChatMessage {
+  readonly id: string;
+  readonly sender: string;
+  readonly text: string;
+  readonly tone: "neutral" | "accent" | "warm" | "danger" | "success";
+  readonly timestamp?: string;
+}
+
+export interface ShellMiniChatPanel {
+  readonly title: string;
+  readonly emptyLabel: string;
+  readonly messages: readonly ShellMiniChatMessage[];
 }

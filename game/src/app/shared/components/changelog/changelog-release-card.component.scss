@@ -1,0 +1,288 @@
+:host {
+  display: block;
+}
+
+.gv-changelog-release-card {
+  display: grid;
+  gap: var(--gv-space-md);
+  padding: var(--gv-space-lg);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 36%),
+    var(--gv-color-bg-surface);
+}
+
+.gv-changelog-release-card--compact {
+  padding: var(--gv-space-md);
+}
+
+.gv-changelog-release-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gv-space-md);
+}
+
+.gv-changelog-release-card__heading {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-changelog-release-card__version,
+.gv-changelog-release-card__title,
+.gv-changelog-release-card__summary,
+.gv-changelog-release-card__entry-body {
+  margin: 0;
+}
+
+.gv-changelog-release-card__version {
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-xs);
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-changelog-release-card__title {
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-changelog-release-card__summary {
+  color: color-mix(in srgb, var(--gv-color-text-muted) 78%, white 22%);
+  line-height: 1.5;
+}
+
+.gv-changelog-release-card__meta {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: var(--gv-space-xs);
+}
+
+.gv-changelog-release-card__date,
+.gv-changelog-release-card__read-state {
+  font-size: var(--gv-font-size-xs);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-changelog-release-card__new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--gv-color-accent-cool);
+  color: var(--gv-color-bg-primary);
+  font-size: var(--gv-font-size-xxs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+}
+
+.gv-changelog-release-card__entries {
+  display: grid;
+  gap: var(--gv-space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gv-changelog-release-card__entry {
+  display: grid;
+  gap: var(--gv-space-xs);
+  padding: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-inline-start-width: 3px;
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-color-overlay-soft);
+}
+
+.gv-changelog-release-card__entry[data-category="character"] {
+  border-inline-start-color: var(--gv-color-changelog-character-border);
+}
+
+.gv-changelog-release-card__entry[data-category="story"] {
+  border-inline-start-color: var(--gv-color-changelog-story-border);
+}
+
+.gv-changelog-release-card__entry[data-category="combat"] {
+  border-inline-start-color: var(--gv-color-changelog-combat-border);
+}
+
+.gv-changelog-release-card__entry[data-category="quest"] {
+  border-inline-start-color: var(--gv-color-changelog-quest-border);
+}
+
+.gv-changelog-release-card__entry[data-category="server"] {
+  border-inline-start-color: var(--gv-color-changelog-server-border);
+}
+
+.gv-changelog-release-card__entry[data-category="developer"] {
+  border-inline-start-color: var(--gv-color-changelog-dev-border);
+}
+
+.gv-changelog-release-card__entry[data-category="meta"] {
+  border-inline-start-color: var(--gv-color-changelog-meta-border);
+}
+
+.gv-changelog-release-card__entry-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gv-space-sm);
+}
+
+.gv-changelog-release-card__entry-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--gv-color-accent-tint-bg);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xxs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gv-changelog-release-card__entry-type[data-type="fixed"] {
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 20%, var(--gv-color-bg-raised));
+}
+
+.gv-changelog-release-card__entry-type[data-type="security"],
+.gv-changelog-release-card__entry-type[data-type="removed"] {
+  background: color-mix(in srgb, var(--gv-color-danger) 20%, var(--gv-color-bg-raised));
+}
+
+.gv-changelog-release-card__entry-type[data-type="deprecated"] {
+  background: color-mix(in srgb, var(--gv-color-accent-purple) 22%, var(--gv-color-bg-raised));
+}
+
+.gv-changelog-release-card__entry-type[data-type="added"] {
+  background: color-mix(in srgb, var(--gv-color-success) 20%, var(--gv-color-bg-raised));
+}
+
+.gv-changelog-release-card__entry-category {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: var(--gv-font-size-xxs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gv-changelog-release-card__entry-category[data-category="character"] {
+  background: var(--gv-color-changelog-character-bg);
+  border-color: var(--gv-color-changelog-character-border);
+  color: var(--gv-color-changelog-character-text);
+}
+
+.gv-changelog-release-card__entry-category[data-category="story"] {
+  background: var(--gv-color-changelog-story-bg);
+  border-color: var(--gv-color-changelog-story-border);
+  color: var(--gv-color-changelog-story-text);
+}
+
+.gv-changelog-release-card__entry-category[data-category="combat"] {
+  background: var(--gv-color-changelog-combat-bg);
+  border-color: var(--gv-color-changelog-combat-border);
+  color: var(--gv-color-changelog-combat-text);
+}
+
+.gv-changelog-release-card__entry-category[data-category="quest"] {
+  background: var(--gv-color-changelog-quest-bg);
+  border-color: var(--gv-color-changelog-quest-border);
+  color: var(--gv-color-changelog-quest-text);
+}
+
+.gv-changelog-release-card__entry-category[data-category="server"] {
+  background: var(--gv-color-changelog-server-bg);
+  border-color: var(--gv-color-changelog-server-border);
+  color: var(--gv-color-changelog-server-text);
+}
+
+.gv-changelog-release-card__entry-category[data-category="developer"] {
+  background: var(--gv-color-changelog-dev-bg);
+  border-color: var(--gv-color-changelog-dev-border);
+  color: var(--gv-color-changelog-dev-text);
+}
+
+.gv-changelog-release-card__entry-category[data-category="meta"] {
+  background: var(--gv-color-changelog-meta-bg);
+  border-color: var(--gv-color-changelog-meta-border);
+  color: var(--gv-color-changelog-meta-text);
+}
+
+.gv-changelog-release-card__entry-title {
+  color: var(--gv-color-text-primary);
+}
+
+.gv-changelog-release-card__entry-body {
+  color: color-mix(in srgb, var(--gv-color-text-muted) 76%, white 24%);
+  line-height: 1.5;
+}
+
+.gv-changelog-release-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+.gv-changelog-release-card__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xxs);
+}
+
+.gv-changelog-release-card__tag[data-category="character"] {
+  border-color: var(--gv-color-changelog-character-border);
+  color: var(--gv-color-changelog-character-text);
+}
+
+.gv-changelog-release-card__tag[data-category="story"] {
+  border-color: var(--gv-color-changelog-story-border);
+  color: var(--gv-color-changelog-story-text);
+}
+
+.gv-changelog-release-card__tag[data-category="combat"] {
+  border-color: var(--gv-color-changelog-combat-border);
+  color: var(--gv-color-changelog-combat-text);
+}
+
+.gv-changelog-release-card__tag[data-category="quest"] {
+  border-color: var(--gv-color-changelog-quest-border);
+  color: var(--gv-color-changelog-quest-text);
+}
+
+.gv-changelog-release-card__tag[data-category="server"] {
+  border-color: var(--gv-color-changelog-server-border);
+  color: var(--gv-color-changelog-server-text);
+}
+
+.gv-changelog-release-card__tag[data-category="developer"] {
+  border-color: var(--gv-color-changelog-dev-border);
+  color: var(--gv-color-changelog-dev-text);
+}
+
+.gv-changelog-release-card__tag[data-category="meta"] {
+  border-color: var(--gv-color-changelog-meta-border);
+  color: var(--gv-color-changelog-meta-text);
+}
+
+@media (max-width: 48rem) {
+  .gv-changelog-release-card__header {
+    flex-direction: column;
+  }
+
+  .gv-changelog-release-card__meta {
+    justify-items: start;
+  }
+}

@@ -21,9 +21,22 @@
     <button
       type="button"
       class="gv-footer__btn gv-footer__btn--version"
-      disabled
+      [attr.title]="
+        whatsNewUnreadCount() > 0
+          ? 'Unread release notes available'
+          : 'Open release notes'
+      "
+      (click)="whatsNewRequested.emit()"
     >
       v{{ version() }}
+      @if (whatsNewUnreadCount() > 0) {
+        <span
+          class="gv-footer__version-badge"
+          aria-label="{{ whatsNewUnreadCount() }} unread releases"
+        >
+          {{ whatsNewUnreadCount() }}
+        </span>
+      }
     </button>
 
     <!-- GAP: WikiModalService not yet available — button is a visual placeholder -->

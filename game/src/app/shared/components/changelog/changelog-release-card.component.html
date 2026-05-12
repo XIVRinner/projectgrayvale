@@ -1,0 +1,64 @@
+<article class="gv-changelog-release-card" [class.gv-changelog-release-card--compact]="compact()">
+  @if (showHeader()) {
+    <header class="gv-changelog-release-card__header">
+      <div class="gv-changelog-release-card__heading">
+        <p class="gv-changelog-release-card__version">v{{ release().version }}</p>
+        <h3 class="gv-changelog-release-card__title">{{ release().title }}</h3>
+        @if (release().summary) {
+          <p class="gv-changelog-release-card__summary">{{ release().summary }}</p>
+        }
+      </div>
+
+      <div class="gv-changelog-release-card__meta">
+        <span class="gv-changelog-release-card__date">
+          {{ formatReleaseDate(release().releasedAt) }}
+        </span>
+        @if (!release().isRead) {
+          <span class="gv-changelog-release-card__new-badge">NEW</span>
+        }
+      </div>
+    </header>
+  }
+
+  <ul class="gv-changelog-release-card__entries">
+    @for (entry of release().entries; track entry.id) {
+      <li
+        class="gv-changelog-release-card__entry"
+        [attr.data-category]="primaryCategory(entry.tags)"
+      >
+        <div class="gv-changelog-release-card__entry-heading">
+          <span
+            class="gv-changelog-release-card__entry-type"
+            [attr.data-type]="entry.type"
+          >
+            {{ typeLabel(entry.type) }}
+          </span>
+          <span
+            class="gv-changelog-release-card__entry-category"
+            [attr.data-category]="primaryCategory(entry.tags)"
+          >
+            {{ categoryLabel(entry.tags) }}
+          </span>
+          <strong class="gv-changelog-release-card__entry-title">{{ entry.title }}</strong>
+        </div>
+
+        @if (entry.body) {
+          <p class="gv-changelog-release-card__entry-body">{{ entry.body }}</p>
+        }
+
+        @if (entry.tags.length) {
+          <div class="gv-changelog-release-card__tags">
+            @for (tag of entry.tags; track tag) {
+              <span
+                class="gv-changelog-release-card__tag"
+                [attr.data-category]="primaryCategory(entry.tags)"
+              >
+                {{ tag }}
+              </span>
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+</article>

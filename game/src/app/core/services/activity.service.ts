@@ -13,6 +13,7 @@ import { CombatEncounterService } from "../../features/combat/combat-encounter.s
 import { DebugLogService } from "./game-log/debug-log.service";
 import { GameDialogService } from "./game-dialog.service";
 import { GameQuestService } from "./game-quest.service";
+import type { SaveSlotHealthState } from "./health-balance";
 import { TickService, type TickEvent } from "./tick.service";
 
 @Injectable({ providedIn: "root" })
@@ -83,7 +84,12 @@ export class ActivityService {
       return false;
     }
 
-    const availability = player.activityState?.availability?.[activityId];
+    const activity = this.activitiesState.find((entry) => entry.id === activityId);
+    if (activity) {
+      this.reconcileHealingAvailability(activityId, activity);
+    }
+
+    const availability = this.roster.activeCharacter()?.activityState?.availability?.[activityId];
 
     if (!availability || availability.status !== "enabled") {
       this.debugLog.logMessage("activity", "Activity start rejected — not enabled.", {
@@ -106,7 +112,6 @@ export class ActivityService {
       this.runItemTotals.clear();
       this.emptyGrowthTickStreak = 0;
       this.debugLog.logMessage("activity", "Activity started.", { activityId });
-      const activity = this.activitiesState.find((entry) => entry.id === activityId);
 
       if (activity && this.combatEncounter.isCombatActivity(activity)) {
         const started = this.combatEncounter.startEncounter(activity);
@@ -166,7 +171,15 @@ export class ActivityService {
       return;
     }
 
+    const healthBefore = this.roster.activeHealth();
     const appliedDeltas = this.gameQuests.executeActivityTick(activityId);
+    const healthAfter = this.roster.activeHealth();
+    const hpGain = resolveHpGain(healthBefore, healthAfter);
+
+    if (activity) {
+      this.reconcileHealingAvailability(activityId, activity);
+    }
+
     const growth = summarizeGrowth(appliedDeltas, event.elapsedMs);
     const player = this.roster.activeCharacter();
 
@@ -174,7 +187,7 @@ export class ActivityService {
       this.runItemTotals.set(key, (this.runItemTotals.get(key) ?? 0) + amount);
     }
 
-    const hasValuableGrowth = growth.hasValuableGrowth;
+    const hasValuableGrowth = growth.hasValuableGrowth || hpGain > 0;
     this.emptyGrowthTickStreak = hasValuableGrowth ? 0 : this.emptyGrowthTickStreak + 1;
 
     const cutoffRule = this.resolveCutoffRule(activityId, hasValuableGrowth);
@@ -190,6 +203,8 @@ export class ActivityService {
       attributeSkillPerHourLabel: growth.attributeSkillPerHourLabel,
       itemGainLabel: growth.itemGainLabel,
       itemTotalGainLabel: formatAggregateLabel(this.runItemTotals),
+      hpGainLabel: hpGain > 0 ? `HP +${hpGain}` : "None",
+      currentHpLabel: formatCurrentHpLabel(healthAfter),
       cutoffRuleLabel: cutoffRule.label,
       isCutoffTriggered: cutoffRule.shouldCutoff
     };
@@ -211,6 +226,17 @@ export class ActivityService {
     activityId: string,
     hasValuableGrowth: boolean
   ): { shouldCutoff: boolean; label: string } {
+    const activity = this.activitiesState.find((entry) => entry.id === activityId);
+    if (activity && isHealingActivity(activity)) {
+      const health = this.roster.activeHealth();
+      if (!canHealAtCurrentState(activity, health)) {
+        return {
+          shouldCutoff: true,
+          label: "Cutoff reached: not injured enough to continue healing."
+        };
+      }
+    }
+
     const availability = this.roster.activeCharacter()?.activityState?.availability?.[activityId];
 
     if (!availability || availability.status !== "enabled") {
@@ -232,6 +258,52 @@ export class ActivityService {
       shouldCutoff: false,
       label: `Auto-cutoff when growth stops being valuable (${this.emptyGrowthTickStreak}/${ActivityService.AUTO_CUTOFF_EMPTY_TICK_THRESHOLD} empty ticks).`
     };
+  }
+
+  private reconcileHealingAvailability(
+    activityId: string,
+    activity: GameActivityDefinition
+  ): void {
+    if (!isHealingActivity(activity)) {
+      return;
+    }
+
+    const player = this.roster.activeCharacter();
+    const availability = player?.activityState?.availability?.[activityId];
+    if (!availability || availability.status === "locked") {
+      return;
+    }
+
+    const canHeal = canHealAtCurrentState(activity, this.roster.activeHealth());
+    const shouldDisable = !canHeal;
+    const desiredStatus = shouldDisable ? "disabled" : "enabled";
+    const desiredReason = shouldDisable
+      ? "Not injured enough to use this healing activity."
+      : undefined;
+
+    const alreadyMatches =
+      availability.status === desiredStatus &&
+      (availability.disabledReason ?? "") === (desiredReason ?? "");
+
+    if (alreadyMatches) {
+      return;
+    }
+
+    this.roster.applyActiveCharacterDeltas([
+      {
+        type: "set",
+        target: "player",
+        path: ["activityState", "availability", activityId],
+        value: shouldDisable
+          ? {
+              status: "disabled",
+              disabledReason: "Not injured enough to use this healing activity."
+            }
+          : {
+              status: "enabled"
+            }
+      }
+    ]);
   }
 }
 
@@ -376,6 +448,52 @@ function buildCurrentLevelLabel(deltas: readonly Delta[], player: Player | null)
   return [...levels.entries()]
     .map(([label, value]) => `${label} ${formatNumber(value)}`)
     .join(", ");
+}
+
+function resolveHpGain(
+  before: SaveSlotHealthState | null,
+  after: SaveSlotHealthState | null
+): number {
+  if (!before || !after) {
+    return 0;
+  }
+
+  return Math.max(0, after.currentHp - before.currentHp);
+}
+
+function formatCurrentHpLabel(health: SaveSlotHealthState | null): string {
+  if (!health) {
+    return "Unavailable";
+  }
+
+  return `${health.currentHp}/${health.maxHp}`;
+}
+
+function isHealingActivity(activity: GameActivityDefinition): boolean {
+  return (activity.rewards ?? []).some(
+    (reward) => reward.type === "attribute" && reward.targetId === "hp"
+  );
+}
+
+function canHealAtCurrentState(
+  activity: GameActivityDefinition,
+  health: SaveSlotHealthState | null
+): boolean {
+  if (!health) {
+    return false;
+  }
+
+  const hpReward = (activity.rewards ?? []).find(
+    (reward) => reward.type === "attribute" && reward.targetId === "hp"
+  );
+
+  if (!hpReward) {
+    return true;
+  }
+
+  const capPercent = typeof hpReward.maxHealPercent === "number" ? hpReward.maxHealPercent : 100;
+  const capHp = Math.floor((health.maxHp * capPercent) / 100);
+  return health.currentHp < capHp;
 }
 
 function prettyId(value: string): string {

@@ -1,0 +1,102 @@
+<section class="gv-mini-chat" aria-label="Mini chat">
+  <header class="gv-mini-chat__header">
+    <div>
+      <p class="gv-mini-chat__eyebrow">Communications</p>
+      <h2 class="gv-mini-chat__title">{{ panel().title }}</h2>
+    </div>
+
+    <div class="gv-mini-chat__actions">
+      <button
+        type="button"
+        pButton
+        class="gv-mini-chat__action p-button p-component"
+        icon="pi pi-refresh"
+        aria-label="Refresh world chat"
+        (click)="refreshRequested.emit()"
+      ></button>
+
+      <button
+        type="button"
+        pButton
+        class="gv-mini-chat__action gv-mini-chat__action--primary p-button p-component"
+        icon="pi pi-comments"
+        aria-label="Open world chat"
+        (click)="openFullChatRequested.emit()"
+      ></button>
+
+      @if (!canSend()) {
+        <button
+          type="button"
+          pButton
+          class="gv-mini-chat__action p-button p-component"
+          icon="pi pi-link"
+          aria-label="Open server select"
+          (click)="openServerSelectRequested.emit()"
+        ></button>
+      }
+
+      <button
+        type="button"
+        pButton
+        class="gv-mini-chat__action p-button p-component"
+        [icon]="collapsed() ? 'pi pi-chevron-down' : 'pi pi-chevron-up'"
+        [attr.aria-label]="collapsed() ? 'Expand chat' : 'Collapse chat'"
+        (click)="toggleCollapsed()"
+      ></button>
+    </div>
+  </header>
+
+  @if (collapsed()) {
+    <p class="gv-mini-chat__collapsed">{{ panel().messages.length }} message{{ panel().messages.length === 1 ? '' : 's' }} waiting.</p>
+  } @else {
+    <div class="gv-mini-chat__stream">
+      <div class="gv-mini-chat__scroll-container">
+        @if (panel().messages.length === 0) {
+          <p class="gv-mini-chat__empty">{{ panel().emptyLabel }}</p>
+        } @else {
+          @for (message of panel().messages; track message.id) {
+            <article class="gv-mini-chat__message" [attr.data-tone]="message.tone">
+              <div class="gv-mini-chat__message-header">
+                <span class="gv-mini-chat__sender">{{ message.sender }}</span>
+                @if (message.timestamp) {
+                  <span class="gv-mini-chat__timestamp">{{ message.timestamp }}</span>
+                }
+              </div>
+              <p class="gv-mini-chat__text">{{ message.text }}</p>
+            </article>
+          }
+        }
+      </div>
+
+      @if (statusMessage()) {
+        <p class="gv-mini-chat__status">{{ statusMessage() }}</p>
+      }
+
+      <div class="gv-mini-chat__composer">
+        <textarea
+          class="gv-mini-chat__composer-input"
+          rows="2"
+          [value]="draftMessage()"
+          [disabled]="!canSend() || isSending()"
+          [attr.placeholder]="canSend() ? 'Type a world chat message' : 'Connect this character to chat'"
+          [attr.aria-label]="'Mini world chat input'"
+          (input)="onDraftChanged($event)"
+          (keydown)="onComposerKeydown($event)"
+        ></textarea>
+
+        <div class="gv-mini-chat__composer-row">
+          <p class="gv-mini-chat__hint">{{ sendHint() ?? 'Enter sends. Shift+Enter for newline.' }}</p>
+
+          <button
+            type="button"
+            pButton
+            class="gv-mini-chat__send p-button p-component"
+            label="Send"
+            [disabled]="!canSend() || isSending() || !draftMessage().trim()"
+            (click)="submit()"
+          ></button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

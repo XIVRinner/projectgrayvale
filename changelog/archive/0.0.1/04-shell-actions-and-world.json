@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added the main shell layout with action, quest, and world-state panels",
+  "body": "The current interface ships with location status chips, an action panel, tracked quest surfaces, mini chat, and command-center shell framing for the playable build.",
+  "audience": "user",
+  "impact": "high",
+  "tags": ["ui", "shell", "world", "actions"]
+}

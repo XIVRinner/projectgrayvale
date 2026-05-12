@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added server relay support for presence, chat, and authenticated sessions",
+  "body": "Players can connect to a server, restore a session, poll presence, read world chat, and send messages when chat access is allowed.",
+  "audience": "user",
+  "impact": "high",
+  "tags": ["server", "chat", "multiplayer", "session"]
+}

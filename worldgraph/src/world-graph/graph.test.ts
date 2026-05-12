@@ -74,7 +74,9 @@ const createContext = (): GuardContext => ({
     inventory: {
       items: {}
     },
-    equippedItems: {}
+    equippedItems: {},
+    money: 0,
+    currencies: {}
   },
   npcs: {},
   world: createState()

@@ -41,6 +41,10 @@ export interface PlayerActivityState {
   activeActivityId?: string | null;
 }
 
+export interface PlayerCurrencies {
+  [key: string]: number;
+}
+
 export interface Player extends Entity, Named {
   raceId: string;
   jobClass: string;
@@ -65,4 +69,6 @@ export interface Player extends Entity, Named {
   loadouts?: Record<string, Loadout>;
   /** Id of the currently active loadout. */
   activeLoadoutId?: string;
+  money: number;
+  currencies: PlayerCurrencies;
 }

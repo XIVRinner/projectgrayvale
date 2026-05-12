@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added quest tracking and quest log interfaces",
+  "body": "Players can review quest progress from the tracker, open the full quest log, and inspect authored objectives and status groupings in the current build.",
+  "audience": "user",
+  "impact": "medium",
+  "tags": ["quests", "tracker", "journal"]
+}

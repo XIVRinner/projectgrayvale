@@ -68,7 +68,9 @@ function parsePlayer(raw: unknown): Player {
     activityState,
     interactionState,
     inventory: parseInventory(record["inventory"]),
-    equippedItems: parseEquippedItems(record["equippedItems"])
+    equippedItems: parseEquippedItems(record["equippedItems"]),
+    money: parseMoney(record["money"]),
+    currencies: parseCurrencies(record["currencies"])
   };
 }
 
@@ -217,6 +219,22 @@ function parseInventory(raw: unknown): Player["inventory"] {
   return {
     items: parseNumberRecord(record["items"], "player.inventory.items")
   };
+}
+
+function parseMoney(raw: unknown): number {
+  if (raw === undefined) {
+    return 0;
+  }
+
+  return ensureNumber(raw, "player.money");
+}
+
+function parseCurrencies(raw: unknown): Player["currencies"] {
+  if (raw === undefined) {
+    return {};
+  }
+
+  return parseNumberRecord(raw, "player.currencies");
 }
 
 function parseActivityState(raw: unknown): Player["activityState"] {

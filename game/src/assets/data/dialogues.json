@@ -40,5 +40,19 @@
     "title": "Bridgitte",
     "eyebrowFallback": "Bridgitte's House",
     "subtitleFallback": "A retired adventurer answers what she is willing to share."
+  },
+  {
+    "id": "tavern-bartender-first-meeting",
+    "entryFile": "tavern_bartender_first_meeting.fsc",
+    "title": "Bartender",
+    "eyebrowFallback": "Tavern",
+    "subtitleFallback": "A practical offer behind the bar."
+  },
+  {
+    "id": "camp-self-tend-injuries",
+    "entryFile": "arkama/camp-self-tend-injuries.fsc",
+    "title": "Reflection",
+    "eyebrowFallback": "Camp",
+    "subtitleFallback": "You decide to learn how to handle your wounds."
   }
 ]
