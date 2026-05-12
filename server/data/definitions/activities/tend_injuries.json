@@ -1,0 +1,51 @@
+{
+  "id": "tend_injuries",
+  "name": "Tend Injuries",
+  "description": "Use medicine knowledge to slowly recover health at camp.",
+  "location": {
+    "locationId": "camp"
+  },
+  "tags": [
+    "healing",
+    "camp",
+    "indoor"
+  ],
+  "governingAttributes": [
+    "medicine"
+  ],
+  "difficulty": 2,
+  "rewards": [
+    {
+      "type": "attribute",
+      "targetId": "hp",
+      "value": {
+        "type": "scaled",
+        "base": 2,
+        "scaling": {
+          "source": "skill",
+          "id": "medicine",
+          "factor": 2
+        }
+      },
+      "distribution": {
+        "type": "deterministic"
+      },
+      "maxHealPercent": 80
+    },
+    {
+      "type": "skill",
+      "targetId": "medicine",
+      "value": {
+        "type": "scaled",
+        "base": 0.02,
+        "scaling": {
+          "source": "healing_done",
+          "factor": 0.1
+        }
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    }
+  ]
+}

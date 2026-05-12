@@ -1,0 +1,21 @@
+{
+  "id": "armor_chest_travel_rags",
+  "name": "Travel Rags Tunic",
+  "category": "equipment",
+  "rarity": "trash",
+  "tags": [
+    "starter",
+    "junk",
+    "chest",
+    "cloth"
+  ],
+  "slot": "chest",
+  "itemLevel": 1,
+  "description": "A patched tunic better suited to road dust than steel.",
+  "tooltip": {
+    "statLines": [
+      "No combat stats"
+    ],
+    "flavorText": "It is clothing, not armor."
+  }
+}

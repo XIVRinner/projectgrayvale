@@ -1,0 +1,18 @@
+{
+  "id": "mat_brittle_oak_log_t1",
+  "name": "Brittle Oak Log (T1)",
+  "category": "material",
+  "rarity": "common",
+  "tags": [
+    "wood",
+    "log",
+    "t1",
+    "crafting"
+  ],
+  "quantity": 0,
+  "qualityStars": 1,
+  "craftingTags": [
+    "woodworking"
+  ],
+  "source": "Forest Edge"
+}

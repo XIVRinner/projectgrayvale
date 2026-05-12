@@ -1,0 +1,67 @@
+{
+  "id": "hunt_coyote",
+  "name": "Hunt Coyote",
+  "description": "Track a meaner coyote through the brush and bring back something useful.",
+  "location": {
+    "locationId": "forest_edge"
+  },
+  "tags": [
+    "forest",
+    "combat",
+    "repeatable",
+    "hunting",
+    "t1"
+  ],
+  "governingAttributes": [
+    "agility",
+    "vitality"
+  ],
+  "difficulty": 7,
+  "rewards": [
+    {
+      "type": "item",
+      "targetId": "mat_coyote_hide_t1",
+      "value": {
+        "type": "flat",
+        "amount": 1
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    },
+    {
+      "type": "item",
+      "targetId": "mat_coyote_meat_t1",
+      "value": {
+        "type": "flat",
+        "amount": 1
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    },
+    {
+      "type": "item",
+      "targetId": "weapon_dagger_coyote_fang",
+      "value": {
+        "type": "flat",
+        "amount": 1
+      },
+      "distribution": {
+        "type": "random",
+        "chance": 0.08
+      }
+    },
+    {
+      "type": "attribute",
+      "targetId": "agility",
+      "value": {
+        "type": "flat",
+        "amount": 0.35
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    }
+  ]
+}

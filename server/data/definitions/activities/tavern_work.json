@@ -1,0 +1,44 @@
+{
+  "id": "tavern_work",
+  "name": "Work in the Tavern",
+  "description": "Serve drinks, clean tables, and earn coin from the tavern keeper.",
+  "location": {
+    "locationId": "village-arkama",
+    "sublocationId": "tavern"
+  },
+  "tags": [
+    "labour",
+    "service",
+    "indoor"
+  ],
+  "governingAttributes": [
+    "tavern_work"
+  ],
+  "difficulty": 5,
+  "rewards": [
+    {
+      "type": "currency",
+      "value": {
+        "type": "range",
+        "min": 1,
+        "max": 2
+      },
+      "distribution": {
+        "type": "random_interval",
+        "tickMin": 5,
+        "tickMax": 10
+      }
+    },
+    {
+      "type": "skill",
+      "targetId": "tavern_work",
+      "value": {
+        "type": "flat",
+        "amount": 0.02
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    }
+  ]
+}

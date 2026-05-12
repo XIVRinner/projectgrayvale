@@ -1,0 +1,17 @@
+{
+  "id": "mat_coyote_meat_t1",
+  "name": "Coyote Meat (T1)",
+  "category": "material",
+  "rarity": "common",
+  "tags": [
+    "meat",
+    "cooking",
+    "t1"
+  ],
+  "quantity": 0,
+  "qualityStars": 1,
+  "craftingTags": [
+    "cooking"
+  ],
+  "source": "Forest Edge"
+}

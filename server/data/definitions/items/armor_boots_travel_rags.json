@@ -1,0 +1,21 @@
+{
+  "id": "armor_boots_travel_rags",
+  "name": "Travel Rags Boots",
+  "category": "equipment",
+  "rarity": "trash",
+  "tags": [
+    "starter",
+    "junk",
+    "boots",
+    "cloth"
+  ],
+  "slot": "boots",
+  "itemLevel": 1,
+  "description": "Soft boots that stop your feet from being bare, not from being hurt.",
+  "tooltip": {
+    "statLines": [
+      "No combat stats"
+    ],
+    "flavorText": "Good enough for walking. Not much else."
+  }
+}

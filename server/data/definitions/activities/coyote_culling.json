@@ -1,0 +1,37 @@
+{
+  "id": "coyote_culling",
+  "name": "Cull the Coyote",
+  "description": "Push through the nerves and deal with the lone coyote stalking the lower path.",
+  "location": {
+    "locationId": "forest_edge"
+  },
+  "questSignal": {
+    "type": "kill",
+    "target": "arkama_coyote",
+    "count": 1
+  },
+  "tags": [
+    "forest",
+    "quest",
+    "special",
+    "tutorial"
+  ],
+  "governingAttributes": [
+    "agility",
+    "vitality"
+  ],
+  "difficulty": 6,
+  "rewards": [
+    {
+      "type": "attribute",
+      "targetId": "agility",
+      "value": {
+        "type": "flat",
+        "amount": 0.5
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    }
+  ]
+}

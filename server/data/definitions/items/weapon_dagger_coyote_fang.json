@@ -1,0 +1,50 @@
+{
+  "id": "weapon_dagger_coyote_fang",
+  "name": "Coyote Fang Dagger",
+  "category": "equipment",
+  "rarity": "rare",
+  "iconPath": "assets/images/resources/items/equipment/shadow-fangs.png",
+  "tags": [
+    "dagger",
+    "melee",
+    "short_blade",
+    "beast"
+  ],
+  "slot": "main_hand",
+  "itemLevel": 3,
+  "description": "A lean fang-backed dagger built from a hunter's trophy and decent village steel.",
+  "requirements": {
+    "levelRequirement": 1
+  },
+  "damage": {
+    "piercing": {
+      "min": 8,
+      "max": 15
+    },
+    "slashing": {
+      "min": 3,
+      "max": 8
+    }
+  },
+  "combatStats": [
+    {
+      "stat": "strength",
+      "value": 2,
+      "operation": "add"
+    },
+    {
+      "stat": "dodge_chance",
+      "value": 0.05,
+      "operation": "add"
+    }
+  ],
+  "tooltip": {
+    "statLines": [
+      "Piercing Damage 8-15",
+      "Slashing Damage 3-8",
+      "+2 Strength",
+      "+5% Dodge Chance"
+    ],
+    "flavorText": "Built from a coyote's bite and made for someone learning to bite back."
+  }
+}

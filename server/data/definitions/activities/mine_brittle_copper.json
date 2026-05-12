@@ -1,0 +1,44 @@
+{
+  "id": "mine_brittle_copper",
+  "name": "Mine Brittle Copper",
+  "description": "Chip loose brittle copper out of the shallow stone seams.",
+  "location": {
+    "locationId": "forest_edge"
+  },
+  "tags": [
+    "forest",
+    "mining",
+    "resource",
+    "repeatable",
+    "t1"
+  ],
+  "governingAttributes": [
+    "strength",
+    "vitality"
+  ],
+  "difficulty": 5,
+  "rewards": [
+    {
+      "type": "item",
+      "targetId": "mat_brittle_copper_t1",
+      "value": {
+        "type": "flat",
+        "amount": 1
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    },
+    {
+      "type": "attribute",
+      "targetId": "strength",
+      "value": {
+        "type": "flat",
+        "amount": 0.2
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    }
+  ]
+}
