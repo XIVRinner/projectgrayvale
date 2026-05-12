@@ -2,7 +2,10 @@ import { Injectable, inject } from "@angular/core";
 import type { Delta } from "@rinner/grayvale-core";
 import { BehaviorSubject, type Observable } from "rxjs";
 
-import { CharacterRosterService, type WorldUpdateEvent } from "../character-roster.service";
+import {
+  CharacterRosterService,
+  type WorldUpdateEvent,
+} from "../character-roster.service";
 import { GameDialogService } from "../game-dialog.service";
 import { GameQuestService } from "../game-quest.service";
 import {
@@ -13,7 +16,7 @@ import {
   mapWorldUpdateToGameplayLogEntry,
   toGameplayLogEntries,
   type GameLogEntry,
-  type StoredGameplayLogEntry
+  type StoredGameplayLogEntry,
 } from "./log-mapper";
 import type { GameDialogEvent } from "../../../shared/components/game-dialog/game-dialog.types";
 import type { GameQuestEvent } from "../game-quest.types";
@@ -27,7 +30,8 @@ export class GameplayLogService {
 
   private storedEntries: readonly StoredGameplayLogEntry[] = [];
 
-  readonly log$: Observable<GameLogEntry[]> = this.logEntriesSubject.asObservable();
+  readonly log$: Observable<GameLogEntry[]> =
+    this.logEntriesSubject.asObservable();
 
   constructor() {
     this.roster.deltaApplied$.subscribe((delta) => {
@@ -51,7 +55,10 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(this.storedEntries, mappedEntry);
+    this.storedEntries = appendGameplayLogEntry(
+      this.storedEntries,
+      mappedEntry,
+    );
     this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
   }
 
@@ -62,7 +69,10 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(this.storedEntries, mappedEntry);
+    this.storedEntries = appendGameplayLogEntry(
+      this.storedEntries,
+      mappedEntry,
+    );
     this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
   }
 
@@ -73,7 +83,10 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(this.storedEntries, mappedEntry);
+    this.storedEntries = appendGameplayLogEntry(
+      this.storedEntries,
+      mappedEntry,
+    );
     this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
   }
 
@@ -84,7 +97,18 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(this.storedEntries, mappedEntry);
+    this.storedEntries = appendGameplayLogEntry(
+      this.storedEntries,
+      mappedEntry,
+    );
+    this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
+  }
+
+  appendEntry(entry: GameLogEntry): void {
+    this.storedEntries = appendGameplayLogEntry(this.storedEntries, {
+      entry,
+      mergeState: null,
+    });
     this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
   }
 }

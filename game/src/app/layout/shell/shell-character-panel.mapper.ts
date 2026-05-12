@@ -4,7 +4,7 @@ import {
   type ExperienceConfig,
   type Player,
   type Race,
-  type Skill
+  type Skill,
 } from "@rinner/grayvale-core";
 
 import type { AttributeDefinition } from "../../data/loaders/attribute-definitions.loader";
@@ -12,8 +12,9 @@ import type { CharacterStatUnlockState } from "../../core/services/character-ros
 import type { CharacterCreatorClassOption } from "../../data/loaders/character-creator-options.loader";
 import {
   reconcileHealthState,
-  type SaveSlotHealthState
+  type SaveSlotHealthState,
 } from "../../core/services/health-balance";
+import { formatCompactStatValue } from "../../shared/utils/stat-value-format";
 import type {
   ShellCharacterBadge,
   ShellCharacterFocusItem,
@@ -21,14 +22,34 @@ import type {
   ShellCharacterPanel,
   ShellCharacterStatItem,
   ShellPursePanel,
-  ShellProgressBarItem
+  ShellProgressBarItem,
 } from "./shell.types";
 
 const PURSE_DENOMINATIONS = [
-  { id: "throne", label: "Throne", value: 1_000_000, iconPath: "assets/images/resources/coins/throne.png" },
-  { id: "crown", label: "Crown", value: 10_000, iconPath: "assets/images/resources/coins/crown.png" },
-  { id: "mark", label: "Mark", value: 100, iconPath: "assets/images/resources/coins/mark.png" },
-  { id: "penny", label: "Penny", value: 1, iconPath: "assets/images/resources/coins/penny.png" }
+  {
+    id: "throne",
+    label: "Throne",
+    value: 1_000_000,
+    iconPath: "assets/images/resources/coins/throne.png",
+  },
+  {
+    id: "crown",
+    label: "Crown",
+    value: 10_000,
+    iconPath: "assets/images/resources/coins/crown.png",
+  },
+  {
+    id: "mark",
+    label: "Mark",
+    value: 100,
+    iconPath: "assets/images/resources/coins/mark.png",
+  },
+  {
+    id: "penny",
+    label: "Penny",
+    value: 1,
+    iconPath: "assets/images/resources/coins/penny.png",
+  },
 ] as const;
 
 export interface ShellCharacterMetadata {
@@ -44,7 +65,7 @@ export function buildShellCharacterPanel(
   statUnlocks: CharacterStatUnlockState | undefined,
   healthState: SaveSlotHealthState | null,
   balanceProfile: BalanceProfile | undefined,
-  difficultyCurve: ExperienceConfig | undefined
+  difficultyCurve: ExperienceConfig | undefined,
 ): ShellCharacterPanel {
   if (!activeCharacter) {
     return buildEmptyCharacterPanel();
@@ -60,10 +81,9 @@ export function buildShellCharacterPanel(
   const difficultyLabel = describeDifficulty(activeCharacter);
   const equippedCount = countEquippedSlots(activeCharacter);
   const inventoryStacks = Object.keys(activeCharacter.inventory.items).length;
-  const inventoryQuantity = Object.values(activeCharacter.inventory.items).reduce(
-    (sum, value) => sum + value,
-    0
-  );
+  const inventoryQuantity = Object.values(
+    activeCharacter.inventory.items,
+  ).reduce((sum, value) => sum + value, 0);
   const purse = buildPursePanel(activeCharacter.money);
   const topSkills = Object.entries(activeCharacter.skills)
     .filter(([skillId]) => isSkillUnlocked(skillId, statUnlocks))
@@ -84,7 +104,7 @@ export function buildShellCharacterPanel(
     name: activeCharacter.name,
     subtitle: [
       race?.name ?? prettyLabel(activeCharacter.raceId),
-      race?.adjective ?? race?.name ?? prettyLabel(activeCharacter.raceId)
+      race?.adjective ?? race?.name ?? prettyLabel(activeCharacter.raceId),
     ].join(" · "),
     genderLabel,
     genderIconPath,
@@ -92,33 +112,69 @@ export function buildShellCharacterPanel(
       {
         label: "Current Class",
         value: classOption?.name ?? prettyLabel(activeCharacter.jobClass),
-        meta: `${levelRank}-Rank`
+        meta: `${levelRank}-Rank`,
       },
       {
         label: "Lineage",
         value: race?.name ?? prettyLabel(activeCharacter.raceId),
-        meta: `${genderLabel} | ${portraitLabel}`
+        meta: `${genderLabel} | ${portraitLabel}`,
       },
       {
         label: "Difficulty",
         value: difficultyLabel,
-        meta: `Rank ${activeCharacter.adventurerRank} | ${activeCharacter.progression.experience} XP banked`
-      }
+        meta: `Rank ${activeCharacter.adventurerRank} | ${activeCharacter.progression.experience} XP banked`,
+      },
     ],
     actions: [
-      { id: "character-sheet", label: "Character Sheet", shortLabel: "ID", icon: "pi pi-id-card" },
-      { id: "statistics", label: "Statistics", shortLabel: "ST", icon: "pi pi-chart-bar", disabled: true },
-      { id: "inventory", label: "Inventory", shortLabel: "IN", icon: "pi pi-box", disabled: true }
+      {
+        id: "character-sheet",
+        label: "Character Sheet",
+        shortLabel: "ID",
+        icon: "pi pi-id-card",
+      },
+      {
+        id: "statistics",
+        label: "Statistics",
+        shortLabel: "ST",
+        icon: "pi pi-chart-bar",
+        disabled: true,
+      },
+      {
+        id: "inventory",
+        label: "Inventory",
+        shortLabel: "IN",
+        icon: "pi pi-box",
+        disabled: true,
+      },
     ],
     levelValue: activeCharacter.progression.level,
     levelTitle: `Level ${activeCharacter.progression.level}`,
     badges: buildBadges(activeCharacter, difficultyLabel),
-    progressBars: buildProgressBars(activeCharacter, healthState, balanceProfile, difficultyCurve),
-    identityCards: buildIdentityCards(activeCharacter, race, classOption, storyDetail, questCount, difficultyLabel),
+    progressBars: buildProgressBars(
+      activeCharacter,
+      healthState,
+      balanceProfile,
+      difficultyCurve,
+    ),
+    identityCards: buildIdentityCards(
+      activeCharacter,
+      race,
+      classOption,
+      storyDetail,
+      questCount,
+      difficultyLabel,
+    ),
     purse,
     attributes: buildAttributes(activeCharacter, metadata, statUnlocks),
     skills: buildSkills(activeCharacter, metadata, statUnlocks),
-    focusItems: buildFocusItems(activeCharacter, topSkills, portraitLabel, equippedCount, metadata, statUnlocks)
+    focusItems: buildFocusItems(
+      activeCharacter,
+      topSkills,
+      portraitLabel,
+      equippedCount,
+      metadata,
+      statUnlocks,
+    ),
   };
 }
 
@@ -132,19 +188,41 @@ function buildEmptyCharacterPanel(): ShellCharacterPanel {
     genderIconPath: undefined,
     roleLines: [
       { label: "Current Class", value: "Unassigned", meta: "G-Rank" },
-      { label: "Lineage", value: "Unregistered", meta: "Unknown | No portrait selected" },
-      { label: "Difficulty", value: "Normal", meta: "Rank 0 | 0 XP banked" }
+      {
+        label: "Lineage",
+        value: "Unregistered",
+        meta: "Unknown | No portrait selected",
+      },
+      { label: "Difficulty", value: "Normal", meta: "Rank 0 | 0 XP banked" },
     ],
     actions: [
-      { id: "character-sheet", label: "Character Sheet", shortLabel: "ID", icon: "pi pi-id-card", disabled: true },
-      { id: "statistics", label: "Statistics", shortLabel: "ST", icon: "pi pi-chart-bar", disabled: true },
-      { id: "inventory", label: "Inventory", shortLabel: "IN", icon: "pi pi-box", disabled: true }
+      {
+        id: "character-sheet",
+        label: "Character Sheet",
+        shortLabel: "ID",
+        icon: "pi pi-id-card",
+        disabled: true,
+      },
+      {
+        id: "statistics",
+        label: "Statistics",
+        shortLabel: "ST",
+        icon: "pi pi-chart-bar",
+        disabled: true,
+      },
+      {
+        id: "inventory",
+        label: "Inventory",
+        shortLabel: "IN",
+        icon: "pi pi-box",
+        disabled: true,
+      },
     ],
     levelValue: 1,
     levelTitle: "Level 1",
     badges: [
       { label: "Rank 0", tone: "expert" },
-      { label: "Normal", tone: "mode" }
+      { label: "Normal", tone: "mode" },
     ],
     progressBars: [
       {
@@ -152,7 +230,7 @@ function buildEmptyCharacterPanel(): ShellCharacterPanel {
         valueLabel: "0 / 0",
         current: 0,
         max: 1,
-        tone: "health"
+        tone: "health",
       },
       {
         label: "Experience",
@@ -160,35 +238,55 @@ function buildEmptyCharacterPanel(): ShellCharacterPanel {
         current: 0,
         max: 1,
         tone: "experience",
-        detail: "Create an adventurer to begin progression."
-      }
+        detail: "Create an adventurer to begin progression.",
+      },
     ],
     identityCards: [
-      { eyebrow: "Current Class", title: "Unassigned", detail: "Create a character to register a starting class." },
-      { eyebrow: "Lineage", title: "Unknown", detail: "No race has been selected yet." },
-      { eyebrow: "Difficulty", title: "Normal", detail: "New characters can choose easy, normal, or hard plus Expert and Ironman toggles." },
-      { eyebrow: "Story", title: "Dormant", detail: "No active save means no story state." }
+      {
+        eyebrow: "Current Class",
+        title: "Unassigned",
+        detail: "Create a character to register a starting class.",
+      },
+      {
+        eyebrow: "Lineage",
+        title: "Unknown",
+        detail: "No race has been selected yet.",
+      },
+      {
+        eyebrow: "Difficulty",
+        title: "Normal",
+        detail:
+          "New characters can choose easy, normal, or hard plus Expert and Ironman toggles.",
+      },
+      {
+        eyebrow: "Story",
+        title: "Dormant",
+        detail: "No active save means no story state.",
+      },
     ],
     purse: buildPursePanel(0),
     attributes: [
       { abbreviation: "VIT", label: "Vitality", value: 0, isLocked: false },
       { abbreviation: "STR", label: "Strength", value: 0, isLocked: true },
       { abbreviation: "AGI", label: "Agility", value: 0, isLocked: true },
-      { abbreviation: "MEN", label: "Mentality", value: 0, isLocked: true }
+      { abbreviation: "MEN", label: "Mentality", value: 0, isLocked: true },
     ],
     skills: [],
     focusItems: [
       { title: "Portrait", detail: "No portrait selected.", tone: "accent" },
       { title: "Skills", detail: "No trained skills.", tone: "cool" },
-      { title: "Equipment", detail: "No equipped gear.", tone: "warm" }
-    ]
+      { title: "Equipment", detail: "No equipped gear.", tone: "warm" },
+    ],
   };
 }
 
-function buildBadges(activeCharacter: Player, difficultyLabel: string): readonly ShellCharacterBadge[] {
+function buildBadges(
+  activeCharacter: Player,
+  difficultyLabel: string,
+): readonly ShellCharacterBadge[] {
   return [
     { label: `Rank ${activeCharacter.adventurerRank}`, tone: "expert" },
-    { label: difficultyLabel, tone: "mode" }
+    { label: difficultyLabel, tone: "mode" },
   ];
 }
 
@@ -196,12 +294,12 @@ function buildProgressBars(
   activeCharacter: Player,
   healthState: SaveSlotHealthState | null,
   balanceProfile: BalanceProfile | undefined,
-  difficultyCurve: ExperienceConfig | undefined
+  difficultyCurve: ExperienceConfig | undefined,
 ): readonly ShellProgressBarItem[] {
   const health = reconcileHealthState(
     activeCharacter,
     healthState ?? undefined,
-    balanceProfile
+    balanceProfile,
   );
   const experience = buildExperienceProgress(activeCharacter, difficultyCurve);
 
@@ -211,15 +309,15 @@ function buildProgressBars(
       valueLabel: `${formatPoolValue(health.currentHp)} / ${formatPoolValue(health.maxHp)}`,
       current: health.currentHp,
       max: Math.max(health.maxHp, 1),
-      tone: "health"
+      tone: "health",
     },
-    experience
+    experience,
   ];
 }
 
 function buildExperienceProgress(
   activeCharacter: Player,
-  difficultyCurve: ExperienceConfig | undefined
+  difficultyCurve: ExperienceConfig | undefined,
 ): ShellProgressBarItem {
   const currentExperience = Math.max(activeCharacter.progression.experience, 0);
 
@@ -230,11 +328,16 @@ function buildExperienceProgress(
       current: currentExperience,
       max: Math.max(currentExperience, 1),
       tone: "experience",
-      detail: `Level ${activeCharacter.progression.level} progression curve unavailable.`
+      detail: `Level ${activeCharacter.progression.level} progression curve unavailable.`,
     };
   }
 
-  const threshold = Math.max(1, Math.ceil(calculateXpRequired(activeCharacter.progression.level, difficultyCurve)));
+  const threshold = Math.max(
+    1,
+    Math.ceil(
+      calculateXpRequired(activeCharacter.progression.level, difficultyCurve),
+    ),
+  );
   const clampedExperience = Math.min(currentExperience, threshold);
   const remainingExperience = Math.max(threshold - currentExperience, 0);
   const nextLevel = activeCharacter.progression.level + 1;
@@ -248,7 +351,7 @@ function buildExperienceProgress(
     detail:
       remainingExperience > 0
         ? `${formatPoolValue(remainingExperience)} XP to Level ${nextLevel}`
-        : `Ready for Level ${nextLevel}`
+        : `Ready for Level ${nextLevel}`,
   };
 }
 
@@ -258,39 +361,39 @@ function buildIdentityCards(
   classOption: CharacterCreatorClassOption | undefined,
   storyDetail: string,
   questCount: number,
-  difficultyLabel: string
+  difficultyLabel: string,
 ): readonly ShellCharacterIdentityCard[] {
   return [
     {
       eyebrow: "Current Class",
       title: classOption?.name ?? prettyLabel(activeCharacter.jobClass),
-      detail: classOption?.lore ?? "Class lore is not available for this save."
+      detail: classOption?.lore ?? "Class lore is not available for this save.",
     },
     {
       eyebrow: "Lineage",
       title: race?.name ?? prettyLabel(activeCharacter.raceId),
-      detail: summarizeRaceBonuses(race)
+      detail: summarizeRaceBonuses(race),
     },
     {
       eyebrow: "Difficulty",
       title: difficultyLabel,
-      detail: "Saved on the player profile. Rule hooks are not active yet."
+      detail: "Saved on the player profile. Rule hooks are not active yet.",
     },
     {
       eyebrow: "Story",
       title: activeCharacter.story ? "Active Arc" : "Dormant",
-      detail: `${storyDetail}${questCount > 0 ? ` | ${questCount} quest${questCount === 1 ? "" : "s"} tracked` : ""}`
-    }
+      detail: `${storyDetail}${questCount > 0 ? ` | ${questCount} quest${questCount === 1 ? "" : "s"} tracked` : ""}`,
+    },
   ];
 }
 
 function buildAttributes(
   activeCharacter: Player,
   metadata: ShellCharacterMetadata,
-  statUnlocks: CharacterStatUnlockState | undefined
+  statUnlocks: CharacterStatUnlockState | undefined,
 ): readonly ShellCharacterStatItem[] {
   const definitions = [...metadata.attributesById.values()].sort(
-    (left, right) => left.displayOrder - right.displayOrder
+    (left, right) => left.displayOrder - right.displayOrder,
   );
 
   if (definitions.length === 0) {
@@ -299,26 +402,26 @@ function buildAttributes(
         abbreviation: "VIT",
         label: "Vitality",
         value: activeCharacter.attributes["vitality"] ?? 0,
-        isLocked: !isAttributeUnlocked("vitality", statUnlocks)
+        isLocked: !isAttributeUnlocked("vitality", statUnlocks),
       },
       {
         abbreviation: "STR",
         label: "Strength",
         value: activeCharacter.attributes["strength"] ?? 0,
-        isLocked: !isAttributeUnlocked("strength", statUnlocks)
+        isLocked: !isAttributeUnlocked("strength", statUnlocks),
       },
       {
         abbreviation: "AGI",
         label: "Agility",
         value: activeCharacter.attributes["agility"] ?? 0,
-        isLocked: !isAttributeUnlocked("agility", statUnlocks)
+        isLocked: !isAttributeUnlocked("agility", statUnlocks),
       },
       {
         abbreviation: "MEN",
         label: "Mentality",
         value: activeCharacter.attributes["mentality"] ?? 0,
-        isLocked: !isAttributeUnlocked("mentality", statUnlocks)
-      }
+        isLocked: !isAttributeUnlocked("mentality", statUnlocks),
+      },
     ];
   }
 
@@ -326,14 +429,14 @@ function buildAttributes(
     abbreviation: attribute.abbreviation,
     label: attribute.name,
     value: activeCharacter.attributes[attribute.id] ?? 0,
-    isLocked: !isAttributeUnlocked(attribute.id, statUnlocks)
+    isLocked: !isAttributeUnlocked(attribute.id, statUnlocks),
   }));
 }
 
 function buildSkills(
   activeCharacter: Player,
   metadata: ShellCharacterMetadata,
-  statUnlocks: CharacterStatUnlockState | undefined
+  statUnlocks: CharacterStatUnlockState | undefined,
 ): readonly ShellCharacterStatItem[] {
   return Object.keys(activeCharacter.skills)
     .map((skillId) => {
@@ -346,14 +449,14 @@ function buildSkills(
         label,
         value,
         isLocked,
-        tags: metadata.skillsById.get(skillId)?.tags ?? []
+        tags: metadata.skillsById.get(skillId)?.tags ?? [],
       };
     })
     .sort(
       (left, right) =>
         Number(left.isLocked) - Number(right.isLocked) ||
         right.value - left.value ||
-        left.label.localeCompare(right.label)
+        left.label.localeCompare(right.label),
     );
 }
 
@@ -363,14 +466,19 @@ function buildFocusItems(
   portraitLabel: string,
   equippedCount: number,
   metadata: ShellCharacterMetadata,
-  statUnlocks: CharacterStatUnlockState | undefined
+  statUnlocks: CharacterStatUnlockState | undefined,
 ): readonly ShellCharacterFocusItem[] {
   const mainHand = activeCharacter.equippedItems.mainHand
     ? prettyLabel(activeCharacter.equippedItems.mainHand)
     : "No main-hand weapon";
   const topSkillDetail =
     topSkills.length > 0
-      ? topSkills.map(([skill, value]) => `${resolveSkillLabel(skill, metadata)} ${value}`).join(" | ")
+      ? topSkills
+          .map(
+            ([skill, value]) =>
+              `${resolveSkillLabel(skill, metadata)} ${formatCompactStatValue(value)}`,
+          )
+          .join(" | ")
       : hasAnyTrackedSkills(activeCharacter)
         ? "All skills locked"
         : "No known skills";
@@ -379,18 +487,18 @@ function buildFocusItems(
     {
       title: "Portrait",
       detail: portraitLabel,
-      tone: "accent"
+      tone: "accent",
     },
     {
       title: "Skills",
       detail: topSkillDetail,
-      tone: "cool"
+      tone: "cool",
     },
     {
       title: "Equipment",
       detail: `${mainHand} | ${equippedCount} slot${equippedCount === 1 ? "" : "s"} filled`,
-      tone: "warm"
-    }
+      tone: "warm",
+    },
   ];
 }
 
@@ -407,24 +515,27 @@ function buildPursePanel(money: number): ShellPursePanel {
       label: denomination.label,
       iconPath: denomination.iconPath,
       amount,
-      displayValue: formatPurseAmount(amount, denomination.label)
+      displayValue: formatPurseAmount(amount, denomination.label),
     };
   });
 
   return {
     totalDisplay: formatPurseTotal(coins),
     coins,
-    currencyValue: null
+    currencyValue: null,
   };
 }
 
-function resolveSkillLabel(skillId: string, metadata: ShellCharacterMetadata): string {
+function resolveSkillLabel(
+  skillId: string,
+  metadata: ShellCharacterMetadata,
+): string {
   return metadata.skillsById.get(skillId)?.name ?? prettyLabel(skillId);
 }
 
 function isAttributeUnlocked(
   attributeId: string,
-  statUnlocks: CharacterStatUnlockState | undefined
+  statUnlocks: CharacterStatUnlockState | undefined,
 ): boolean {
   const unlocked = statUnlocks?.attributes[attributeId];
 
@@ -437,14 +548,12 @@ function isAttributeUnlocked(
 
 function isSkillUnlocked(
   skillId: string,
-  statUnlocks: CharacterStatUnlockState | undefined
+  statUnlocks: CharacterStatUnlockState | undefined,
 ): boolean {
   return statUnlocks?.skills[skillId] ?? false;
 }
 
-function hasAnyTrackedSkills(
-  activeCharacter: Player
-): boolean {
+function hasAnyTrackedSkills(activeCharacter: Player): boolean {
   return Object.keys(activeCharacter.skills).length > 0;
 }
 
@@ -455,7 +564,10 @@ function buildSkillAbbreviation(label: string, skillId: string): string {
     .filter((word) => word.length > 0);
 
   if (words.length === 0) {
-    return skillId.replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase();
+    return skillId
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 3)
+      .toUpperCase();
   }
 
   if (words.length === 1) {
@@ -469,7 +581,10 @@ function buildSkillAbbreviation(label: string, skillId: string): string {
     .reverse()
     .find((character) => !"AEIOU".includes(character));
 
-  return `${firstWord[0] ?? ""}${trailingConsonant ?? firstWord[1] ?? ""}${secondWord[0] ?? ""}`.slice(0, 3);
+  return `${firstWord[0] ?? ""}${trailingConsonant ?? firstWord[1] ?? ""}${secondWord[0] ?? ""}`.slice(
+    0,
+    3,
+  );
 }
 
 function summarizeRaceBonuses(race: Race | undefined): string {
@@ -478,18 +593,25 @@ function summarizeRaceBonuses(race: Race | undefined): string {
   }
 
   return race.startingBonuses
-    .map((bonus) => `${bonus.type === "add" ? "+" : "x"}${bonus.value} ${prettyLabel(bonus.stat)}`)
+    .map(
+      (bonus) =>
+        `${bonus.type === "add" ? "+" : "x"}${bonus.value} ${prettyLabel(bonus.stat)}`,
+    )
     .join(" | ");
 }
 
-function resolvePortraitSrc(activeCharacter: Player, race: Race | undefined): string | undefined {
+function resolvePortraitSrc(
+  activeCharacter: Player,
+  race: Race | undefined,
+): string | undefined {
   const appearance = activeCharacter.selectedAppearance;
 
   if (!appearance || !race?.variants) {
     return undefined;
   }
 
-  const portraitFile = race.variants[appearance.variant]?.[appearance.imageIndex];
+  const portraitFile =
+    race.variants[appearance.variant]?.[appearance.imageIndex];
 
   if (!portraitFile) {
     return undefined;
@@ -520,7 +642,7 @@ function describeDifficulty(activeCharacter: Player): string {
   const difficulty = activeCharacter.difficulty ?? {
     mode: "normal",
     expert: false,
-    ironman: false
+    ironman: false,
   };
   const modifiers: string[] = [];
 
@@ -534,10 +656,14 @@ function describeDifficulty(activeCharacter: Player): string {
 
   const modeLabel = prettyLabel(difficulty.mode);
 
-  return modifiers.length > 0 ? `${modeLabel} | ${modifiers.join(" | ")}` : modeLabel;
+  return modifiers.length > 0
+    ? `${modeLabel} | ${modifiers.join(" | ")}`
+    : modeLabel;
 }
 
-function resolveGenderIconPath(genderId: string | undefined): string | undefined {
+function resolveGenderIconPath(
+  genderId: string | undefined,
+): string | undefined {
   if (!genderId) {
     return undefined;
   }
@@ -548,32 +674,51 @@ function resolveGenderIconPath(genderId: string | undefined): string | undefined
 function formatPoolValue(value: number): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
-    maximumFractionDigits: 1
+    maximumFractionDigits: 1,
   }).format(value);
 }
 
 function formatPurseAmount(amount: number, label: string): string {
-  return `${formatPoolValue(amount)} ${amount === 1 ? label : `${label.toLowerCase()}s`}`;
+  const normalizedLabel =
+    amount === 1
+      ? label.toLowerCase()
+      : label === "Penny"
+        ? "pennies"
+        : `${label.toLowerCase()}s`;
+
+  return `${formatPoolValue(amount)} ${normalizedLabel}`;
 }
 
-function formatPurseTotal(coins: readonly { amount: number; label: string }[]): string {
-  const parts = coins.filter((coin) => coin.amount > 0).map((coin) => formatPurseAmount(coin.amount, coin.label));
+function formatPurseTotal(
+  coins: readonly { amount: number; label: string }[],
+): string {
+  const parts = coins
+    .filter((coin) => coin.amount > 0)
+    .map((coin) => formatPurseAmount(coin.amount, coin.label));
 
   return parts.length > 0 ? parts.join(" ") : "0 pennies";
 }
 
 function countEquippedSlots(activeCharacter: Player): number {
-  return Object.values(activeCharacter.equippedItems).filter((value) => typeof value === "string").length;
+  return Object.values(activeCharacter.equippedItems).filter(
+    (value) => typeof value === "string",
+  ).length;
 }
 
 function toInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter((word) => word.length > 0);
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
 
   if (words.length === 0) {
     return "UA";
   }
 
-  return words.slice(0, 2).map((word) => word[0]?.toUpperCase() ?? "").join("");
+  return words
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 function levelToRank(level: number): string {

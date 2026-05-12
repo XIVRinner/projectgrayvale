@@ -5,6 +5,8 @@ import type { ActionPanelGroupKind } from "../../shared/models/action-panel-grou
 export type ContextId = string;
 export type ActionId = string;
 
+export const AUTHORED_ACTION_COMMAND_PREFIX = "authored-action:";
+
 // ---------------------------------------------------------------------------
 // Execution payloads
 // ---------------------------------------------------------------------------
@@ -86,7 +88,11 @@ export type ActionView = {
 
 export type ExecutionResult =
   | { readonly ok: true; readonly actionId: ActionId }
-  | { readonly ok: false; readonly actionId: ActionId; readonly reason: string };
+  | {
+      readonly ok: false;
+      readonly actionId: ActionId;
+      readonly reason: string;
+    };
 
 // ---------------------------------------------------------------------------
 // Compilation

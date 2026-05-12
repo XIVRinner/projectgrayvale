@@ -4,14 +4,16 @@ import {
   createInitialCombatState,
   finalizeCombat,
   TestCombatRng,
-  runTick
+  runTick,
 } from "@rinner/grayvale-combat";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { TickService } from "../../core/services/tick.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
+import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
 import { GameQuestService } from "../../core/services/game-quest.service";
+import { resolveSkillRewardAmount } from "../../core/utils/skill-progression";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
 import {
   buildCombatEncounterBundle,
@@ -19,9 +21,13 @@ import {
   getCombatRoutePreview,
   isSupportedCombatActivity,
   mapCombatSkillIdToPlayerSkillId,
-  type CombatEncounterBundle
+  type CombatEncounterBundle,
 } from "./combat-encounter.adapters";
-import type { CombatEncounterView, CombatRewardLineView, CombatRotationRuleView } from "./combat.types";
+import type {
+  CombatEncounterView,
+  CombatRewardLineView,
+  CombatRotationRuleView,
+} from "./combat.types";
 
 interface CombatRuntimeState {
   readonly bundle: CombatEncounterBundle;
@@ -37,12 +43,16 @@ export class CombatEncounterService {
   private readonly gameDialog = inject(GameDialogService);
   private readonly quests = inject(GameQuestService);
   private readonly debugLog = inject(DebugLogService);
+  private readonly gameplayLog = inject(GameplayLogService);
   private readonly rng = new TestCombatRng([0.9]);
 
   private readonly runtimeState = signal<CombatRuntimeState | null>(null);
 
   readonly previewRotation = computed<readonly CombatRotationRuleView[]>(() =>
-    getCombatRoutePreview(this.roster.activeCharacter(), this.roster.activeHealth())
+    getCombatRoutePreview(
+      this.roster.activeCharacter(),
+      this.roster.activeHealth(),
+    ),
   );
   readonly hasActiveEncounter = computed(() => this.runtimeState() !== null);
 
@@ -71,27 +81,34 @@ export class CombatEncounterService {
       return false;
     }
 
-    const state = createInitialCombatState(bundle.activity, bundle.player, [...bundle.enemies]);
-    
+    const state = createInitialCombatState(bundle.activity, bundle.player, [
+      ...bundle.enemies,
+    ]);
+
     // Restore player's current HP from saved health state to persist damage across battles
     const playerActorState = state.actors[bundle.player.id];
     if (playerActorState && health?.currentHp !== undefined) {
-      playerActorState.currentHp = Math.max(0, Math.min(health.currentHp, playerActorState.maxHp));
+      playerActorState.currentHp = Math.max(
+        0,
+        Math.min(health.currentHp, playerActorState.maxHp),
+      );
     }
-    
+
     const summary = "The encounter has started.";
     const runtime: CombatRuntimeState = {
       bundle,
       state,
       summary,
-      rewards: []
+      rewards: [],
     };
 
     this.runtimeState.set(runtime);
-    this.gameDialog.startCombat(buildCombatEncounterView(bundle, state, [], summary));
+    this.gameDialog.startCombat(
+      buildCombatEncounterView(bundle, state, [], summary),
+    );
     this.debugLog.logMessage("combat", "Combat encounter started.", {
       activityId: activity.id,
-      playerId: player.id
+      playerId: player.id,
     });
     return true;
   }
@@ -114,7 +131,11 @@ export class CombatEncounterService {
 
     if (nextState.phase === "ended") {
       const finalized = finalizeCombat(nextState);
-      nextRewards = this.applyEncounterResult(runtime.bundle, finalized, nextState);
+      nextRewards = this.applyEncounterResult(
+        runtime.bundle,
+        finalized,
+        nextState,
+      );
       nextSummary =
         finalized.outcome === "victory"
           ? describeVictorySummary(finalized.activityId)
@@ -123,7 +144,7 @@ export class CombatEncounterService {
       this.debugLog.logMessage("combat", "Combat encounter ended.", {
         activityId: finalized.activityId,
         outcome: finalized.outcome,
-        ticksElapsed: finalized.ticksElapsed
+        ticksElapsed: finalized.ticksElapsed,
       });
     }
 
@@ -131,22 +152,28 @@ export class CombatEncounterService {
       bundle: runtime.bundle,
       state: nextState,
       summary: nextSummary,
-      rewards: nextRewards
+      rewards: nextRewards,
     };
 
     this.runtimeState.set(nextRuntime);
     this.gameDialog.updateCombat(
-      buildCombatEncounterView(nextRuntime.bundle, nextRuntime.state, nextRuntime.rewards, nextRuntime.summary)
+      buildCombatEncounterView(
+        nextRuntime.bundle,
+        nextRuntime.state,
+        nextRuntime.rewards,
+        nextRuntime.summary,
+      ),
     );
   }
 
   private applyEncounterResult(
     bundle: CombatEncounterBundle,
     finalized: ReturnType<typeof finalizeCombat>,
-    finalState: ReturnType<typeof createInitialCombatState>
+    finalState: ReturnType<typeof createInitialCombatState>,
   ): readonly CombatRewardLineView[] {
     const rewards: CombatRewardLineView[] = [];
     const deltas: Delta[] = [];
+    const projectedSkills = new Map<string, number>();
 
     // Save player's final HP to health state for persistence across battles
     const playerActorState = finalState.actors[bundle.player.id];
@@ -155,7 +182,7 @@ export class CombatEncounterService {
       if (currentHealth) {
         this.roster.updateActiveHealth({
           currentHp: Math.max(0, playerActorState.currentHp),
-          maxHp: currentHealth.maxHp
+          maxHp: currentHealth.maxHp,
         });
       }
     }
@@ -166,31 +193,49 @@ export class CombatEncounterService {
           type: "add",
           target: "player",
           path: ["progression", "experience"],
-          value: xp.amount
+          value: xp.amount,
         });
         rewards.push({
           id: `xp:character:${xp.amount}`,
           label: "Character XP",
           value: `+${xp.amount}`,
-          tone: "reward"
+          tone: "reward",
         });
         continue;
       }
 
-      const mappedSkillId = xp.skillId ? mapCombatSkillIdToPlayerSkillId(xp.skillId) : null;
+      const mappedSkillId = xp.skillId
+        ? mapCombatSkillIdToPlayerSkillId(xp.skillId)
+        : null;
 
       if (mappedSkillId) {
+        const currentSkillValue =
+          projectedSkills.get(mappedSkillId) ??
+          this.roster.activeCharacter()?.skills[mappedSkillId] ??
+          0;
+        const adjustedAmount = resolveSkillRewardAmount({
+          currentValue: currentSkillValue,
+          rawAmount: xp.amount,
+          difficulty: bundle.sourceActivityDifficulty,
+          rewardKind: "combat_xp",
+        });
+
+        if (adjustedAmount <= 0) {
+          continue;
+        }
+
+        projectedSkills.set(mappedSkillId, currentSkillValue + adjustedAmount);
         deltas.push({
           type: "add",
           target: "player",
           path: ["skills", mappedSkillId],
-          value: xp.amount
+          value: adjustedAmount,
         });
         rewards.push({
           id: `xp:skill:${mappedSkillId}:${xp.amount}`,
-          label: `${prettyLabel(mappedSkillId)} XP`,
-          value: `+${xp.amount}`,
-          tone: "reward"
+          label: `${prettyLabel(mappedSkillId)} Skill`,
+          value: `+${formatRewardValue(adjustedAmount)}`,
+          tone: "reward",
         });
       }
     }
@@ -205,7 +250,7 @@ export class CombatEncounterService {
         id: `activity:${bundle.activity.id}`,
         label: "Activity Reward",
         value: applied ? "Applied" : "No change",
-        tone: applied ? "reward" : "neutral"
+        tone: applied ? "reward" : "neutral",
       });
     } else {
       // GAP: Persistent combat defeat consequences
@@ -214,11 +259,15 @@ export class CombatEncounterService {
       // and how combat HP should persist back into the main player model.
       // Do not implement until: the defeat consequence contract is defined.
       for (const penalty of finalized.penalties) {
+        this.gameplayLog.appendEntry({
+          type: "combat",
+          text: `Defeat penalty: ${penalty.durationSeconds}s attack lockout`,
+        });
         rewards.push({
           id: `penalty:${penalty.penaltyType}`,
           label: "Penalty Preview",
           value: `${penalty.durationSeconds}s attack lockout`,
-          tone: "warning"
+          tone: "warning",
         });
       }
     }
@@ -232,13 +281,15 @@ export class CombatEncounterService {
         type: "set",
         target: "player",
         path: ["activityState", "activeActivityId"],
-        value: null
-      }
+        value: null,
+      },
     ]);
   }
 }
 
-function describeState(state: ReturnType<typeof createInitialCombatState>): string {
+function describeState(
+  state: ReturnType<typeof createInitialCombatState>,
+): string {
   switch (state.phase) {
     case "prep":
       return "Closing the distance.";
@@ -250,7 +301,16 @@ function describeState(state: ReturnType<typeof createInitialCombatState>): stri
 }
 
 function prettyLabel(value: string): string {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatRewardValue(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: Math.abs(value) < 1 ? 3 : 2,
+  }).format(value);
 }
 
 function describeVictorySummary(activityId: string): string {
