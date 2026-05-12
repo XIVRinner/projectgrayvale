@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, input, output, signal } from "@angular/core";
 import { ButtonModule } from "primeng/button";
 import { ProgressBarModule } from "primeng/progressbar";
 
@@ -18,21 +18,8 @@ export class ShellQuestTrackerComponent {
   readonly openQuestLogRequested = output<void>();
 
   protected readonly collapsed = signal(false);
-  protected readonly expanded = signal(false);
-  protected readonly visibleEntries = computed(() =>
-    this.expanded()
-      ? this.panel().entries
-      : this.panel().entries.slice(0, this.panel().maxVisibleEntries)
-  );
-  protected readonly hiddenCount = computed(() =>
-    Math.max(this.panel().entries.length - this.panel().maxVisibleEntries, 0)
-  );
 
   protected toggleCollapsed(): void {
     this.collapsed.update((value) => !value);
-  }
-
-  protected toggleExpanded(): void {
-    this.expanded.update((value) => !value);
   }
 }

@@ -27,7 +27,9 @@ const createPlayer = (): Player => ({
   inventory: {
     items: {}
   },
-  equippedItems: {}
+  equippedItems: {},
+  money: 0,
+  currencies: {}
 });
 
 describe("computeItemScaling", () => {

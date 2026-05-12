@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added authored dialogue playback with portraits, transcript history, and choices",
+  "body": "Story content now runs through the dialogue engine with actor presentation, branching choices, and shell-driven open and close behavior.",
+  "audience": "user",
+  "impact": "high",
+  "tags": ["dialogue", "story", "choices"]
+}

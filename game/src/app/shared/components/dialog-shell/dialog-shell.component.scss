@@ -31,6 +31,20 @@
   inline-size: min(68rem, 100%);
 }
 
+.gv-dialog-shell[data-width="notes"] {
+  inline-size: min(68rem, 100%);
+  block-size: min(80dvh, calc(100dvh - var(--gv-space-xl)));
+  max-block-size: min(80dvh, calc(100dvh - var(--gv-space-xl)));
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.gv-dialog-shell[data-width="notes"] .gv-dialog-shell__body {
+  min-block-size: 0;
+  block-size: 100%;
+  overflow: hidden;
+}
+
 .gv-dialog-shell[data-width="media"] {
   inline-size: min(96vw, 90rem);
   max-block-size: 96dvh;
@@ -188,6 +202,11 @@
 
   .gv-dialog-shell {
     padding: var(--gv-space-md);
+  }
+
+  .gv-dialog-shell[data-width="notes"] {
+    block-size: min(88dvh, calc(100dvh - var(--gv-space-lg)));
+    max-block-size: min(88dvh, calc(100dvh - var(--gv-space-lg)));
   }
 
   .gv-dialog-shell__header {

@@ -1,0 +1,103 @@
+:host {
+  display: block;
+}
+
+.gv-changelog-page {
+  display: grid;
+  gap: var(--gv-space-lg);
+}
+
+.gv-changelog-page__header {
+  display: grid;
+  gap: var(--gv-space-md);
+  padding: var(--gv-space-lg);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--gv-color-accent-cool) 12%, transparent), transparent 32%),
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 42%),
+    var(--gv-color-bg-surface);
+}
+
+.gv-changelog-page__copy {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-changelog-page__eyebrow,
+.gv-changelog-page__title,
+.gv-changelog-page__subtitle,
+.gv-changelog-page__state {
+  margin: 0;
+}
+
+.gv-changelog-page__eyebrow {
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-xs);
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-changelog-page__title {
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+  font-size: clamp(1.6rem, 2vw, var(--gv-font-size-title));
+}
+
+.gv-changelog-page__subtitle {
+  color: color-mix(in srgb, var(--gv-color-text-muted) 78%, white 22%);
+  line-height: 1.5;
+  max-inline-size: 42rem;
+}
+
+.gv-changelog-page__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-sm);
+}
+
+.gv-changelog-page__filter {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: var(--gv-color-overlay-soft);
+  color: var(--gv-color-text-muted);
+  cursor: pointer;
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+  padding: var(--gv-space-xs) var(--gv-space-sm);
+  transition:
+    border-color var(--gv-anim-fast),
+    background var(--gv-anim-fast),
+    color var(--gv-anim-fast);
+}
+
+.gv-changelog-page__filter:hover,
+.gv-changelog-page__filter--active {
+  border-color: var(--gv-color-border-strong);
+  background: var(--gv-color-accent-tint-bg);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-changelog-page__list {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-changelog-page__state {
+  padding: var(--gv-space-lg);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background: var(--gv-color-bg-surface);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-changelog-page__state--error {
+  color: var(--gv-color-danger);
+}
+
+@media (max-width: 48rem) {
+  .gv-changelog-page__header {
+    padding: var(--gv-space-md);
+  }
+}

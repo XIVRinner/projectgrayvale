@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added local save-slot roster management",
+  "body": "The current build supports multiple local save slots, slot loading, deletion, export, import, and full roster reset from the shell UI.",
+  "audience": "user",
+  "impact": "high",
+  "tags": ["save", "roster", "local"]
+}

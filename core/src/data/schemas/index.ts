@@ -1,3 +1,4 @@
+export * from "./action.schema";
 export * from "./activity.schema";
 export * from "./character-identity.schema";
 export * from "./equipment.schema";

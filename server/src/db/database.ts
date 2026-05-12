@@ -103,12 +103,12 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
   const pragmas = options.includeLocalPragmas
     ? `
     PRAGMA journal_mode = WAL;
-    PRAGMA foreign_keys = ON;
     `
     : "";
 
   return `
     ${pragmas}
+    PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS json_resources (
       resource_key TEXT PRIMARY KEY,
@@ -207,6 +207,60 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
       ON player_audit_logs (player_uuid, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_created
       ON chat_messages (created_at DESC, id DESC);
+
+    CREATE TABLE IF NOT EXISTS releases (
+      id TEXT PRIMARY KEY,
+      version TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      summary TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      released_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS changelog_entries (
+      id TEXT PRIMARY KEY,
+      release_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      audience TEXT NOT NULL DEFAULT 'user',
+      impact TEXT NOT NULL DEFAULT 'low',
+      tags TEXT NOT NULL DEFAULT '[]',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (release_id)
+        REFERENCES releases (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS changelog_reads (
+      id TEXT PRIMARY KEY,
+      release_id TEXT NOT NULL,
+      user_id TEXT,
+      client_id TEXT,
+      read_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (release_id)
+        REFERENCES releases (id)
+        ON DELETE CASCADE,
+      UNIQUE (release_id, user_id),
+      UNIQUE (release_id, client_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_releases_status_released_at
+      ON releases (status, released_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_releases_released_at
+      ON releases (released_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_changelog_entries_release_sort
+      ON changelog_entries (release_id, sort_order ASC, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_changelog_entries_type
+      ON changelog_entries (type);
+    CREATE INDEX IF NOT EXISTS idx_changelog_reads_user
+      ON changelog_reads (user_id, release_id);
+    CREATE INDEX IF NOT EXISTS idx_changelog_reads_client
+      ON changelog_reads (client_id, release_id);
   `;
 }
 

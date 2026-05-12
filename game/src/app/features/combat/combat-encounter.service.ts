@@ -72,6 +72,13 @@ export class CombatEncounterService {
     }
 
     const state = createInitialCombatState(bundle.activity, bundle.player, [...bundle.enemies]);
+    
+    // Restore player's current HP from saved health state to persist damage across battles
+    const playerActorState = state.actors[bundle.player.id];
+    if (playerActorState && health?.currentHp !== undefined) {
+      playerActorState.currentHp = Math.max(0, Math.min(health.currentHp, playerActorState.maxHp));
+    }
+    
     const summary = "The encounter has started.";
     const runtime: CombatRuntimeState = {
       bundle,
@@ -107,7 +114,7 @@ export class CombatEncounterService {
 
     if (nextState.phase === "ended") {
       const finalized = finalizeCombat(nextState);
-      nextRewards = this.applyEncounterResult(runtime.bundle, finalized);
+      nextRewards = this.applyEncounterResult(runtime.bundle, finalized, nextState);
       nextSummary =
         finalized.outcome === "victory"
           ? describeVictorySummary(finalized.activityId)
@@ -135,10 +142,23 @@ export class CombatEncounterService {
 
   private applyEncounterResult(
     bundle: CombatEncounterBundle,
-    finalized: ReturnType<typeof finalizeCombat>
+    finalized: ReturnType<typeof finalizeCombat>,
+    finalState: ReturnType<typeof createInitialCombatState>
   ): readonly CombatRewardLineView[] {
     const rewards: CombatRewardLineView[] = [];
     const deltas: Delta[] = [];
+
+    // Save player's final HP to health state for persistence across battles
+    const playerActorState = finalState.actors[bundle.player.id];
+    if (playerActorState) {
+      const currentHealth = this.roster.activeHealth();
+      if (currentHealth) {
+        this.roster.updateActiveHealth({
+          currentHp: Math.max(0, playerActorState.currentHp),
+          maxHp: currentHealth.maxHp
+        });
+      }
+    }
 
     for (const xp of finalized.xp) {
       if (xp.xpType === "character") {

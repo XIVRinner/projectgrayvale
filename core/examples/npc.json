@@ -46,5 +46,22 @@
     "trustCap": 100,
     "starLevel": 1,
     "bonus": "shop_discount"
+  },
+  "villageNpc": {
+    "id": "npc_bartender",
+    "name": "The Bartender",
+    "description": "A gruff tavern keeper with a keen eye for talent.",
+    "type": "noncombat",
+    "skills": {},
+    "attributes": {},
+    "progression": {
+      "level": 1,
+      "adventurerRank": 0
+    },
+    "affection": 0,
+    "trust": 0,
+    "trustCap": 50,
+    "starLevel": 0,
+    "bonus": "tavern_work_unlock"
   }
 }

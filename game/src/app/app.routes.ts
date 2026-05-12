@@ -39,6 +39,13 @@ export const routes: Routes = [
           )
       },
       {
+        path: "changelog",
+        loadChildren: () =>
+          import("./features/changelog/changelog.routes").then(
+            (m) => m.CHANGELOG_ROUTES
+          )
+      },
+      {
         path: "home",
         redirectTo: ""
       }

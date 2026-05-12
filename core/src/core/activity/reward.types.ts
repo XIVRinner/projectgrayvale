@@ -1,10 +1,10 @@
 export type RewardKind = "item" | "currency" | "attribute" | "skill";
 
-export type RewardScalingSource = "skill" | "attribute";
+export type RewardScalingSource = "skill" | "attribute" | "healing_done";
 
 export type RewardScaling = {
   source: RewardScalingSource;
-  id: string;
+  id?: string;
   factor: number;
 };
 
@@ -36,13 +36,21 @@ export type RandomRewardDistribution = {
   chance?: number;
 };
 
+export type RandomIntervalRewardDistribution = {
+  type: "random_interval";
+  tickMin: number;
+  tickMax: number;
+};
+
 export type RewardDistribution =
   | DeterministicRewardDistribution
-  | RandomRewardDistribution;
+  | RandomRewardDistribution
+  | RandomIntervalRewardDistribution;
 
 export type ActivityReward = {
   type: RewardKind;
   targetId?: string;
   value: RewardValue;
   distribution?: RewardDistribution;
+  maxHealPercent?: number;
 };

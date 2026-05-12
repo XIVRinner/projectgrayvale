@@ -20,8 +20,16 @@ import type {
   ShellCharacterIdentityCard,
   ShellCharacterPanel,
   ShellCharacterStatItem,
+  ShellPursePanel,
   ShellProgressBarItem
 } from "./shell.types";
+
+const PURSE_DENOMINATIONS = [
+  { id: "throne", label: "Throne", value: 1_000_000, iconPath: "assets/images/resources/coins/throne.png" },
+  { id: "crown", label: "Crown", value: 10_000, iconPath: "assets/images/resources/coins/crown.png" },
+  { id: "mark", label: "Mark", value: 100, iconPath: "assets/images/resources/coins/mark.png" },
+  { id: "penny", label: "Penny", value: 1, iconPath: "assets/images/resources/coins/penny.png" }
+] as const;
 
 export interface ShellCharacterMetadata {
   readonly racesById: ReadonlyMap<string, Race>;
@@ -56,6 +64,7 @@ export function buildShellCharacterPanel(
     (sum, value) => sum + value,
     0
   );
+  const purse = buildPursePanel(activeCharacter.money);
   const topSkills = Object.entries(activeCharacter.skills)
     .filter(([skillId]) => isSkillUnlocked(skillId, statUnlocks))
     .sort((left, right) => right[1] - left[1])
@@ -106,6 +115,7 @@ export function buildShellCharacterPanel(
     badges: buildBadges(activeCharacter, difficultyLabel),
     progressBars: buildProgressBars(activeCharacter, healthState, balanceProfile, difficultyCurve),
     identityCards: buildIdentityCards(activeCharacter, race, classOption, storyDetail, questCount, difficultyLabel),
+    purse,
     attributes: buildAttributes(activeCharacter, metadata, statUnlocks),
     skills: buildSkills(activeCharacter, metadata, statUnlocks),
     focusItems: buildFocusItems(activeCharacter, topSkills, portraitLabel, equippedCount, metadata, statUnlocks)
@@ -159,6 +169,7 @@ function buildEmptyCharacterPanel(): ShellCharacterPanel {
       { eyebrow: "Difficulty", title: "Normal", detail: "New characters can choose easy, normal, or hard plus Expert and Ironman toggles." },
       { eyebrow: "Story", title: "Dormant", detail: "No active save means no story state." }
     ],
+    purse: buildPursePanel(0),
     attributes: [
       { abbreviation: "VIT", label: "Vitality", value: 0, isLocked: false },
       { abbreviation: "STR", label: "Strength", value: 0, isLocked: true },
@@ -383,6 +394,30 @@ function buildFocusItems(
   ];
 }
 
+function buildPursePanel(money: number): ShellPursePanel {
+  const normalizedMoney = Math.max(0, Math.floor(money));
+  let remaining = normalizedMoney;
+
+  const coins = PURSE_DENOMINATIONS.map((denomination) => {
+    const amount = Math.floor(remaining / denomination.value);
+    remaining %= denomination.value;
+
+    return {
+      id: denomination.id,
+      label: denomination.label,
+      iconPath: denomination.iconPath,
+      amount,
+      displayValue: formatPurseAmount(amount, denomination.label)
+    };
+  });
+
+  return {
+    totalDisplay: formatPurseTotal(coins),
+    coins,
+    currencyValue: null
+  };
+}
+
 function resolveSkillLabel(skillId: string, metadata: ShellCharacterMetadata): string {
   return metadata.skillsById.get(skillId)?.name ?? prettyLabel(skillId);
 }
@@ -515,6 +550,16 @@ function formatPoolValue(value: number): string {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1
   }).format(value);
+}
+
+function formatPurseAmount(amount: number, label: string): string {
+  return `${formatPoolValue(amount)} ${amount === 1 ? label : `${label.toLowerCase()}s`}`;
+}
+
+function formatPurseTotal(coins: readonly { amount: number; label: string }[]): string {
+  const parts = coins.filter((coin) => coin.amount > 0).map((coin) => formatPurseAmount(coin.amount, coin.label));
+
+  return parts.length > 0 ? parts.join(" ") : "0 pennies";
 }
 
 function countEquippedSlots(activeCharacter: Player): number {

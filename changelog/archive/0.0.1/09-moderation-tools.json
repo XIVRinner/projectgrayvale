@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added admin and moderator tools for server chat management",
+  "body": "Server operators can grant admin access, moderate chat participants, apply timeouts or bans, and manage server-entry blocking from the relay tooling.",
+  "audience": "admin",
+  "impact": "medium",
+  "tags": ["admin", "moderation", "server"]
+}

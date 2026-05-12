@@ -1,0 +1,28 @@
+[
+  {
+    "id": "eat_hearty_meal",
+    "name": "Eat a Hearty Meal",
+    "description": "Enjoy a hearty tavern meal to restore your health fully.",
+    "tags": ["healing", "tavern", "instant"],
+    "cost": {
+      "type": "calculated",
+      "base": 5,
+      "factors": [
+        {
+          "source": "player_level",
+          "multiplier": 2
+        },
+        {
+          "source": "hp_missing",
+          "multiplier": 0.5
+        }
+      ]
+    },
+    "effect": {
+      "type": "heal_full"
+    },
+    "requirements": {
+      "location": "tavern"
+    }
+  }
+]

@@ -1,10 +1,13 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
+import { Router } from "@angular/router";
 import { type Player, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { ActivityService } from "../../core/services/activity.service";
 import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
+import { ChangelogService } from "../../features/changelog/changelog.service";
+import type { ChangelogRelease } from "../../features/changelog/changelog.types";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
@@ -48,6 +51,7 @@ import {
   ShellActionGroup,
   ShellCharacterPanel,
   ShellLayoutPreset,
+  ShellMiniChatPanel,
   ShellNavItem,
   ShellQuestTrackerPanel,
   ShellSaveSlotSummary,
@@ -68,9 +72,15 @@ import {
       [statusItems]="statusItems()"
       [saveSummary]="saveSummary()"
       [topbarActions]="topbarActions()"
+      [whatsNewUnreadCount]="whatsNewUnreadCount()"
+      [isWhatsNewOpen]="isWhatsNewOpen()"
+      [whatsNewReleases]="whatsNewReleases()"
+      [isWhatsNewLoading]="whatsNewLoading()"
+      [whatsNewErrorMessage]="whatsNewErrorMessage()"
       [actionGroups]="actionGroups()"
       [characterPanel]="characterPanel()"
       [questTrackerPanel]="questTrackerPanel()"
+      [miniChatPanel]="miniChatPanel()"
       [questLogQuests]="questViewModels()"
       [trackedQuestIds]="effectiveTrackedQuestIds()"
       [saveSlots]="saveSlots()"
@@ -118,6 +128,9 @@ import {
         handleCharacterPanelActionSelected($event)
       "
       (topbarActionSelected)="handleTopbarActionSelected($event)"
+      (whatsNewOpenRequested)="openWhatsNew()"
+      (whatsNewCloseRequested)="closeWhatsNew()"
+      (whatsNewMarkReadRequested)="markWhatsNewAsRead()"
       (gameDialogAdvanceRequested)="advanceGameDialog()"
       (gameDialogChoiceSelected)="chooseGameDialogOption($event)"
       (gameDialogCloseRequested)="handleGameDialogCloseRequested()"
@@ -160,11 +173,13 @@ import {
   `,
 })
 export class ShellContainerComponent {
+  private readonly router = inject(Router);
   private readonly roster = inject(CharacterRosterService);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   protected readonly gameDialog = inject(GameDialogService);
   private readonly activityService = inject(ActivityService);
   private readonly combatEncounter = inject(CombatEncounterService);
+  private readonly changelogService = inject(ChangelogService);
   private readonly debugLog = inject(DebugLogService);
   private readonly gameplayLog = inject(GameplayLogService);
   private readonly gameQuests = inject(GameQuestService);
@@ -180,6 +195,7 @@ export class ShellContainerComponent {
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly isQuestLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
+  protected readonly isWhatsNewOpen = signal(false);
   protected readonly isServerSelectOpen = signal(
     shouldShowServerSelectOnStartup(),
   );
@@ -192,6 +208,10 @@ export class ShellContainerComponent {
   protected readonly serverModerationStatusMessage = signal<string | null>(null);
   protected readonly isServerAdminSubmitting = signal(false);
   protected readonly isServerModerationSubmitting = signal(false);
+  protected readonly whatsNewLoading = signal(false);
+  protected readonly whatsNewErrorMessage = signal<string | null>(null);
+  protected readonly whatsNewReleases = signal<readonly ChangelogRelease[]>([]);
+  protected readonly whatsNewUnreadCount = signal(0);
   protected readonly selectedModerationPlayer =
     signal<ServerPresencePlayerView | null>(null);
   protected readonly trackedQuestIdsState = signal<readonly string[]>([]);
@@ -235,6 +255,7 @@ export class ShellContainerComponent {
   readonly navItems = signal<readonly ShellNavItem[]>([
     { label: "Home", route: "/" },
     { label: "Creator Lab", route: "/creator" },
+    { label: "Changelog", route: "/changelog" },
   ]);
 
   readonly statusItems = computed<readonly ShellStatusItem[]>(() => {
@@ -352,6 +373,15 @@ export class ShellContainerComponent {
         if (refreshedPlayer !== selectedPlayer) {
           this.selectedModerationPlayer.set(refreshedPlayer);
         }
+      },
+      { allowSignalWrites: true },
+    );
+
+    effect(
+      () => {
+        this.serverConnection.selectedServerId();
+        this.serverConnection.session();
+        queueMicrotask(() => void this.refreshWhatsNewUnreadCount());
       },
       { allowSignalWrites: true },
     );
@@ -490,6 +520,28 @@ export class ShellContainerComponent {
       DEFAULT_TRACKED_QUEST_COUNT,
     ),
   );
+
+  readonly miniChatPanel = computed<ShellMiniChatPanel>(() => {
+    const messages = this.serverChat
+      .messages()
+      .slice(-10)
+      .map((message) => ({
+        id: String(message.id),
+        sender: message.displayName ?? "Unknown",
+        text: message.message,
+        tone: toMiniChatTone(message.rank),
+        timestamp: new Date(message.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }));
+
+    return {
+      title: "World Chat",
+      emptyLabel: "No world chat messages yet.",
+      messages,
+    };
+  });
 
   protected openCharacterCreation(): void {
     this.logUi("Opening character creation dialog.");
@@ -1070,6 +1122,29 @@ export class ShellContainerComponent {
     }
   }
 
+  protected openWhatsNew(): void {
+    this.logUi("Opening What's New dialog.");
+    this.isWhatsNewOpen.set(true);
+    void this.loadWhatsNewModal();
+  }
+
+  protected closeWhatsNew(): void {
+    this.logUi("Closing What's New dialog.");
+    const releaseIds = this.unreadWhatsNewReleaseIds();
+
+    this.isWhatsNewOpen.set(false);
+    this.whatsNewErrorMessage.set(null);
+    void this.markReleaseIdsAsRead(releaseIds);
+  }
+
+  protected markWhatsNewAsRead(): void {
+    this.logUi("Marking What's New releases as read.");
+    const releaseIds = this.unreadWhatsNewReleaseIds();
+
+    this.isWhatsNewOpen.set(false);
+    void this.markReleaseIdsAsRead(releaseIds);
+  }
+
   protected handleCharacterPanelActionSelected(actionId: string): void {
     this.logUi("Character panel action selected.", { actionId });
 
@@ -1102,6 +1177,56 @@ export class ShellContainerComponent {
     }
   }
 
+  private async loadWhatsNewModal(): Promise<void> {
+    this.whatsNewLoading.set(true);
+    this.whatsNewErrorMessage.set(null);
+
+    try {
+      const response = await this.changelogService.fetchChangelog({
+        limit: 25,
+      });
+      const releases = response.releases;
+      this.whatsNewReleases.set(releases);
+      await this.refreshWhatsNewUnreadCount();
+    } catch (error) {
+      this.whatsNewReleases.set([]);
+      this.whatsNewErrorMessage.set(errorToMessage(error));
+    } finally {
+      this.whatsNewLoading.set(false);
+    }
+  }
+
+  private async refreshWhatsNewUnreadCount(): Promise<void> {
+    try {
+      const count = await this.changelogService.fetchUnreadCount();
+      this.whatsNewUnreadCount.set(count);
+    } catch {
+      this.whatsNewUnreadCount.set(0);
+    }
+  }
+
+  private async markReleaseIdsAsRead(
+    releaseIds: readonly string[],
+  ): Promise<void> {
+    if (releaseIds.length === 0) {
+      await this.refreshWhatsNewUnreadCount();
+      return;
+    }
+
+    try {
+      await this.changelogService.markReleasesRead(releaseIds);
+      this.whatsNewReleases.set([]);
+    } finally {
+      await this.refreshWhatsNewUnreadCount();
+    }
+  }
+
+  private unreadWhatsNewReleaseIds(): readonly string[] {
+    return this.whatsNewReleases()
+      .filter((release) => !release.isRead)
+      .map((release) => release.id);
+  }
+
   private logUi(
     message: string,
     details?: unknown,
@@ -1109,6 +1234,24 @@ export class ShellContainerComponent {
   ): void {
     this.debugLog.logMessage("shell", message, details, level);
   }
+}
+
+function toMiniChatTone(
+  rank: string,
+): "neutral" | "accent" | "warm" | "danger" | "success" {
+  if (rank === "admin") {
+    return "danger";
+  }
+
+  if (rank === "mod") {
+    return "accent";
+  }
+
+  if (rank === "veteran") {
+    return "warm";
+  }
+
+  return "neutral";
 }
 
 const TOPBAR_GAMEPLAY_LOG_ACTION_ID = "topbar:gameplay-log";

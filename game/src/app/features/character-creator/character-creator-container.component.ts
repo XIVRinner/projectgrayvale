@@ -318,8 +318,10 @@ export class CharacterCreatorContainerComponent {
         imageIndex: this.selectedPortraitIndex()
       },
       inventory: {
-        items: {}
+        items: buildStarterInventoryItems()
       },
+      money: 0,
+      currencies: {},
       equippedItems: buildStarterEquippedItems(),
       loadouts: buildStarterLoadouts(),
       activeLoadoutId: STARTER_LOADOUT_ID
@@ -656,25 +658,15 @@ function applyBonuses(
 }
 
 function buildStartingSkills(
-  baseSkills: Readonly<Record<string, number>>,
+  _baseSkills: Readonly<Record<string, number>>,
   modifiers: readonly Modifier[] | undefined,
   skillsById: ReadonlyMap<string, Skill>
 ): Record<string, number> {
   const result: Record<string, number> = {};
-  const referencedSkills = new Set<string>(Object.keys(baseSkills));
 
-  for (const modifier of modifiers ?? []) {
-    if (skillsById.has(modifier.stat)) {
-      referencedSkills.add(modifier.stat);
-    }
-  }
-
-  for (const skillId of referencedSkills) {
+  // Every known skill starts at baseline 1.
+  for (const skillId of skillsById.keys()) {
     result[skillId] = 1;
-  }
-
-  for (const [skillId, value] of Object.entries(baseSkills)) {
-    result[skillId] = Math.max(1, value);
   }
 
   for (const modifier of modifiers ?? []) {
@@ -719,12 +711,22 @@ function resolveSkillLabel(skillId: string, skillsById: ReadonlyMap<string, Skil
 }
 
 const STARTER_LOADOUT_ID = "loadout_default";
+const STARTER_TRAVEL_RAGS_ITEM_IDS = [
+  "armor_head_travel_rags",
+  "armor_chest_travel_rags",
+  "armor_legs_travel_rags",
+  "armor_boots_travel_rags"
+] as const;
+
+function buildStarterInventoryItems(): Record<string, number> {
+  return Object.fromEntries(STARTER_TRAVEL_RAGS_ITEM_IDS.map((itemId) => [itemId, 1]));
+}
 
 function buildStarterEquippedItems(): Player["equippedItems"] {
   return {
-    head: "armor_head_travel_rags",
-    body: "armor_chest_travel_rags",
-    legs: "armor_legs_travel_rags"
+    head: STARTER_TRAVEL_RAGS_ITEM_IDS[0],
+    body: STARTER_TRAVEL_RAGS_ITEM_IDS[1],
+    legs: STARTER_TRAVEL_RAGS_ITEM_IDS[2]
   };
 }
 
@@ -735,10 +737,10 @@ function buildStarterLoadouts(): NonNullable<Player["loadouts"]> {
       displayName: "Default",
       isActive: true,
       slots: {
-        head: "armor_head_travel_rags",
-        chest: "armor_chest_travel_rags",
-        legs: "armor_legs_travel_rags",
-        boots: "armor_boots_travel_rags"
+        head: STARTER_TRAVEL_RAGS_ITEM_IDS[0],
+        chest: STARTER_TRAVEL_RAGS_ITEM_IDS[1],
+        legs: STARTER_TRAVEL_RAGS_ITEM_IDS[2],
+        boots: STARTER_TRAVEL_RAGS_ITEM_IDS[3]
       }
     }
   };

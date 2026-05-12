@@ -1,0 +1,8 @@
+{
+  "type": "added",
+  "title": "Added in-game release notes with unread tracking",
+  "body": "Players can open release notes from the footer version pill, review the changelog archive page, and clear unread updates through the What's New flow.",
+  "audience": "user",
+  "impact": "low",
+  "tags": ["changelog", "release-notes", "ui"]
+}

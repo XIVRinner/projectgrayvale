@@ -22,7 +22,9 @@ const createPlayer = (): Player => ({
   inventory: {
     items: {}
   },
-  equippedItems: {}
+  equippedItems: {},
+  money: 0,
+  currencies: {}
 });
 
 const arc: StoryArc = {

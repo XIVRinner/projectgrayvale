@@ -1,6 +1,6 @@
 // GAP: TranslocoPipe / TranslocoService not yet wired in new game.
 //      Tip strings are hardcoded. Replace with transloco keys when i18n is introduced.
-// GAP: ChangelogModalService, WikiModalService, DevModeService, DevEditorModalService
+// GAP: WikiModalService, DevModeService, DevEditorModalService
 //      do not exist in the new game yet. Buttons are rendered as placeholders (no-op).
 //      Blocked on: design + service layer implementation.
 //      Do not implement modal open logic until those services are available.
@@ -29,8 +29,10 @@ const TIPS: readonly string[] = [
 export class ShellFooterComponent {
   readonly version = input("0.0.1");
   readonly serverSummary = input.required<ServerFooterSummaryView>();
+  readonly whatsNewUnreadCount = input(0);
   readonly gegVisualizerRequested = output<void>();
   readonly serverInfoRequested = output<void>();
+  readonly whatsNewRequested = output<void>();
 
   protected readonly tip = signal(
     TIPS[Math.floor(Math.random() * TIPS.length)],
