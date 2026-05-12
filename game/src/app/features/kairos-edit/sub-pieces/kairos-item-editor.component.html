@@ -1,0 +1,72 @@
+<section class="gv-kairos-form">
+  <div class="gv-kairos-form__grid gv-kairos-form__grid--three-up">
+    <label>
+      <span>Id</span>
+      <input pInputText [ngModel]="readString(['id'])" (ngModelChange)="update(['id'], $event)" />
+    </label>
+    <label>
+      <span>Name</span>
+      <input pInputText [ngModel]="readString(['name'])" (ngModelChange)="update(['name'], $event)" />
+    </label>
+    <label>
+      <span>Image ID</span>
+      <input pInputText [ngModel]="readString(['imageId'])" (ngModelChange)="update(['imageId'], $event)" />
+    </label>
+    <label>
+      <span>Category</span>
+      <p-select [options]="categoryOptions" optionLabel="label" optionValue="value" [ngModel]="readString(['category'])" appendTo="body" (ngModelChange)="update(['category'], $event)" />
+    </label>
+    <label>
+      <span>Rarity</span>
+      <p-select [options]="rarityOptions" optionLabel="label" optionValue="value" [ngModel]="readString(['rarity'])" appendTo="body" (ngModelChange)="update(['rarity'], $event)" />
+    </label>
+    <label>
+      <span>Special Rarity</span>
+      <p-select [options]="specialRarityOptions" optionLabel="label" optionValue="value" [ngModel]="readString(['specialRarity'])" appendTo="body" (ngModelChange)="update(['specialRarity'], $event)" />
+    </label>
+    <label>
+      <span>Description</span>
+      <input pInputText [ngModel]="readString(['description'])" (ngModelChange)="update(['description'], $event)" />
+    </label>
+    <label>
+      <span>Flavor</span>
+      <input pInputText [ngModel]="readString(['flavor'])" (ngModelChange)="update(['flavor'], $event)" />
+    </label>
+    @if (readString(['category']) === 'equipment') {
+      <label>
+        <span>Slot</span>
+        <p-select [options]="slotOptions" optionLabel="label" optionValue="value" [ngModel]="readString(['slot'])" appendTo="body" (ngModelChange)="update(['slot'], $event)" />
+      </label>
+      <label>
+        <span>Item Level</span>
+      <input pInputText type="number" [ngModel]="readNumber(['itemLevel'])" (ngModelChange)="update(['itemLevel'], toNumber($event))" />
+      </label>
+      <label>
+        <span>Level Requirement</span>
+        <input pInputText type="number" [ngModel]="readNumber(['requirements', 'levelRequirement'])" (ngModelChange)="update(['requirements', 'levelRequirement'], toNumber($event))" />
+      </label>
+    }
+    @if (readString(['category']) === 'quest_item') {
+      <label>
+        <span>Quest Context</span>
+        <input pInputText [ngModel]="readString(['questContext'])" (ngModelChange)="update(['questContext'], $event)" />
+      </label>
+      <label class="gv-kairos-form__checkbox">
+        <input type="checkbox" [ngModel]="readBoolean(['usable'])" (ngModelChange)="update(['usable'], $event)" />
+        <span>Usable</span>
+      </label>
+    }
+    @if (readString(['category']) === 'junk') {
+      <label>
+        <span>Sell Value</span>
+        <input pInputText type="number" [ngModel]="readNumber(['sellValue'])" (ngModelChange)="update(['sellValue'], toNumber($event))" />
+      </label>
+    }
+  </div>
+
+  <gv-kairos-tag-multiselect [options]="tagOptions()" [value]="readStringArray(['tags'])" (valueChange)="update(['tags'], $event)" />
+  <gv-kairos-string-array-field label="Special Effects" placeholder="Add effect id" [values]="readStringArray(['specialEffects'])" (valuesChange)="update(['specialEffects'], $event)" />
+  <gv-kairos-string-array-field label="Tooltip Stat Lines" placeholder="Add tooltip stat line" [values]="readStringArray(['tooltip', 'statLines'])" (valuesChange)="update(['tooltip', 'statLines'], $event)" />
+  <gv-kairos-string-array-field label="Tooltip Effect Lines" placeholder="Add tooltip effect line" [values]="readStringArray(['tooltip', 'effectLines'])" (valuesChange)="update(['tooltip', 'effectLines'], $event)" />
+  <gv-kairos-raw-json-editor [value]="jsonText()" [error]="jsonError()" (valueChange)="jsonTextChange.emit($event)" />
+</section>

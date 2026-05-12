@@ -1,0 +1,19 @@
+<section class="gv-kairos-form">
+  <div class="gv-kairos-form__grid gv-kairos-form__grid--three-up">
+    <label>
+      <span>Id</span>
+      <input pInputText [ngModel]="readString(['id'])" (ngModelChange)="update(['id'], $event)" />
+    </label>
+    <label>
+      <span>Name</span>
+      <input pInputText [ngModel]="readString(['name'])" (ngModelChange)="update(['name'], $event)" />
+    </label>
+    <label>
+      <span>Description</span>
+      <input pInputText [ngModel]="readString(['description'])" (ngModelChange)="update(['description'], $event)" />
+    </label>
+  </div>
+
+  <gv-kairos-tag-multiselect [options]="tagOptions()" [value]="readStringArray(['tags'])" (valueChange)="update(['tags'], $event)" />
+  <gv-kairos-raw-json-editor [value]="jsonText()" [error]="jsonError()" (valueChange)="jsonTextChange.emit($event)" />
+</section>

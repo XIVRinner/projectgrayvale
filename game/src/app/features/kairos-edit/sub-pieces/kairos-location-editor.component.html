@@ -1,0 +1,77 @@
+<section class="gv-kairos-form">
+  <div class="gv-kairos-form__grid gv-kairos-form__grid--three-up">
+    <label>
+      <span>Id</span>
+      <input pInputText [ngModel]="readString(['id'])" (ngModelChange)="update(['id'], $event)" />
+    </label>
+    <label>
+      <span>Label</span>
+      <input pInputText [ngModel]="readString(['label'])" (ngModelChange)="update(['label'], $event)" />
+    </label>
+    <label>
+      <span>Scene Image ID</span>
+      <input pInputText [ngModel]="readString(['sceneImageId'])" (ngModelChange)="update(['sceneImageId'], $event)" />
+    </label>
+    <label>
+      <span>Subtitle</span>
+      <input pInputText [ngModel]="readString(['subtitle'])" (ngModelChange)="update(['subtitle'], $event)" />
+    </label>
+  </div>
+
+  <gv-kairos-string-array-field label="Available NPC IDs" placeholder="Add NPC id" [values]="readStringArray(['availableNpcIds'])" (valuesChange)="update(['availableNpcIds'], $event)" />
+
+  <section class="gv-kairos-form__nested-list">
+    <header class="gv-kairos-form__nested-header">
+      <h3>Sublocations</h3>
+      <button type="button" class="p-button p-component" (click)="addSublocation()">Add sublocation</button>
+    </header>
+
+    @for (sublocation of readSublocations(); track $index) {
+      <article class="gv-kairos-form__nested-card">
+        <header class="gv-kairos-form__nested-card-header">
+          <strong>Sublocation {{ $index + 1 }}</strong>
+          <button type="button" (click)="removeSublocation($index)">Remove</button>
+        </header>
+
+        <div class="gv-kairos-form__grid gv-kairos-form__grid--three-up">
+          <label>
+            <span>Id</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'id'])" (ngModelChange)="update(['sublocations', $index, 'id'], $event)" />
+          </label>
+          <label>
+            <span>Label</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'label'])" (ngModelChange)="update(['sublocations', $index, 'label'], $event)" />
+          </label>
+          <label>
+            <span>Scene Image ID</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'sceneImageId'])" (ngModelChange)="update(['sublocations', $index, 'sceneImageId'], $event)" />
+          </label>
+          <label>
+            <span>Subtitle</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'subtitle'])" (ngModelChange)="update(['sublocations', $index, 'subtitle'], $event)" />
+          </label>
+          <label>
+            <span>Entry Action Label</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'entryActionLabel'])" (ngModelChange)="update(['sublocations', $index, 'entryActionLabel'], $event)" />
+          </label>
+          <label>
+            <span>Exit Action Label</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'exitActionLabel'])" (ngModelChange)="update(['sublocations', $index, 'exitActionLabel'], $event)" />
+          </label>
+          <label>
+            <span>Disabled Reason</span>
+            <input pInputText [ngModel]="readString(['sublocations', $index, 'entryDisabledReason'])" (ngModelChange)="update(['sublocations', $index, 'entryDisabledReason'], $event)" />
+          </label>
+          <label class="gv-kairos-form__checkbox">
+            <input type="checkbox" [ngModel]="readBoolean(['sublocations', $index, 'isReturnable'])" (ngModelChange)="update(['sublocations', $index, 'isReturnable'], $event)" />
+            <span>Returnable</span>
+          </label>
+        </div>
+
+        <gv-kairos-string-array-field label="Available NPC IDs" placeholder="Add NPC id" [values]="readStringArray(['sublocations', $index, 'availableNpcIds'])" (valuesChange)="update(['sublocations', $index, 'availableNpcIds'], $event)" />
+      </article>
+    }
+  </section>
+
+  <gv-kairos-raw-json-editor [value]="jsonText()" [error]="jsonError()" (valueChange)="jsonTextChange.emit($event)" />
+</section>

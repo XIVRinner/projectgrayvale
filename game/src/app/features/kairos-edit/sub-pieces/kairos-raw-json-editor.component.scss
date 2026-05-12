@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+.gv-kairos-json-field {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-kairos-json-field__label {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+}
+
+.gv-kairos-json-field__textarea {
+  min-block-size: 18rem;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  color: var(--gv-color-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--gv-font-size-xs);
+  line-height: 1.5;
+  padding: var(--gv-space-md);
+  resize: vertical;
+}
+
+.gv-kairos-json-field__error {
+  color: var(--gv-color-danger);
+  font-size: var(--gv-font-size-xs);
+  margin: 0;
+}

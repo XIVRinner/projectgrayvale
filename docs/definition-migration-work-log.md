@@ -157,6 +157,41 @@
 - The new modal is shell-only in this PR; definition editor infrastructure and write APIs remain for later tasks.
 - The Tags tab is intentionally present but marked WIP / out of scope.
 
+## Epic 10 — Kairos Edit definition editing
+
+### Completed
+
+- Added shared Kairos editor infrastructure for list/select/create/save flows, validation messaging, JSON editing, string-array editing, and centralized tag selection.
+- Replaced the Kairos shell-only placeholder with working editors for items, materials, locations, activities, and actions.
+- Added dedicated location/sublocation editing UI while keeping full raw JSON editing available for advanced fields.
+
+### Notes
+
+- Item/material/activity/action editors expose common fields directly and keep a full raw JSON editor available for the remaining structured fields.
+- Locations are edited through structured root/sublocation fields plus raw JSON for advanced guard data.
+- Tags are loaded from `GET /api/tags` and selected from dropdown UI only.
+
+## Epic 11 — Admin write APIs
+
+### Completed
+
+- Added admin-only save endpoints:
+  - `PUT /api/admin/definitions/items/:id`
+  - `PUT /api/admin/definitions/materials/:id`
+  - `PUT /api/admin/definitions/locations/:id`
+  - `PUT /api/admin/definitions/activities/:id`
+  - `PUT /api/admin/definitions/actions/:id`
+- Save endpoints validate the route ID against the definition ID, write the JSON source file, and immediately upsert the SQLite `definitions` row.
+- Save endpoints reuse the existing session/cookie auth and require `player.rank === "admin"`.
+
+## Epic 12 — Validation and safety
+
+### Completed
+
+- Added server-side validation for edited definitions before writing files.
+- Server validation now checks per-type shape, top-level tag validity against the centralized registry, and definition image IDs where applicable.
+- Added client-side validation for basic required fields, ID format, duplicate-overwrite warnings, tag validity, and invalid raw JSON.
+
 ## Epic 4 — Server-side images/assets
 
 ### Completed

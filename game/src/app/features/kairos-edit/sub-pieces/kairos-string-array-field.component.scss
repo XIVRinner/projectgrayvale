@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.gv-kairos-array-field {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-kairos-array-field__label {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+}
+
+.gv-kairos-array-field__values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+.gv-kairos-array-field__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gv-space-xs);
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xs);
+  padding: 0.2rem 0.5rem;
+}
+
+.gv-kairos-array-field__chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.gv-kairos-array-field__input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--gv-space-sm);
+}

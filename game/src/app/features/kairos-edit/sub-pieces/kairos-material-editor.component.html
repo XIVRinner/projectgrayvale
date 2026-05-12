@@ -1,0 +1,48 @@
+<section class="gv-kairos-form">
+  <div class="gv-kairos-form__grid gv-kairos-form__grid--three-up">
+    <label>
+      <span>Id</span>
+      <input pInputText [ngModel]="readString(['id'])" (ngModelChange)="update(['id'], $event)" />
+    </label>
+    <label>
+      <span>Name</span>
+      <input pInputText [ngModel]="readString(['name'])" (ngModelChange)="update(['name'], $event)" />
+    </label>
+    <label>
+      <span>Image ID</span>
+      <input pInputText [ngModel]="readString(['imageId'])" (ngModelChange)="update(['imageId'], $event)" />
+    </label>
+    <label>
+      <span>Rarity</span>
+      <p-select [options]="rarityOptions" optionLabel="label" optionValue="value" [ngModel]="readString(['rarity'])" appendTo="body" (ngModelChange)="update(['rarity'], $event)" />
+    </label>
+    <label>
+      <span>Special Rarity</span>
+      <p-select [options]="specialRarityOptions" optionLabel="label" optionValue="value" [ngModel]="readString(['specialRarity'])" appendTo="body" (ngModelChange)="update(['specialRarity'], $event)" />
+    </label>
+    <label>
+      <span>Quantity</span>
+      <input pInputText type="number" [ngModel]="readNumber(['quantity'])" (ngModelChange)="update(['quantity'], toNumber($event))" />
+    </label>
+    <label>
+      <span>Quality Stars</span>
+      <p-select [options]="qualityOptions" optionLabel="label" optionValue="value" [ngModel]="readNumber(['qualityStars'])" appendTo="body" (ngModelChange)="update(['qualityStars'], $event)" />
+    </label>
+    <label>
+      <span>Source</span>
+      <input pInputText [ngModel]="readString(['source'])" (ngModelChange)="update(['source'], $event)" />
+    </label>
+    <label>
+      <span>Description</span>
+      <input pInputText [ngModel]="readString(['description'])" (ngModelChange)="update(['description'], $event)" />
+    </label>
+    <label>
+      <span>Flavor</span>
+      <input pInputText [ngModel]="readString(['flavor'])" (ngModelChange)="update(['flavor'], $event)" />
+    </label>
+  </div>
+
+  <gv-kairos-tag-multiselect [options]="tagOptions()" [value]="readStringArray(['tags'])" (valueChange)="update(['tags'], $event)" />
+  <gv-kairos-string-array-field label="Crafting Tags" placeholder="Add crafting tag" [values]="readStringArray(['craftingTags'])" (valuesChange)="update(['craftingTags'], $event)" />
+  <gv-kairos-raw-json-editor [value]="jsonText()" [error]="jsonError()" (valueChange)="jsonTextChange.emit($event)" />
+</section>

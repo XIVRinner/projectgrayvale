@@ -1,0 +1,22 @@
+<section class="gv-kairos-array-field">
+  <label class="gv-kairos-array-field__label">{{ label() }}</label>
+
+  <div class="gv-kairos-array-field__values">
+    @for (value of values(); track value) {
+      <span class="gv-kairos-array-field__chip">
+        {{ value }}
+        <button type="button" (click)="removeValue(value)">×</button>
+      </span>
+    }
+  </div>
+
+  <div class="gv-kairos-array-field__input-row">
+    <input
+      pInputText
+      [(ngModel)]="draftValue"
+      [placeholder]="placeholder()"
+      (keydown.enter)="$event.preventDefault(); addValue()"
+    />
+    <button type="button" class="p-button p-component" (click)="addValue()">Add</button>
+  </div>
+</section>

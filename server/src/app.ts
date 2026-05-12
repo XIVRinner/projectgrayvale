@@ -26,8 +26,10 @@ import { seedJsonResources } from "./content/content-seed";
 import { openDatabase } from "./db/database";
 import type { GrayvaleDatabase } from "./db/database";
 import { DefinitionRepository } from "./definitions/definition-repository";
+import { registerAdminDefinitionRoutes } from "./definitions/admin-definition-routes";
 import { registerDefinitionAssetRoutes } from "./definitions/definition-asset-routes";
 import { DefinitionAssetService } from "./definitions/definition-asset-service";
+import { AdminDefinitionService } from "./definitions/admin-definition-service";
 import { registerDefinitionRoutes } from "./definitions/definition-routes";
 import { DefinitionService } from "./definitions/definition-service";
 import { syncDefinitions } from "./definitions/definition-sync";
@@ -57,6 +59,12 @@ export async function createApp(
   );
   const definitionAssetService = new DefinitionAssetService(
     resolve(config.definitionRoot, "..", "..", "public", "assets", "definitions"),
+  );
+  const adminDefinitionService = new AdminDefinitionService(
+    definitionRepository,
+    definitionAssetService,
+    config.definitionRoot,
+    resolve(config.definitionRoot, "tag-registry.json"),
   );
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
@@ -133,6 +141,11 @@ export async function createApp(
     createMultiplayerRouter(multiplayerRepository, config),
   );
   registerDefinitionAssetRoutes(app, definitionAssetService);
+  registerAdminDefinitionRoutes(
+    app,
+    adminDefinitionService,
+    multiplayerRepository,
+  );
   registerDefinitionRoutes(app, definitionService);
   registerEntityRoutes(app, "/api/attributes", "attribute", entityRepository);
   registerEntityRoutes(

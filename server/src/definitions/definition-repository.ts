@@ -84,6 +84,42 @@ export class DefinitionRepository {
       .map((id) => recordsById.get(id))
       .filter((record): record is DefinitionRecord => record !== undefined);
   }
+
+  async upsert(definition: {
+    readonly type: DefinitionType;
+    readonly id: string;
+    readonly version: string;
+    readonly hash: string;
+    readonly json: string;
+    readonly sourcePath: string;
+  }): Promise<void> {
+    await this.db.run(
+      `
+        INSERT INTO definitions (
+          type,
+          id,
+          version,
+          hash,
+          json,
+          source_path,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(type, id) DO UPDATE SET
+          version = excluded.version,
+          hash = excluded.hash,
+          json = excluded.json,
+          source_path = excluded.source_path,
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      definition.type,
+      definition.id,
+      definition.version,
+      definition.hash,
+      definition.json,
+      definition.sourcePath,
+    );
+  }
 }
 
 function mapDefinitionRow(row: RawDefinitionRow): DefinitionRecord {

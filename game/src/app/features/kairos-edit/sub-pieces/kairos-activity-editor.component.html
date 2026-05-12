@@ -1,0 +1,36 @@
+<section class="gv-kairos-form">
+  <div class="gv-kairos-form__grid gv-kairos-form__grid--three-up">
+    <label>
+      <span>Id</span>
+      <input pInputText [ngModel]="readString(['id'])" (ngModelChange)="update(['id'], $event)" />
+    </label>
+    <label>
+      <span>Name</span>
+      <input pInputText [ngModel]="readString(['name'])" (ngModelChange)="update(['name'], $event)" />
+    </label>
+    <label>
+      <span>Item ID</span>
+      <input pInputText [ngModel]="readString(['itemId'])" (ngModelChange)="update(['itemId'], $event)" />
+    </label>
+    <label>
+      <span>Description</span>
+      <input pInputText [ngModel]="readString(['description'])" (ngModelChange)="update(['description'], $event)" />
+    </label>
+    <label>
+      <span>Location ID</span>
+      <input pInputText [ngModel]="readString(['location', 'locationId'])" (ngModelChange)="update(['location', 'locationId'], $event)" />
+    </label>
+    <label>
+      <span>Sublocation ID</span>
+      <input pInputText [ngModel]="readString(['location', 'sublocationId'])" (ngModelChange)="update(['location', 'sublocationId'], $event)" />
+    </label>
+    <label>
+      <span>Difficulty</span>
+      <input pInputText type="number" [ngModel]="readNumber(['difficulty'])" (ngModelChange)="update(['difficulty'], toNumber($event))" />
+    </label>
+  </div>
+
+  <gv-kairos-tag-multiselect [options]="tagOptions()" [value]="readStringArray(['tags'])" (valueChange)="update(['tags'], $event)" />
+  <gv-kairos-string-array-field label="Governing Attributes" placeholder="Add governing attribute" [values]="readStringArray(['governingAttributes'])" (valuesChange)="update(['governingAttributes'], $event)" />
+  <gv-kairos-raw-json-editor [value]="jsonText()" [error]="jsonError()" (valueChange)="jsonTextChange.emit($event)" />
+</section>

@@ -1,0 +1,13 @@
+<section class="gv-kairos-tag-field">
+  <label class="gv-kairos-tag-field__label">Tags</label>
+  <p-multiselect
+    [options]="mutableOptions()"
+    optionLabel="label"
+    optionValue="id"
+    display="chip"
+    appendTo="body"
+    defaultLabel="Select tags"
+    [ngModel]="value()"
+    (ngModelChange)="valueChange.emit($event ?? [])"
+  />
+</section>

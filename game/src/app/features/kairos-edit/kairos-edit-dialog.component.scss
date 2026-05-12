@@ -6,50 +6,22 @@
   min-block-size: 100%;
 }
 
-.gv-kairos-edit__panel {
-  display: grid;
-  align-content: start;
-  gap: var(--gv-space-lg);
-  min-block-size: 100%;
-  padding: var(--gv-space-md) 0;
-}
-
-.gv-kairos-edit__panel-header {
-  display: grid;
-  gap: var(--gv-space-sm);
-}
-
-.gv-kairos-edit__panel-header h2,
-.gv-kairos-edit__panel-header p,
-.gv-kairos-edit__state p,
-.gv-kairos-edit__eyebrow {
+.gv-kairos-edit__placeholder,
+.gv-kairos-edit__wip p,
+.gv-kairos-edit__wip h2 {
   margin: 0;
 }
 
-.gv-kairos-edit__eyebrow {
-  color: var(--gv-color-accent);
-  font-size: var(--gv-font-size-xs);
-  font-weight: 700;
-  letter-spacing: var(--gv-letter-spacing-wide);
-  text-transform: uppercase;
-}
-
-.gv-kairos-edit__panel-header h2 {
-  color: var(--gv-color-text-primary);
-  font-family: var(--gv-font-dialogue);
-  font-size: var(--gv-font-size-lg);
-}
-
-.gv-kairos-edit__panel-header p,
-.gv-kairos-edit__state p {
+.gv-kairos-edit__placeholder {
   color: var(--gv-color-text-muted);
   font-size: var(--gv-font-size-sm);
-  line-height: 1.5;
 }
 
-.gv-kairos-edit__state {
+.gv-kairos-edit__wip {
   display: grid;
-  gap: var(--gv-space-sm);
+  gap: var(--gv-space-md);
+  align-content: start;
+  min-block-size: 100%;
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-lg);
   background:
@@ -58,14 +30,19 @@
   padding: var(--gv-space-lg);
 }
 
-.gv-kairos-edit__state--wip {
-  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 48%, var(--gv-color-border-subtle));
+.gv-kairos-edit__wip h2 {
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
 }
 
-.gv-kairos-edit__state-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.gv-kairos-edit__wip p {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.5;
+}
+
+.gv-kairos-edit__wip-pill {
   inline-size: fit-content;
   border-radius: 999px;
   background: color-mix(in srgb, var(--gv-color-accent-cool) 22%, transparent);
@@ -111,15 +88,7 @@
   block-size: 100%;
 }
 
-:host ::ng-deep .gv-kairos-edit-dialog__content .p-tablist-tab-list {
-  gap: var(--gv-space-xs);
-}
-
-:host ::ng-deep .gv-kairos-edit-dialog__content .p-tab {
-  color: var(--gv-color-text-primary);
-}
-
 :host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanels {
-  overflow-y: auto;
+  overflow: hidden;
   padding-block-start: var(--gv-space-md);
 }
