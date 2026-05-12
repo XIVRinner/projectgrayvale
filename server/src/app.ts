@@ -19,6 +19,7 @@ import {
 } from "./changelog/changelog-routes";
 import { ChangelogRepository } from "./changelog/changelog-repository";
 import { ChangelogService } from "./changelog/changelog-service";
+import { createAuthRouter } from "./auth/auth-routes";
 import { ContentRepository } from "./content/content-repository";
 import { createContentRouter } from "./content/content-routes";
 import { seedJsonResources } from "./content/content-seed";
@@ -117,6 +118,7 @@ export async function createApp(
   app.use("/api/data", createContentRouter(repository));
   app.use("/api/changelog", createChangelogRouter(changelogController));
   app.use("/api/admin", createAdminChangelogRouter(changelogController));
+  app.use("/api/auth", createAuthRouter(multiplayerRepository));
   app.use(
     "/api/tags",
     createTagRegistryRouter(resolve(config.definitionRoot, "..", "tag-registry.json")),

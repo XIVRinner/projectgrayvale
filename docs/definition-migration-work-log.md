@@ -127,3 +127,17 @@
 - Added a server-owned `server/data/tag-registry.json`.
 - Added `GET /api/tags` to expose categories, labels, descriptions, and allowed usage metadata.
 - Kept runtime compatibility with existing string tags in all definitions.
+
+## Epic 8 — Admin authentication investigation
+
+### Current auth findings
+
+- Server auth is session/cookie based, using the `grayvale_session` cookie.
+- Admin access is determined by `player.rank === "admin"` with an existing admin-password verification path elsewhere on the server.
+- The server previously exposed `/api/server/session`, but did not expose a normalized app-facing `/api/auth/me` endpoint.
+
+### Completed
+
+- Added `GET /api/auth/me`.
+- The endpoint returns `authenticated`, `admin`, and `username`.
+- Anonymous, invalid-session, missing-player, and banned-player requests all resolve to a safe anonymous response.
