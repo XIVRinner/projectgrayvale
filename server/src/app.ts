@@ -121,7 +121,7 @@ export async function createApp(
   app.use("/api/auth", createAuthRouter(multiplayerRepository));
   app.use(
     "/api/tags",
-    createTagRegistryRouter(resolve(config.definitionRoot, "..", "tag-registry.json")),
+    createTagRegistryRouter(resolve(config.definitionRoot, "tag-registry.json")),
   );
   app.use(
     "/api/server",

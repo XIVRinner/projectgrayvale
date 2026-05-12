@@ -124,7 +124,7 @@
 
 ### Completed
 
-- Added a server-owned `server/data/tag-registry.json`.
+- Added a server-owned `server/data/definitions/tag-registry.json`.
 - Added `GET /api/tags` to expose categories, labels, descriptions, and allowed usage metadata.
 - Kept runtime compatibility with existing string tags in all definitions.
 

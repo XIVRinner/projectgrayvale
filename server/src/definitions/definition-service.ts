@@ -136,12 +136,12 @@ function hydrateDefinition(record: {
 }
 
 function compareDefinitionsById(left: unknown, right: unknown): number {
-  const leftId = readId(left);
-  const rightId = readId(right);
+  const leftId = extractIdOrEmpty(left);
+  const rightId = extractIdOrEmpty(right);
   return leftId.localeCompare(rightId);
 }
 
-function readId(value: unknown): string {
+function extractIdOrEmpty(value: unknown): string {
   if (typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string") {
     return (value as { id: string }).id;
   }

@@ -60,17 +60,29 @@ export class DefinitionRepository {
     type: DefinitionType,
     ids: readonly string[],
   ): Promise<readonly DefinitionRecord[]> {
-    const records: DefinitionRecord[] = [];
-
-    for (const id of ids) {
-      const record = await this.get(type, id);
-
-      if (record) {
-        records.push(record);
-      }
+    if (ids.length === 0) {
+      return [];
     }
 
-    return records;
+    const rows = await this.db.all<RawDefinitionRow[]>(
+      `
+        SELECT type, id, version, hash, json, source_path, updated_at
+        FROM definitions
+        WHERE type = ?
+          AND id IN (
+            SELECT value
+            FROM json_each(?)
+          )
+      `,
+      type,
+      JSON.stringify(ids),
+    );
+
+    const recordsById = new Map(rows.map((row) => [row.id, mapDefinitionRow(row)]));
+
+    return ids
+      .map((id) => recordsById.get(id))
+      .filter((record): record is DefinitionRecord => record !== undefined);
   }
 }
 

@@ -3,13 +3,17 @@ import { readFile } from "node:fs/promises";
 import { Router } from "express";
 import { z } from "zod";
 
+import { definitionTypes } from "../definitions/definition-types";
+
+const allowedTagTargets = [...definitionTypes, "skills"] as const;
+
 const tagRegistrySchema = z.object({
   categories: z.array(
     z.object({
       id: z.string().trim().min(1),
       label: z.string().trim().min(1),
       description: z.string(),
-      allowedFor: z.array(z.string().trim().min(1)).min(1),
+      allowedFor: z.array(z.enum(allowedTagTargets)).min(1),
       tags: z.array(
         z.object({
           id: z.string().trim().min(1),

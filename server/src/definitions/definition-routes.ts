@@ -143,7 +143,9 @@ function readDefinitionId(request: Request): string {
   const id = typeof rawId === "string" ? rawId.trim() : "";
 
   if (!id) {
-    throw new Error("Definition id is required.");
+    throw new Error(
+      "Definition id is required for /api/definitions/:type/:id.",
+    );
   }
 
   return id;

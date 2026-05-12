@@ -24,7 +24,13 @@ export class ActionEffects {
       ofType(ActionActions.loadActions),
       switchMap(({ location }) =>
         this.http.get<unknown>(apiPath("action-definitions")).pipe(
-          catchError(() => this.http.get<unknown>(dataApiPath("actions"))),
+          catchError((primaryError) => {
+            console.warn(
+              "Failed to load action definitions from the server API; falling back to bundled actions data.",
+              primaryError,
+            );
+            return this.http.get<unknown>(dataApiPath("actions"));
+          }),
           map((raw) => {
             const actions = actionDefinitionSchema.array().parse(raw);
             // Filter by location requirements

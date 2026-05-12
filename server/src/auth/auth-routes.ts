@@ -11,7 +11,7 @@ export function createAuthRouter(repository: MultiplayerRepository): Router {
 
   router.get("/me", async (request, response, next) => {
     try {
-      const sessionId = resolveSessionId(request);
+      const sessionId = extractSessionId(request);
 
       if (!sessionId) {
         response.json({
@@ -59,7 +59,7 @@ export function createAuthRouter(repository: MultiplayerRepository): Router {
   return router;
 }
 
-function resolveSessionId(request: Request): string | undefined {
+function extractSessionId(request: Request): string | undefined {
   return (
     optionalSessionId(request.body?.sessionId) ??
     optionalSessionId(request.query["sessionId"]) ??
