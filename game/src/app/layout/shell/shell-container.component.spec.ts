@@ -1,12 +1,13 @@
 import { TestBed } from "@angular/core/testing";
 import { samplePlayer, type Quest } from "@rinner/grayvale-core";
-import { signal } from "@angular/core";
+import { computed, signal } from "@angular/core";
 import { of, Subject } from "rxjs";
 
 import { ActivitiesLoader } from "../../data/loaders/activities.loader";
 import type { CharacterCreatorOptions } from "../../data/loaders/character-creator-options.loader";
 import { CharacterCreatorOptionsLoader } from "../../data/loaders/character-creator-options.loader";
 import type { GameActivityDefinition } from "../../data/loaders/game-activity.types";
+import { AdminAuthStatusService } from "../../core/services/admin-auth-status.service";
 import { CharacterRosterService } from "../../core/services/character-roster.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { GameQuestService } from "../../core/services/game-quest.service";
@@ -19,12 +20,26 @@ import { DebugLogService } from "../../core/services/game-log/debug-log.service"
 import { ShellContainerComponent } from "./shell-container.component";
 
 describe("ShellContainerComponent", () => {
+  const originalResizeObserver = globalThis.ResizeObserver;
+
   beforeEach(() => {
     localStorage.clear();
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: class {
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {}
+      }
+    });
   });
 
   afterEach(() => {
     localStorage.clear();
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: originalResizeObserver
+    });
   });
 
   it("shows the single Wake up action before the prologue completes", async () => {
@@ -348,6 +363,42 @@ describe("ShellContainerComponent", () => {
     });
     expect(gameSettings.difficultyCurveFor).toHaveBeenCalledWith("hard");
   });
+
+  it("shows Kairos Edit only when admin auth status resolves true", async () => {
+    const { fixture, adminAuthStatus } = await createFixture();
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain("Kairos Edit");
+
+    adminAuthStatus.status.set({
+      checked: true,
+      authenticated: true,
+      admin: true,
+      username: "mark"
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Kairos Edit");
+  });
+
+  it("opens the Kairos Edit dialog from the footer when admin auth is true", async () => {
+    const { component, fixture, adminAuthStatus } = await createFixture();
+
+    adminAuthStatus.status.set({
+      checked: true,
+      authenticated: true,
+      admin: true,
+      username: "mark"
+    });
+    fixture.detectChanges();
+
+    (component as any).openKairosEdit();
+    fixture.detectChanges();
+
+    expect((component as any).isKairosEditOpen()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain("Kairos Edit");
+    expect(fixture.nativeElement.textContent).toContain("Item editor shell ready.");
+  });
 });
 
 async function createFixture(): Promise<{
@@ -367,6 +418,15 @@ async function createFixture(): Promise<{
     difficultyCurveFor: jest.Mock;
     attributesById: ReturnType<typeof signal<Map<string, never>>>;
     skillsById: ReturnType<typeof signal<Map<string, never>>>;
+  };
+  adminAuthStatus: {
+    status: ReturnType<typeof signal<{
+      checked: boolean;
+      authenticated: boolean;
+      admin: boolean;
+      username: string | null;
+    }>>;
+    canOpenKairosEdit: ReturnType<typeof computed<boolean>>;
   };
   setRuntimeActionGroups: (groups: ReturnType<typeof signal>[0]) => void;
 }> {
@@ -501,6 +561,20 @@ async function createFixture(): Promise<{
     attributesById: signal(new Map()),
     skillsById: signal(new Map())
   };
+  const adminAuthStatus = {
+    status: signal({
+      checked: false,
+      authenticated: false,
+      admin: false,
+      username: null
+    }),
+    canOpenKairosEdit: computed(
+      () =>
+        adminAuthStatus.status().checked &&
+        adminAuthStatus.status().authenticated &&
+        adminAuthStatus.status().admin
+    )
+  };
 
   const gameplayRuntimeActionGroups = signal([
     {
@@ -561,7 +635,8 @@ async function createFixture(): Promise<{
           }
         }),
         deps: [GameQuestService, GameDialogService]
-      }
+      },
+      { provide: AdminAuthStatusService, useValue: adminAuthStatus }
     ]
   }).compileComponents();
 
@@ -575,6 +650,7 @@ async function createFixture(): Promise<{
     gameDialog,
     gameQuests,
     gameSettings,
+    adminAuthStatus,
     setRuntimeActionGroups: (groups) => gameplayRuntimeActionGroups.set(groups as never),
     component: fixture.componentInstance
   };

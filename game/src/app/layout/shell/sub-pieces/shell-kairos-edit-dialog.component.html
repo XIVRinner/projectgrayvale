@@ -1,0 +1,47 @@
+<p-dialog
+  [visible]="open()"
+  header="Kairos Edit"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="true"
+  [styleClass]="'gv-kairos-edit-dialog'"
+  [contentStyleClass]="'gv-kairos-edit-dialog__content'"
+  (onHide)="closeDialog()"
+>
+  <section class="gv-kairos-edit" aria-label="Kairos Edit definition editor">
+    <p-tabs [value]="activeTab()" (valueChange)="setActiveTab($event)">
+      <p-tablist>
+        @for (tab of tabs; track tab.id) {
+          <p-tab [value]="tab.id">{{ tab.label }}</p-tab>
+        }
+      </p-tablist>
+
+      <p-tabpanels>
+        @for (tab of tabs; track tab.id) {
+          <p-tabpanel [value]="tab.id">
+            <section class="gv-kairos-edit__panel" [attr.data-wip]="tab.wip">
+              <header class="gv-kairos-edit__panel-header">
+                <p class="gv-kairos-edit__eyebrow">Kairos Edit</p>
+                <h2>{{ tab.label }}</h2>
+                <p>{{ tab.description }}</p>
+              </header>
+
+              @if (tab.wip) {
+                <div class="gv-kairos-edit__state gv-kairos-edit__state--wip">
+                  <span class="gv-kairos-edit__state-pill">WIP</span>
+                  <p>Tag editing is intentionally not included in this shell milestone.</p>
+                </div>
+              } @else {
+                <div class="gv-kairos-edit__state">
+                  <p>The modal shell is ready. Shared editor infrastructure and save flows land in the next tasks.</p>
+                </div>
+              }
+            </section>
+          </p-tabpanel>
+        }
+      </p-tabpanels>
+    </p-tabs>
+  </section>
+</p-dialog>

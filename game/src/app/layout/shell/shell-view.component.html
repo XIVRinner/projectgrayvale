@@ -56,10 +56,17 @@
   <gv-shell-footer
     [version]="version()"
     [serverSummary]="serverFooterSummary()"
+    [canOpenKairosEdit]="canOpenKairosEdit()"
     [whatsNewUnreadCount]="whatsNewUnreadCount()"
     (gegVisualizerRequested)="gegVisualizerOpenRequested.emit()"
+    (kairosEditRequested)="kairosEditRequested.emit()"
     (serverInfoRequested)="serverInfoRequested.emit()"
     (whatsNewRequested)="whatsNewOpenRequested.emit()"
+  />
+
+  <gv-shell-kairos-edit-dialog
+    [open]="isKairosEditOpen()"
+    (closed)="kairosEditCloseRequested.emit()"
   />
 
   <gv-shell-save-manager-modal

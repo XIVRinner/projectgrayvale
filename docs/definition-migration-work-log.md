@@ -132,15 +132,30 @@
 
 ### Current auth findings
 
-- Server auth is session/cookie based, using the `grayvale_session` cookie.
-- Admin access is determined by `player.rank === "admin"` with an existing admin-password verification path elsewhere on the server.
-- The server previously exposed `/api/server/session`, but did not expose a normalized app-facing `/api/auth/me` endpoint.
+- Login is handled through the multiplayer join flow (`POST /api/server/join`), which creates a server session and sets the `grayvale_session` cookie.
+- Runtime auth is cookie/session based, not JWT based; `grayvale_session` is an HTTP-only cookie and `/api/auth/me` also accepts the session ID via body/query for compatibility.
+- Admin elevation uses the configured server `adminPassword` via `POST /api/server/admin/grant`; the password is timing-safe compared server-side and is never returned to the client.
+- Admin rights are represented by `player.rank === "admin"`.
+- Current-user/admin state is available through `GET /api/auth/me`.
 
 ### Completed
 
-- Added `GET /api/auth/me`.
-- The endpoint returns `authenticated`, `admin`, and `username`.
-- Anonymous, invalid-session, missing-player, and banned-player requests all resolve to a safe anonymous response.
+- Confirmed `GET /api/auth/me` returns `authenticated`, `admin`, and `username`.
+- Confirmed anonymous, invalid-session, missing-player, and banned-player requests all resolve to a safe anonymous response.
+
+## Epic 9 — Kairos Edit shell
+
+### Completed
+
+- Added client-side admin auth status polling through `GET /api/auth/me`.
+- Added a footer-only `Kairos Edit` entry that remains hidden until admin status has been confirmed and is true.
+- Added a near-fullscreen PrimeNG Kairos Edit modal shell with tabs for Items, Materials, Locations, Activities, Actions, and `Tags — WIP`.
+
+### Notes
+
+- The footer button is shown next to the server status block and only for authenticated admins.
+- The new modal is shell-only in this PR; definition editor infrastructure and write APIs remain for later tasks.
+- The Tags tab is intentionally present but marked WIP / out of scope.
 
 ## Epic 4 — Server-side images/assets
 

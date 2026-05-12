@@ -17,6 +17,15 @@
       <span class="gv-footer__server-label">{{ serverSummary().label }}</span>
       <span class="gv-footer__server-detail">{{ serverSummary().detail }}</span>
     </button>
+    @if (canOpenKairosEdit()) {
+      <button
+        type="button"
+        class="gv-footer__btn gv-footer__btn--kairos"
+        (click)="kairosEditRequested.emit()"
+      >
+        Kairos Edit
+      </button>
+    }
     <!-- GAP: ChangelogModalService not yet available — button is a visual placeholder -->
     <button
       type="button"

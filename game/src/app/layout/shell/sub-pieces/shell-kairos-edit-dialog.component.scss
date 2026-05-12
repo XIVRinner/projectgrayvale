@@ -1,0 +1,125 @@
+:host {
+  display: contents;
+}
+
+.gv-kairos-edit {
+  min-block-size: 100%;
+}
+
+.gv-kairos-edit__panel {
+  display: grid;
+  align-content: start;
+  gap: var(--gv-space-lg);
+  min-block-size: 100%;
+  padding: var(--gv-space-md) 0;
+}
+
+.gv-kairos-edit__panel-header {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-kairos-edit__panel-header h2,
+.gv-kairos-edit__panel-header p,
+.gv-kairos-edit__state p,
+.gv-kairos-edit__eyebrow {
+  margin: 0;
+}
+
+.gv-kairos-edit__eyebrow {
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-xs);
+  font-weight: 700;
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-kairos-edit__panel-header h2 {
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-kairos-edit__panel-header p,
+.gv-kairos-edit__state p {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.5;
+}
+
+.gv-kairos-edit__state {
+  display: grid;
+  gap: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 44%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  padding: var(--gv-space-lg);
+}
+
+.gv-kairos-edit__state--wip {
+  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 48%, var(--gv-color-border-subtle));
+}
+
+.gv-kairos-edit__state-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: fit-content;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 22%, transparent);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xs);
+  font-weight: 700;
+  letter-spacing: var(--gv-letter-spacing-wide);
+  padding: 0.2rem 0.55rem;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog {
+  inline-size: 95vw;
+  block-size: 95vh;
+  max-inline-size: 95vw;
+  max-block-size: 95vh;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--gv-color-overlay-soft) 90%, transparent), transparent 20%),
+    var(--gv-color-bg-surface);
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog .p-dialog-header,
+:host ::ng-deep .gv-kairos-edit-dialog .p-dialog-content {
+  background: transparent;
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog .p-dialog-header {
+  border-bottom: var(--gv-border-subtle);
+  color: var(--gv-color-text-primary);
+  font-family: var(--gv-font-dialogue);
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content {
+  block-size: calc(95vh - 5rem);
+  overflow: hidden;
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabs,
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanels,
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabs-panel {
+  block-size: 100%;
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tablist-tab-list {
+  gap: var(--gv-space-xs);
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tab {
+  color: var(--gv-color-text-primary);
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanels {
+  overflow-y: auto;
+  padding-block-start: var(--gv-space-md);
+}
