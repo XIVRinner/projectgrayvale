@@ -72,3 +72,16 @@
 - Item and material icons: `assets/images/resources/items/equipment/*`, `assets/images/resources/materials/*`
 - Location backgrounds: `assets/images/location-backgrounds/*`
 
+## Epic 2 — SQLite definition cache/index
+
+### Completed
+
+- Added a dedicated `definitions` SQLite table keyed by `(type, id)` with `version`, `hash`, `json`, `source_path`, and `updated_at`.
+- Added startup sync from `server/data/definitions` into SQLite.
+- Added per-type disk validation for items, materials, locations, activities, and actions.
+
+### Notes
+
+- JSON files remain the editable source of truth; SQLite is rebuilt from the files during server startup.
+- Duplicate IDs and file-name/id mismatches now fail startup clearly.
+- The sync path skips underscore-prefixed metadata files such as `locations/_defaults.json`.

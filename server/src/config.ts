@@ -18,6 +18,7 @@ const configFileSchema = z.object({
   port: z.string().trim().optional(),
   dbFilePath: z.string().trim().optional(),
   contentRoot: z.string().trim().optional(),
+  definitionRoot: z.string().trim().optional(),
   allowedOrigins: z.string().trim().optional(),
 });
 
@@ -34,6 +35,7 @@ export interface ServerConfig {
   readonly tursoAuthToken?: string;
   readonly dbFilePath: string;
   readonly contentRoot: string;
+  readonly definitionRoot: string;
   readonly configFilePath: string;
   /**
    * Comma-separated list of allowed CORS origins (e.g. "https://game.example.com,https://www.example.com").
@@ -96,6 +98,11 @@ export function readServerConfig(): ServerConfig {
       configFilePath,
       configValues.contentRoot,
     ),
+    definitionRoot: resolveDefinitionRootPath(
+      isVercelRuntime,
+      configFilePath,
+      configValues.definitionRoot,
+    ),
     configFilePath,
     allowedOrigins: parseAllowedOrigins(
       process.env["GRAYVALE_ALLOWED_ORIGINS"] ?? configValues.allowedOrigins
@@ -153,6 +160,30 @@ function resolveContentRootPath(
 
   throw new Error(
     "Unable to resolve a readable contentRoot in Vercel runtime. Set GRAYVALE_CONTENT_ROOT or bundle content into server/content.",
+  );
+}
+
+function resolveDefinitionRootPath(
+  isVercelRuntime: boolean,
+  configFilePath: string,
+  configFilePathValue: string | undefined,
+): string {
+  const envRoot = readOptionalSetting(process.env["GRAYVALE_DEFINITION_ROOT"]);
+
+  if (envRoot) {
+    return envRoot;
+  }
+
+  const configRoot = resolveConfigRelativePath(configFilePath, configFilePathValue);
+  const defaultRoot = resolve(serverRoot, "data", "definitions");
+
+  if (!isVercelRuntime) {
+    return configRoot ?? defaultRoot;
+  }
+
+  return (
+    resolveFirstExistingPath([configRoot, defaultRoot, "/var/task/server/data/definitions"]) ??
+    defaultRoot
   );
 }
 

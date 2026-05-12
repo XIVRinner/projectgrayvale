@@ -11,6 +11,7 @@ adminPassword=replace-me-admin-password
 # port=3000
 # dbFilePath=../data/grayvale.sqlite
 # contentRoot=../../game/src/assets/data
+# definitionRoot=../data/definitions
 
 # CORS allowlist — comma-separated list of trusted origins.
 # Leave unset (or empty) in local development to allow all origins.

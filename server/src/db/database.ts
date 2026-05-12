@@ -155,6 +155,20 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
     CREATE INDEX IF NOT EXISTS idx_api_entity_tags_tag
       ON api_entity_tags (entity_type, tag);
 
+    CREATE TABLE IF NOT EXISTS definitions (
+      type TEXT NOT NULL,
+      id TEXT NOT NULL,
+      version TEXT NOT NULL,
+      hash TEXT NOT NULL,
+      json TEXT NOT NULL,
+      source_path TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (type, id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_definitions_type
+      ON definitions (type, id);
+
     CREATE TABLE IF NOT EXISTS allowed_players (
       player_uuid TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,

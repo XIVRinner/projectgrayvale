@@ -23,6 +23,10 @@ import { createContentRouter } from "./content/content-routes";
 import { seedJsonResources } from "./content/content-seed";
 import { openDatabase } from "./db/database";
 import type { GrayvaleDatabase } from "./db/database";
+import { DefinitionRepository } from "./definitions/definition-repository";
+import { registerDefinitionRoutes } from "./definitions/definition-routes";
+import { DefinitionService } from "./definitions/definition-service";
+import { syncDefinitions } from "./definitions/definition-sync";
 import { EntityRepository } from "./entities/entity-repository";
 import { registerEntityRoutes } from "./entities/entity-routes";
 import { seedApiEntities } from "./entities/entity-seed";
@@ -39,7 +43,13 @@ export async function createApp(
   const app = express();
   const seededResources = await seedJsonResources(db, config.contentRoot);
   const seededEntities = await seedApiEntities(db, seededResources);
+  const syncedDefinitions = await syncDefinitions(db, config.definitionRoot);
   const repository = new ContentRepository(db);
+  const definitionRepository = new DefinitionRepository(db);
+  const definitionService = new DefinitionService(
+    definitionRepository,
+    config.definitionRoot,
+  );
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
   const changelogRepository = new ChangelogRepository(db);
@@ -94,11 +104,12 @@ export async function createApp(
 
   app.get("/api/health", (_request, response) => {
     response.json({
-      name: config.name,
-      status: "ok",
-      seededResourceCount: seededResources.length,
-      seededEntityCount: seededEntities.length,
-    });
+        name: config.name,
+        status: "ok",
+        seededResourceCount: seededResources.length,
+        seededEntityCount: seededEntities.length,
+        syncedDefinitionCount: syncedDefinitions.length,
+      });
   });
 
   app.use("/api/data", createContentRouter(repository));
@@ -108,7 +119,7 @@ export async function createApp(
     "/api/server",
     createMultiplayerRouter(multiplayerRepository, config),
   );
-  registerEntityRoutes(app, "/api/activities", "activity", entityRepository);
+  registerDefinitionRoutes(app, definitionService);
   registerEntityRoutes(app, "/api/attributes", "attribute", entityRepository);
   registerEntityRoutes(
     app,
@@ -129,32 +140,13 @@ export async function createApp(
     "difficulty-curve",
     entityRepository,
   );
-  registerEntityRoutes(
-    app,
-    "/api/equipment-items",
-    "equipment-item",
-    entityRepository,
-  );
-  registerEntityRoutes(app, "/api/items", "item", entityRepository);
   registerEntityRoutes(app, "/api/quests", "quest", entityRepository);
   registerEntityRoutes(app, "/api/skills", "skill", entityRepository);
   registerEntityRoutes(app, "/api/weapons", "weapon", entityRepository);
   registerEntityRoutes(
     app,
-    "/api/world-default-state",
-    "world-default-state",
-    entityRepository,
-  );
-  registerEntityRoutes(
-    app,
     "/api/world-guards",
     "world-guard",
-    entityRepository,
-  );
-  registerEntityRoutes(
-    app,
-    "/api/world-locations",
-    "world-location",
     entityRepository,
   );
 
