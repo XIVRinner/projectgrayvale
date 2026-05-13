@@ -52,6 +52,8 @@
             <button
               type="button"
               class="gv-server-chat-message-list__action"
+              [attr.aria-label]="'Whisper ' + displayName(message)"
+              [attr.title]="'Whisper ' + displayName(message)"
               (click)="
                 playerActionRequested.emit({
                   action: 'whisper',
@@ -65,6 +67,8 @@
             <button
               type="button"
               class="gv-server-chat-message-list__action"
+              [attr.aria-label]="'Add ' + displayName(message) + ' as friend'"
+              [attr.title]="'Add ' + displayName(message) + ' as friend'"
               (click)="
                 playerActionRequested.emit({
                   action: 'friend_profile',
@@ -78,6 +82,8 @@
             <button
               type="button"
               class="gv-server-chat-message-list__action"
+              [attr.aria-label]="'Block ' + displayName(message)"
+              [attr.title]="'Block ' + displayName(message)"
               (click)="
                 playerActionRequested.emit({
                   action: 'block',
@@ -92,6 +98,8 @@
               <button
                 type="button"
                 class="gv-server-chat-message-list__action"
+                [attr.aria-label]="'Ban ' + displayName(message)"
+                [attr.title]="'Ban ' + displayName(message)"
                 (click)="
                   playerActionRequested.emit({
                     action: 'ban',

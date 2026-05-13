@@ -1548,12 +1548,20 @@ export class SocialRepository {
       right,
     );
 
-    return {
+    const created = await this.db.get<DirectConversationRow>(
+      `
+        SELECT id, profile_a_id, profile_b_id, updated_at
+        FROM direct_conversations
+        WHERE id = ?
+      `,
       id,
-      profile_a_id: left,
-      profile_b_id: right,
-      updated_at: new Date().toISOString(),
-    };
+    );
+
+    if (!created) {
+      throw new Error("conversation_create_failed");
+    }
+
+    return created;
   }
 
   private async isEitherBlocked(profileAId: string, profileBId: string): Promise<boolean> {
@@ -1676,21 +1684,9 @@ export class SocialRepository {
         )
       : null;
 
-    const friend = await this.db.get<{ exists: number }>(
-      `
-        SELECT 1 AS exists
-        FROM social_friend_links
-        WHERE profile_id = ? AND target_profile_id = ?
-        LIMIT 1
-      `,
-      profileId,
-      profileId,
-    );
-
     const badges = buildBadges({
       rank: rank?.rank ?? "player",
       guildRole: guildRole?.role,
-      isFriend: Boolean(friend?.exists),
     });
 
     return {
@@ -1735,7 +1731,7 @@ function normalizeBody(value: string): string | null {
   }
 
   if (normalized.length > 500) {
-    return normalized.slice(0, 500);
+    return null;
   }
 
   return normalized;

@@ -698,9 +698,9 @@ export class ShellContainerComponent {
     request: ServerChatPlayerActionRequest,
   ): Promise<void> {
     if (request.action === "whisper" && request.targetCharacterName) {
-      await this.sendServerChatMessage(`/whisper "${request.targetCharacterName}" `);
+      const safeTargetName = request.targetCharacterName.replace(/"/g, "").trim();
       this.serverChat.showStatusMessage(
-        `Whisper target selected: ${request.targetCharacterName}`,
+        `Whisper target selected: use /whisper "${safeTargetName}" <message>`,
       );
       return;
     }
@@ -749,9 +749,14 @@ export class ShellContainerComponent {
       try {
         const overview = await this.socialApi.getAdminProfileOverview(
           request.targetProfileId,
-        );
+        ) as {
+          profileId: string;
+          displayName?: string | null;
+          friendCount?: number;
+          blockedCount?: number;
+        };
         this.serverChat.showStatusMessage(
-          `Admin profile loaded: ${JSON.stringify(overview)}`,
+          `Admin profile: ${overview.displayName ?? overview.profileId} | friends: ${overview.friendCount ?? 0} | blocked: ${overview.blockedCount ?? 0}`,
         );
       } catch (error) {
         this.serverChat.showStatusMessage(errorToMessage(error));

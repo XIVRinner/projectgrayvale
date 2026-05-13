@@ -381,6 +381,7 @@ export class ServerChatService {
     this.channelsRefreshInFlight = true;
 
     try {
+      let directFetchFailed = false;
       const [channelsResponse, directResponse] = await Promise.all([
         firstValueFrom(
           this.http.get<ServerChatChannelsResponse>(
@@ -397,7 +398,10 @@ export class ServerChatService {
               withCredentials: true,
             },
           ),
-        ).catch(() => ({ conversations: [] as readonly ServerDirectConversationView[] })),
+        ).catch(() => {
+          directFetchFailed = true;
+          return { conversations: [] as readonly ServerDirectConversationView[] };
+        }),
       ]);
 
       const directIds = new Set(directResponse.conversations.map((row) => row.id));
@@ -406,6 +410,11 @@ export class ServerChatService {
       );
       this.directConversationsState.set(directResponse.conversations);
       this.channelsState.set(normalizedChannels);
+      if (directFetchFailed && this.panelOpenState()) {
+        this.statusMessageState.set(
+          "Direct conversations are temporarily unavailable.",
+        );
+      }
 
       if (
         !this.activeChannelIdState() ||
@@ -446,35 +455,7 @@ export class ServerChatService {
 
     try {
       const after = this.lastSeenMessageIdState()[activeChannel.id];
-      const response = activeChannel.type === "direct"
-        ? await firstValueFrom(
-            this.http.get<ServerChatHistoryApiResponse>(
-              this.serverConnection.serverApiUrl(
-                `/api/chat/direct/${activeChannel.id}/messages`,
-              ),
-              {
-                params: {
-                  limit: String(CHAT_LIMIT),
-                  ...(after ? { after } : {}),
-                },
-                withCredentials: true,
-              },
-            ),
-          )
-        : await firstValueFrom(
-            this.http.get<ServerChatHistoryApiResponse>(
-              this.serverConnection.serverApiUrl(
-                `/api/chat/channels/${activeChannel.id}/messages`,
-              ),
-              {
-                params: {
-                  limit: String(CHAT_LIMIT),
-                  ...(after ? { after } : {}),
-                },
-                withCredentials: true,
-              },
-            ),
-          );
+      const response = await this.fetchChannelEntries(activeChannel, after);
 
       const incoming = response.entries.map((entry) => mapMessage(entry));
       const merged = dedupeById([...this.messagesState(), ...incoming]).slice(-CHAT_LIMIT);
@@ -525,6 +506,28 @@ export class ServerChatService {
 
   private presenceParams(): Record<string, string> {
     return { limit: String(PLAYER_LIMIT) };
+  }
+
+  private async fetchChannelEntries(
+    channel: ServerChatChannelView,
+    after?: string,
+  ): Promise<ServerChatHistoryApiResponse> {
+    const path = channel.type === "direct"
+      ? `/api/chat/direct/${channel.id}/messages`
+      : `/api/chat/channels/${channel.id}/messages`;
+
+    return firstValueFrom(
+      this.http.get<ServerChatHistoryApiResponse>(
+        this.serverConnection.serverApiUrl(path),
+        {
+          params: {
+            limit: String(CHAT_LIMIT),
+            ...(after ? { after } : {}),
+          },
+          withCredentials: true,
+        },
+      ),
+    );
   }
 }
 
