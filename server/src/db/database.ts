@@ -61,8 +61,20 @@ async function openSqliteDatabase(filename: string): Promise<GrayvaleDatabase> {
     "TEXT",
   );
   await ensureColumn(db, "allowed_players", "moderated_at", "TEXT");
+  await ensureColumn(db, "guilds", "short_name", "TEXT");
+  await ensureColumn(db, "chat_channels_v2", "destroyed_at", "TEXT");
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_guilds_short_name
+      ON guilds (short_name);
+  `);
+  await db.exec(`
+    UPDATE guilds
+    SET short_name = upper(substr(replace(name, ' ', ''), 1, 4))
+    WHERE short_name IS NULL
+       OR trim(short_name) = ''
+  `);
 
-  return db;
+  return withDatabaseErrorLogging(db, "sqlite");
 }
 
 async function openTursoDatabase(
@@ -95,8 +107,91 @@ async function openTursoDatabase(
     "TEXT",
   );
   await ensureColumn(db, "allowed_players", "moderated_at", "TEXT");
+  await ensureColumn(db, "guilds", "short_name", "TEXT");
+  await ensureColumn(db, "chat_channels_v2", "destroyed_at", "TEXT");
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_guilds_short_name
+      ON guilds (short_name);
+  `);
+  await db.exec(`
+    UPDATE guilds
+    SET short_name = upper(substr(replace(name, ' ', ''), 1, 4))
+    WHERE short_name IS NULL
+       OR trim(short_name) = ''
+  `);
 
-  return db;
+  return withDatabaseErrorLogging(db, "turso");
+}
+
+function withDatabaseErrorLogging(
+  db: GrayvaleDatabase,
+  provider: "sqlite" | "turso",
+): GrayvaleDatabase {
+  return {
+    async exec(sql: string): Promise<void> {
+      try {
+        await db.exec(sql);
+      } catch (error) {
+        logDatabaseError(provider, "exec", sql, [], error);
+        throw error;
+      }
+    },
+
+    async run(
+      sql: string,
+      ...params: readonly unknown[]
+    ): Promise<{ readonly lastID?: number; readonly changes?: number }> {
+      try {
+        return await db.run(sql, ...params);
+      } catch (error) {
+        logDatabaseError(provider, "run", sql, params, error);
+        throw error;
+      }
+    },
+
+    async get<T>(sql: string, ...params: readonly unknown[]): Promise<T | undefined> {
+      try {
+        return await db.get<T>(sql, ...params);
+      } catch (error) {
+        logDatabaseError(provider, "get", sql, params, error);
+        throw error;
+      }
+    },
+
+    async all<T>(sql: string, ...params: readonly unknown[]): Promise<T> {
+      try {
+        return await db.all<T>(sql, ...params);
+      } catch (error) {
+        logDatabaseError(provider, "all", sql, params, error);
+        throw error;
+      }
+    },
+  };
+}
+
+function logDatabaseError(
+  provider: "sqlite" | "turso",
+  operation: "exec" | "run" | "get" | "all",
+  sql: string,
+  params: readonly unknown[],
+  error: unknown,
+): void {
+  const errorObject = error instanceof Error ? error : new Error(String(error));
+  const errorWithCode = error as { code?: string; errno?: number };
+
+  process.stderr.write(
+    JSON.stringify({
+      event: "db_error",
+      provider,
+      operation,
+      code: errorWithCode.code,
+      errno: errorWithCode.errno,
+      message: errorObject.message,
+      sql,
+      params,
+      stack: errorObject.stack,
+    }) + "\n",
+  );
 }
 
 function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
@@ -364,6 +459,7 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
       type TEXT NOT NULL,
       owner_profile_id TEXT,
       guild_id TEXT,
+      destroyed_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(type, name)
@@ -551,6 +647,7 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
     CREATE TABLE IF NOT EXISTS guilds (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
+      short_name TEXT,
       created_by_profile_id TEXT NOT NULL,
       created_by_character_id TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

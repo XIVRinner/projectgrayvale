@@ -1,4 +1,6 @@
-import { Component, input, output, signal } from "@angular/core";
+import { Component, input, output, signal, viewChild } from "@angular/core";
+import { MenuItem } from "primeng/api";
+import { ContextMenu, ContextMenuModule } from "primeng/contextmenu";
 
 import {
   AdminPlayerListEntryView,
@@ -28,6 +30,7 @@ import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-l
   selector: "gv-server-chat-panel",
   standalone: true,
   imports: [
+    ContextMenuModule,
     ServerChatComposerComponent,
     ServerChatAdminPanelComponent,
     ServerChatFriendListComponent,
@@ -103,13 +106,19 @@ export class ServerChatPanelComponent {
   readonly friendAcceptRequested = output<string>();
   readonly friendRejectRequested = output<string>();
   readonly friendshipRemoveRequested = output<string>();
-  readonly guildCreateRequested = output<string>();
+  readonly guildCreateRequested = output<{ name: string; shortName: string }>();
   readonly guildInviteRequested = output<{ guildId: string; targetProfileId: string }>();
   readonly guildInvitationResponded = output<{ invitationId: string; accept: boolean }>();
   readonly guildRoleChanged = output<{ guildId: string; characterId: string; role: "guild_master" | "officer" | "member" | "recruit" }>();
   readonly guildLeaveRequested = output<string>();
+  readonly channelLeaveRequested = output<string>();
+  readonly channelCloseRequested = output<string>();
+  readonly channelDestroyRequested = output<string>();
 
   protected readonly activePanel = signal<"chat" | "friends" | "guild" | "players" | "admin">("chat");
+  protected readonly contextMenuItems = signal<MenuItem[]>([]);
+  protected readonly activeContextChannelId = signal<string | null>(null);
+  protected readonly contextMenu = viewChild<ContextMenu>("channelContextMenu");
 
   protected selectPanel(panel: "chat" | "friends" | "guild" | "players" | "admin"): void {
     if (panel === "admin" && !this.canShowAdminPanel()) {
@@ -129,6 +138,71 @@ export class ServerChatPanelComponent {
     );
   }
 
+  protected activeChatSkin():
+    | "default"
+    | "world"
+    | "help"
+    | "guild"
+    | "whisper" {
+    const activeChannelId = this.activeChannelId();
+
+    if (!activeChannelId) {
+      return "default";
+    }
+
+    const channel = this.channels().find((entry) => entry.id === activeChannelId);
+
+    if (!channel) {
+      return "default";
+    }
+
+    if (channel.type === "direct") {
+      return "whisper";
+    }
+
+    if (channel.type === "guild") {
+      return "guild";
+    }
+
+    const normalizedName = channel.name.trim().toLowerCase();
+
+    if (normalizedName === "world") {
+      return "world";
+    }
+
+    if (normalizedName === "help") {
+      return "help";
+    }
+
+    return "default";
+  }
+
+  protected activeChannelCanSend(): boolean {
+    const activeChannelId = this.activeChannelId();
+
+    if (!activeChannelId) {
+      return false;
+    }
+
+    return (
+      this.channels().find((entry) => entry.id === activeChannelId)?.type !==
+      "system"
+    );
+  }
+
+  protected composerHintText(): string | null {
+    const activeChannelId = this.activeChannelId();
+    const activeChannel = activeChannelId
+      ? this.channels().find((entry) => entry.id === activeChannelId)
+      : null;
+
+    if (activeChannel?.type === "system") {
+      return "System notices only. Posting is disabled in this channel.";
+    }
+
+    return this.sendHint();
+  }
+
   protected focusMessageAuthor(message: ServerChatMessageView): void {
     if (!this.canModerate()) {
       return;
@@ -143,5 +217,72 @@ export class ServerChatPanelComponent {
     }
 
     this.moderatePlayerRequested.emit(player);
+  }
+
+  protected closeChannelContextMenu(): void {
+    this.activeContextChannelId.set(null);
+    this.contextMenu()?.hide();
+  }
+
+  protected openChannelContextMenu(event: MouseEvent, channel: ServerChatChannelView): void {
+    event.preventDefault();
+
+    if (channel.type === "official" || channel.type === "admin" || channel.type === "system") {
+      this.closeChannelContextMenu();
+      return;
+    }
+
+    if (this.activeContextChannelId() === channel.id) {
+      this.closeChannelContextMenu();
+      return;
+    }
+
+    this.activeContextChannelId.set(channel.id);
+    const items: MenuItem[] = [];
+
+    if (channel.type === "custom") {
+      items.push({
+        label: "Leave Channel",
+        icon: "pi pi-sign-out",
+        command: () => {
+          this.channelLeaveRequested.emit(channel.id);
+          this.closeChannelContextMenu();
+        },
+      });
+
+      if (channel.role === "owner") {
+        items.push({
+          label: "Destroy Channel",
+          icon: "pi pi-trash",
+          command: () => {
+            this.channelDestroyRequested.emit(channel.id);
+            this.closeChannelContextMenu();
+          },
+        });
+      }
+    } else if (channel.type === "direct") {
+      items.push({
+        label: "Close Conversation",
+        icon: "pi pi-times",
+        command: () => {
+          this.channelCloseRequested.emit(channel.id);
+          this.closeChannelContextMenu();
+        },
+      });
+    } else if (channel.type === "guild") {
+      items.push({
+        label: "Leave Guild",
+        icon: "pi pi-sign-out",
+        command: () => {
+          this.guildLeaveRequested.emit(this.currentGuild()?.guildId ?? "");
+          this.closeChannelContextMenu();
+        },
+      });
+    }
+
+    if (items.length > 0) {
+      this.contextMenuItems.set(items);
+      this.contextMenu()?.show(event);
+    }
   }
 }

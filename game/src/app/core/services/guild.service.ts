@@ -30,11 +30,11 @@ export class GuildService {
     );
   }
 
-  createGuild(name: string): Promise<unknown> {
+  createGuild(payload: { name: string; shortName: string }): Promise<unknown> {
     return firstValueFrom(
       this.http.post(
         this.serverConnection.serverApiUrl("/api/guilds"),
-        { name },
+        payload,
         { withCredentials: true },
       ),
     );

@@ -18,6 +18,7 @@ import {
   formatServerChatHelp,
   resolveServerModerationCommand,
   resolveServerChatCommand,
+  resolveWhisperCommand,
 } from "../../core/services/server-chat-commands";
 import { ServerChatService } from "../../core/services/server-chat.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
@@ -215,6 +216,9 @@ import {
       (guildInvitationResponded)="respondGuildInvitation($event)"
       (guildRoleChanged)="changeGuildRole($event)"
       (guildLeaveRequested)="leaveGuild($event)"
+      (channelLeaveRequested)="leaveCustomChannel($event)"
+      (channelCloseRequested)="closeDirectConversation($event)"
+      (channelDestroyRequested)="destroyCustomChannel($event)"
       (serverAdminSubmitted)="submitServerAdminDialog($event)"
       (serverModerationSubmitted)="submitServerModeration($event)"
       (serverModerationCleared)="closeServerModerationDialog()"
@@ -291,7 +295,7 @@ export class ShellContainerComponent {
     const activeCharacter = this.roster.activeCharacter();
 
     if (!activeCharacter) {
-      return "Playing as Unknown Adventurer";
+      return "Playing as No Active Character";
     }
 
     return `Playing as Level ${activeCharacter.progression.level} ${activeCharacter.name}`;
@@ -474,7 +478,7 @@ export class ShellContainerComponent {
 
     if (!activeSlot) {
       return {
-        lead: "Unknown Adventurer",
+        lead: "No Active Character",
         lastSaved: "—",
       };
     }
@@ -810,12 +814,18 @@ export class ShellContainerComponent {
     }
   }
 
-  protected async createGuild(name: string): Promise<void> {
-    if (!name.trim()) {
+  protected async createGuild(input: {
+    name: string;
+    shortName: string;
+  }): Promise<void> {
+    if (!input.name.trim() || !input.shortName.trim()) {
       return;
     }
     try {
-      await this.serverChat.createGuild(name.trim());
+      await this.serverChat.createGuild({
+        name: input.name.trim(),
+        shortName: input.shortName.trim().toUpperCase(),
+      });
       this.serverChat.showStatusMessage("Guild created.");
     } catch (error) {
       this.serverChat.showStatusMessage(errorToMessage(error));
@@ -871,6 +881,33 @@ export class ShellContainerComponent {
     }
   }
 
+  protected async leaveCustomChannel(channelId: string): Promise<void> {
+    try {
+      await this.serverChat.leaveCustomChannel(channelId);
+      this.serverChat.showStatusMessage("Left channel.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async closeDirectConversation(conversationId: string): Promise<void> {
+    try {
+      await this.serverChat.closeDirectConversation(conversationId);
+      this.serverChat.showStatusMessage("Conversation closed.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async destroyCustomChannel(channelId: string): Promise<void> {
+    try {
+      await this.serverChat.destroyCustomChannel(channelId);
+      this.serverChat.showStatusMessage("Channel destroyed.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
   protected async grantAdminPermission(input: {
     profileId: string;
     permissionId: string;
@@ -919,13 +956,24 @@ export class ShellContainerComponent {
   protected async handleServerChatPlayerAction(
     request: ServerChatPlayerActionRequest,
   ): Promise<void> {
-    if (request.action === "whisper" && request.targetCharacterName) {
-      const safeTargetName = request.targetCharacterName
-        .replace(/[^a-zA-Z0-9 '\-]/g, "")
-        .trim();
-      this.serverChat.showStatusMessage(
-        `Whisper target selected: use /whisper "${safeTargetName}" <message>`,
-      );
+    if (request.action === "whisper") {
+      if (!request.targetProfileId.trim()) {
+        this.serverChat.showStatusMessage(
+          "Whisper target is unavailable right now.",
+        );
+        return;
+      }
+
+      try {
+        await this.serverChat.openDirectConversation(request.targetProfileId);
+        this.serverChat.showStatusMessage(
+          request.targetCharacterName?.trim()
+            ? `Opened whisper with ${request.targetCharacterName.trim()}.`
+            : "Opened direct conversation.",
+        );
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
       return;
     }
 
@@ -960,9 +1008,11 @@ export class ShellContainerComponent {
     }
 
     if (request.action === "ban" && this.serverChat.canModerate()) {
+      const targetPlayerUuid =
+        request.targetPlayerUuid ?? request.targetProfileId;
       const player = this.serverChat
         .players()
-        .find((entry) => entry.playerUuid === request.targetProfileId);
+        .find((entry) => entry.playerUuid === targetPlayerUuid);
 
       if (player) {
         this.openServerModerationDialog(player);
@@ -1026,6 +1076,23 @@ export class ShellContainerComponent {
 
     if (moderationCommand) {
       await this.handleServerModerationCommand(moderationCommand);
+      return;
+    }
+
+    const whisperCommand = resolveWhisperCommand(message);
+
+    if (whisperCommand) {
+      try {
+        await this.serverChat.sendWhisper(
+          whisperCommand.targetCharacterName,
+          whisperCommand.body,
+        );
+        this.serverChat.showStatusMessage(
+          `Opened whisper with ${whisperCommand.targetCharacterName}.`,
+        );
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
       return;
     }
 

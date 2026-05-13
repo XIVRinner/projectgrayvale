@@ -16,6 +16,7 @@ export interface SocialIdentityDto {
   readonly characterId?: string;
   readonly characterName?: string;
   readonly profileDisplayName?: string;
+  readonly guildShortName?: string;
   readonly online: boolean;
   readonly lastOnlineAt?: string;
   readonly badges: readonly SocialBadgeDto[];
@@ -55,6 +56,7 @@ export interface PlayerPresenceDto {
   readonly profileDisplayName?: string;
   readonly currentCharacterId?: string;
   readonly currentCharacterName?: string;
+  readonly guildShortName?: string;
   readonly online: boolean;
   readonly lastOnlineAt?: string;
 }
@@ -71,6 +73,7 @@ export interface AdminCharacterSummaryDto {
   readonly online: boolean;
   readonly guildId?: string;
   readonly guildName?: string;
+  readonly guildShortName?: string;
   readonly role?: string;
   readonly savedProgressSummary?: unknown;
 }
@@ -101,6 +104,7 @@ export interface AdminProfileDetailDto {
   readonly guildMemberships: readonly {
     guildId: string;
     guildName: string;
+    guildShortName?: string;
     role: string;
     characterId: string;
   }[];

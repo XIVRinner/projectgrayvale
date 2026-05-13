@@ -26,6 +26,11 @@
   inline-size: min(100%, 42rem);
 }
 
+.gv-server-chat-message-list__entry--system {
+  grid-template-columns: minmax(0, 1fr);
+  inline-size: min(100%, 44rem);
+}
+
 .gv-server-chat-message-list__entry--self {
   grid-template-columns: minmax(0, 1fr) 3rem;
   margin-inline-start: auto;
@@ -131,6 +136,44 @@
   color: var(--gv-color-accent-cool);
 }
 
+.gv-server-chat-message-list__entry--system .gv-server-chat-message-list__bubble {
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--gv-color-accent-purple) 24%, transparent),
+      transparent 52%
+    ),
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
+    color-mix(in srgb, var(--gv-color-bg-shade) 88%, var(--gv-color-bg-primary));
+  border-color: color-mix(
+    in srgb,
+    var(--gv-color-accent-purple) 38%,
+    var(--gv-color-border-subtle)
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gv-color-accent-warm) 14%, transparent);
+}
+
+.gv-server-chat-message-list__entry--system .gv-server-chat-message-list__header {
+  align-items: flex-start;
+}
+
+.gv-server-chat-message-list__entry--system .gv-server-chat-message-list__name {
+  color: var(--gv-color-accent-yellow);
+  font-family: var(--gv-font-dialogue);
+  letter-spacing: 0.14em;
+  text-transform: none;
+}
+
+.gv-server-chat-message-list__entry--system .gv-server-chat-message-list__meta {
+  color: color-mix(in srgb, var(--gv-color-accent-warm) 68%, var(--gv-color-text-muted));
+}
+
+.gv-server-chat-message-list__entry--system .gv-server-chat-message-list__body {
+  color: color-mix(in srgb, var(--gv-color-text-primary) 92%, var(--gv-color-accent-warm));
+  font-family: var(--gv-font-dialogue);
+}
+
 .gv-server-chat-message-list__header {
   display: flex;
   align-items: baseline;
@@ -158,9 +201,8 @@
   text-transform: uppercase;
 }
 
-.gv-server-chat-message-list__name:disabled {
+.gv-server-chat-message-list__name--static {
   cursor: default;
-  opacity: 1;
 }
 
 .gv-server-chat-message-list__meta,
@@ -190,21 +232,4 @@
   line-height: 1.42;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.gv-server-chat-message-list__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(var(--gv-space-xs) * 1.4);
-}
-
-.gv-server-chat-message-list__action {
-  border: var(--gv-border-subtle);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
-  color: var(--gv-color-text-primary);
-  cursor: pointer;
-  font-family: var(--gv-font-ui);
-  font-size: var(--gv-font-size-xxs);
-  padding: 0.18rem 0.48rem;
 }

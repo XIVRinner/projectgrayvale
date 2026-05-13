@@ -163,6 +163,80 @@ describe("SocialRepository", () => {
     expect(result.entries[0]?.online).toBe(true);
     expect(result.entries.some((entry) => entry.profileId === "p3")).toBe(true);
   });
+
+  it("falls back to allowed player names for connected players without profile rows", async () => {
+    await seedProfile(db, "p1", "c1", "Alice", "admin");
+    await db.run(
+      `
+        INSERT INTO allowed_players (player_uuid, password_hash, display_name, rank)
+        VALUES (?, ?, ?, ?)
+      `,
+      "legacy-gwen",
+      "hash",
+      "Gwen",
+      "player",
+    );
+    await db.run(
+      `
+        INSERT INTO server_sessions (session_id, player_uuid, client_id, connected_at, last_seen_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `,
+      randomUUID(),
+      "legacy-gwen",
+      "client-2",
+    );
+
+    const result = await repository.listPlayers(createActor("p1", "c1"), {
+      page: 1,
+      pageSize: 10,
+    });
+    const entry = result.entries.find((candidate) => candidate.profileId === "legacy-gwen");
+
+    expect(entry).toMatchObject({
+      profileId: "legacy-gwen",
+      profileDisplayName: "Gwen",
+      currentCharacterName: "Gwen",
+      online: true,
+    });
+    expect(entry?.currentCharacterId).toBeUndefined();
+    await expect(repository.getProfileIdByCharacterId("legacy-gwen")).resolves.toBe(
+      "legacy-gwen",
+    );
+  });
+
+  it("creates missing profile rows from allowed players on demand", async () => {
+    await seedProfile(db, "p1", "c1", "Alice", "player");
+    await db.run(
+      `
+        INSERT INTO allowed_players (player_uuid, password_hash, display_name, rank)
+        VALUES (?, ?, ?, ?)
+      `,
+      "legacy-target",
+      "hash",
+      "Gwen",
+      "player",
+    );
+
+    await repository.setBlockedProfile({
+      blockerProfileId: "p1",
+      blockedProfileId: "legacy-target",
+      blocked: true,
+    });
+
+    const createdProfile = await db.get<{ id: string; display_name: string | null }>(
+      `
+        SELECT id, display_name
+        FROM player_profiles
+        WHERE id = ?
+      `,
+      "legacy-target",
+    );
+
+    expect(createdProfile).toEqual({
+      id: "legacy-target",
+      display_name: "Gwen",
+    });
+  });
 });
 
 async function seedProfile(

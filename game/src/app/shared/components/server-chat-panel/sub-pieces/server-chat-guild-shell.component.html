@@ -3,7 +3,12 @@
     <p class="gv-server-chat-guild-shell__empty">Loading guild...</p>
   } @else if (guild(); as guild) {
     <header class="gv-server-chat-guild-shell__header">
-      <h4>{{ guild.guildName }}</h4>
+      <h4>
+        {{ guild.guildName }}
+        @if (guild.guildShortName) {
+          <span>&lt;{{ guild.guildShortName }}&gt;</span>
+        }
+      </h4>
       <p>Your role: {{ guild.role }}</p>
     </header>
 
@@ -49,10 +54,11 @@
     <p class="gv-server-chat-guild-shell__empty">You are not in a guild.</p>
     <div class="gv-server-chat-guild-shell__actions">
       <input #guildName type="text" placeholder="Guild name..." aria-label="New guild name" />
+      <input #guildShortName type="text" maxlength="4" placeholder="TAG" aria-label="New guild short name" />
       <button
         type="button"
         class="gv-server-chat-guild-shell__button"
-        (click)="createGuildRequested.emit(guildName.value.trim()); guildName.value = ''"
+        (click)="createGuildRequested.emit({ name: guildName.value.trim(), shortName: guildShortName.value.trim().toUpperCase() }); guildName.value = ''; guildShortName.value = ''"
       >
         Create Guild
       </button>
@@ -67,14 +73,19 @@
       @for (invitation of invitations(); track invitation.id) {
         <li class="gv-server-chat-guild-shell__invitation">
           <div>
-            <strong>{{ invitation.guildName }}</strong>
+            <strong>
+              {{ invitation.guildName }}
+              @if (invitation.guildShortName) {
+                <span>&lt;{{ invitation.guildShortName }}&gt;</span>
+              }
+            </strong>
             <p>Invited {{ invitation.createdAt | date: "short" }}</p>
           </div>
           <div class="gv-server-chat-guild-shell__member-actions">
-            <button type="button" class="gv-server-chat-guild-shell__button" (click)="invitationResponded.emit({ invitationId: invitation.id, accept: true })">
+            <button type="button" class="gv-server-chat-guild-shell__button" data-action="accept" (click)="invitationResponded.emit({ invitationId: invitation.id, accept: true })">
               Accept
             </button>
-            <button type="button" class="gv-server-chat-guild-shell__button" (click)="invitationResponded.emit({ invitationId: invitation.id, accept: false })">
+            <button type="button" class="gv-server-chat-guild-shell__button" data-action="reject" (click)="invitationResponded.emit({ invitationId: invitation.id, accept: false })">
               Reject
             </button>
           </div>

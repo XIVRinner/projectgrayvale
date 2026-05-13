@@ -115,6 +115,11 @@ export interface ParsedServerModerationCommand {
   readonly usage: string;
 }
 
+export interface ParsedWhisperCommand {
+  readonly targetCharacterName: string;
+  readonly body: string;
+}
+
 export function resolveServerChatCommand(
   message: string,
 ): ServerChatCommandView | null {
@@ -229,6 +234,33 @@ export function formatServerChatHelp(): string {
   return SERVER_CHAT_COMMANDS.map(
     (command) => `${command.trigger} - ${command.description}`,
   ).join(" | ");
+}
+
+export function resolveWhisperCommand(
+  message: string,
+): ParsedWhisperCommand | null {
+  const tokens = tokenizeChatInput(message.trim());
+  const command = tokens[0]?.toLowerCase();
+
+  if (
+    command !== "/w" &&
+    command !== "/whisper" &&
+    command !== "/tell"
+  ) {
+    return null;
+  }
+
+  const targetCharacterName = tokens[1]?.trim() ?? "";
+  const body = tokens.slice(2).join(" ").trim();
+
+  if (!targetCharacterName || !body) {
+    return null;
+  }
+
+  return {
+    targetCharacterName,
+    body,
+  };
 }
 
 function tokenizeChatInput(message: string): string[] {

@@ -55,10 +55,45 @@ h5 {
 }
 
 .gv-server-chat-guild-shell__button {
-  border: var(--gv-border-subtle);
-  border-radius: 999px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
   color: var(--gv-color-text-primary);
-  padding: 0.2rem 0.5rem;
+  padding: 0.35rem 0.65rem;
   cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85rem;
+  transition: all var(--gv-anim-fast);
+}
+
+.gv-server-chat-guild-shell__button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.gv-server-chat-guild-shell__button:active:not(:disabled) {
+  transform: translateY(0);
+  opacity: 0.8;
+}
+
+.gv-server-chat-guild-shell__button[data-action="accept"] {
+  background: color-mix(in srgb, var(--gv-color-success) 20%, var(--gv-color-bg-surface));
+  border-color: var(--gv-color-success);
+  color: var(--gv-color-success);
+}
+
+.gv-server-chat-guild-shell__button[data-action="accept"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gv-color-success) 28%, var(--gv-color-bg-surface));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--gv-color-success) 40%, transparent);
+}
+
+.gv-server-chat-guild-shell__button[data-action="reject"] {
+  background: color-mix(in srgb, var(--gv-color-danger) 18%, var(--gv-color-bg-surface));
+  border-color: var(--gv-color-danger);
+  color: var(--gv-color-danger);
+}
+
+.gv-server-chat-guild-shell__button[data-action="reject"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gv-color-danger) 26%, var(--gv-color-bg-surface));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--gv-color-danger) 35%, transparent);
 }

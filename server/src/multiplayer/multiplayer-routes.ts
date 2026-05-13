@@ -260,6 +260,26 @@ export function createMultiplayerRouter(
       }
 
       const players = await repository.listOnlinePlayers(limit);
+      const hydratedPlayers = socialRepository
+        ? await Promise.all(
+            players.map(async (player) => {
+              const profileId =
+                (await socialRepository.getProfileIdByCharacterId(
+                  player.playerUuid,
+                )) ?? undefined;
+              const guildShortName =
+                (await socialRepository.getGuildShortNameByCharacterId(
+                  player.playerUuid,
+                )) ?? undefined;
+
+              return {
+                ...player,
+                profileId,
+                guildShortName,
+              };
+            }),
+          )
+        : players;
 
       response.json({
         server: {
@@ -268,8 +288,8 @@ export function createMultiplayerRouter(
           defaultClientId: config.clientId,
           passwordLockSupported: true,
         },
-        count: players.length,
-        players,
+        count: hydratedPlayers.length,
+        players: hydratedPlayers,
       });
     } catch (error) {
       next(error);

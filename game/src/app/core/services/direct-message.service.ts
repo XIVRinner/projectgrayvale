@@ -12,9 +12,18 @@ interface DirectConversationsResponse {
   readonly conversations: readonly ServerDirectConversationView[];
 }
 
+interface DirectConversationOpenResponse {
+  readonly conversationId: string;
+}
+
 interface DirectMessagesResponse {
   readonly count: number;
   readonly entries: readonly DirectMessageApiEntry[];
+}
+
+interface DirectMessageSendResponse {
+  readonly conversationId: string;
+  readonly message: DirectMessageApiEntry;
 }
 
 export interface DirectMessageApiEntry {
@@ -63,9 +72,39 @@ export class DirectMessageService {
     ).then((response) => response.entries);
   }
 
-  sendWhisper(targetCharacterName: string, body: string): Promise<void> {
+  openConversation(targetProfileId: string): Promise<string> {
     return firstValueFrom(
-      this.http.post(
+      this.http.post<DirectConversationOpenResponse>(
+        this.serverConnection.serverApiUrl("/api/chat/direct/open"),
+        {
+          targetProfileId,
+        },
+        { withCredentials: true },
+      ),
+    ).then((response) => response.conversationId);
+  }
+
+  sendConversationMessage(
+    conversationId: string,
+    body: string,
+  ): Promise<DirectMessageSendResponse> {
+    return firstValueFrom(
+      this.http.post<DirectMessageSendResponse>(
+        this.serverConnection.serverApiUrl(`/api/chat/direct/${conversationId}/messages`),
+        {
+          body,
+        },
+        { withCredentials: true },
+      ),
+    );
+  }
+
+  sendWhisper(
+    targetCharacterName: string,
+    body: string,
+  ): Promise<DirectMessageSendResponse> {
+    return firstValueFrom(
+      this.http.post<DirectMessageSendResponse>(
         this.serverConnection.serverApiUrl("/api/chat/direct"),
         {
           targetCharacterName,
@@ -73,6 +112,6 @@ export class DirectMessageService {
         },
         { withCredentials: true },
       ),
-    ).then(() => undefined);
+    );
   }
 }

@@ -36,8 +36,14 @@ describe("DialogueActorsLoader", () => {
       {
         id: "player",
         name: "You",
-        title: "Unknown Adventurer",
+        title: undefined,
         portraitPath: "assets/images/player-avatar.svg"
+      },
+      {
+        id: "bartender",
+        name: "Bartender",
+        title: "Tavern Keeper",
+        portraitPath: "assets/images/dialogue-heads/npc.png"
       }
     ]);
   });

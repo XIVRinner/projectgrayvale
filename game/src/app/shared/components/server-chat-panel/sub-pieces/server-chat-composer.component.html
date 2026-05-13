@@ -44,6 +44,7 @@
     <textarea
       #textarea
       [value]="draft()"
+      [disabled]="!canSend()"
       rows="3"
       maxlength="500"
       placeholder="Trade routes, dungeon chatter, bad ideas..."
@@ -59,7 +60,7 @@
       <button
         type="button"
         class="gv-server-chat-composer__tool"
-        [disabled]="isSending()"
+        [disabled]="isSending() || !canSend()"
         (click)="togglePicker()"
       >
         Emotes

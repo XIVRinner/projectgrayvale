@@ -41,6 +41,11 @@
   padding: calc(var(--gv-space-sm) * 1.3) calc(var(--gv-space-md) * 0.9);
 }
 
+.gv-server-chat-composer__field textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .gv-server-chat-composer__footer {
   display: flex;
   align-items: end;

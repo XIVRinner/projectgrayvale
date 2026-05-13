@@ -113,6 +113,27 @@ export async function createApp(
     next();
   });
 
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    const startedAt = Date.now();
+
+    response.on("finish", () => {
+      const requestId = response.getHeader("X-Request-Id");
+      process.stdout.write(
+        JSON.stringify({
+          event: "http_request",
+          requestId,
+          method: request.method,
+          path: request.originalUrl,
+          statusCode: response.statusCode,
+          durationMs: Date.now() - startedAt,
+          ip: request.ip,
+        }) + "\n",
+      );
+    });
+
+    next();
+  });
+
   app.use(
     cors({
       // When allowedOrigins is populated use it as an explicit allowlist.
@@ -322,17 +343,32 @@ function isProductionRuntime(): boolean {
 
 function errorHandler(
   error: unknown,
-  _request: Request,
+  request: Request,
   response: Response,
   _next: NextFunction,
 ): void {
+  const requestId = response.getHeader("X-Request-Id");
+  const errorObject = error instanceof Error ? error : new Error(String(error));
+  const errorWithCode = error as { code?: string; errno?: number };
+
+  process.stderr.write(
+    JSON.stringify({
+      event: "http_error",
+      requestId,
+      method: request.method,
+      path: request.originalUrl,
+      code: errorWithCode.code,
+      errno: errorWithCode.errno,
+      message: errorObject.message,
+      stack: errorObject.stack,
+    }) + "\n",
+  );
+
   // In production hide internal error details to prevent information leakage.
   // In development return the full message to aid debugging.
   const message = isProductionRuntime()
     ? "An unexpected error occurred."
-    : error instanceof Error
-      ? error.message
-      : "Unexpected server error.";
+    : errorObject.message;
 
   response.status(500).json({
     error: "internal_error",

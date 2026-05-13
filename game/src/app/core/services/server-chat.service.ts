@@ -77,7 +77,9 @@ export class ServerChatService {
   );
   private readonly channelsState = signal<readonly ServerChatChannelView[]>([]);
   private readonly activeChannelIdState = signal<string | null>(null);
-  private readonly messagesState = signal<readonly ServerChatMessageView[]>([]);
+  private readonly messagesByChannelState = signal<
+    Record<string, readonly ServerChatMessageView[]>
+  >({});
   private readonly directConversationsState = signal<readonly ServerDirectConversationView[]>(
     [],
   );
@@ -117,7 +119,12 @@ export class ServerChatService {
   readonly players = this.playersState.asReadonly();
   readonly channels = this.channelsState.asReadonly();
   readonly activeChannelId = this.activeChannelIdState.asReadonly();
-  readonly messages = this.messagesState.asReadonly();
+  readonly messages = computed<readonly ServerChatMessageView[]>(() =>
+    selectActiveChannelMessages(
+      this.messagesByChannelState(),
+      this.activeChannelIdState(),
+    ),
+  );
   readonly directConversations = this.directConversationsState.asReadonly();
   readonly statusMessage = this.statusMessageState.asReadonly();
   readonly isSending = this.sendingState.asReadonly();
@@ -237,7 +244,7 @@ export class ServerChatService {
         this.playersState.set([]);
         this.channelsState.set([]);
         this.activeChannelIdState.set(null);
-        this.messagesState.set([]);
+        this.messagesByChannelState.set({});
         this.directConversationsState.set([]);
         this.lastSeenMessageIdState.set({});
         this.statusMessageState.set(null);
@@ -329,6 +336,9 @@ export class ServerChatService {
     const trimmedMessage = message.trim();
     const session = this.serverConnection.session();
     const activeChannelId = this.activeChannelIdState();
+    const activeChannel = this.channelsState().find(
+      (channel) => channel.id === activeChannelId,
+    );
 
     if (!trimmedMessage) {
       return;
@@ -344,10 +354,27 @@ export class ServerChatService {
       return;
     }
 
+    if (!activeChannel) {
+      this.statusMessageState.set("Select a valid channel first.");
+      return;
+    }
+
+    if (activeChannel.type === "system") {
+      this.statusMessageState.set("System channel is read-only.");
+      return;
+    }
+
     this.sendingState.set(true);
 
     try {
-      await this.chatApi.sendChannelMessage(activeChannelId, trimmedMessage);
+      if (activeChannel.type === "direct") {
+        await this.directMessageService.sendConversationMessage(
+          activeChannelId,
+          trimmedMessage,
+        );
+      } else {
+        await this.chatApi.sendChannelMessage(activeChannelId, trimmedMessage);
+      }
       this.statusMessageState.set(null);
       await this.refreshChannelsAndMessages();
     } catch (error) {
@@ -355,6 +382,29 @@ export class ServerChatService {
     } finally {
       this.sendingState.set(false);
     }
+  }
+
+  async openDirectConversation(targetProfileId: string): Promise<string> {
+    const conversationId =
+      await this.directMessageService.openConversation(targetProfileId);
+    await this.refreshChannels();
+    this.activeChannelIdState.set(conversationId);
+    await this.refreshMessages();
+    return conversationId;
+  }
+
+  async sendWhisper(
+    targetCharacterName: string,
+    body: string,
+  ): Promise<string> {
+    const result = await this.directMessageService.sendWhisper(
+      targetCharacterName,
+      body,
+    );
+    await this.refreshChannels();
+    this.activeChannelIdState.set(result.conversationId);
+    await this.refreshMessages();
+    return result.conversationId;
   }
 
   async moderatePlayer(request: ServerModerationRequest): Promise<void> {
@@ -415,6 +465,9 @@ export class ServerChatService {
 
       this.infoState.set(response.server);
       this.playersState.set(response.players);
+      this.messagesByChannelState.update((messagesByChannel) =>
+        hydrateChannelMessageAvatars(messagesByChannel, response.players),
+      );
       const currentPlayer = response.players.find(
         (player) => player.playerUuid === this.currentPlayerUuid(),
       );
@@ -504,7 +557,6 @@ export class ServerChatService {
     );
 
     if (!activeChannel) {
-      this.messagesState.set([]);
       return;
     }
 
@@ -514,8 +566,12 @@ export class ServerChatService {
       const after = this.lastSeenMessageIdState()[activeChannel.id];
       const response = await this.fetchChannelEntries(activeChannel, after);
 
-      const incoming = response.entries.map((entry) => mapMessage(entry));
-      let merged = dedupeById([...this.messagesState(), ...incoming]).slice(-CHAT_LIMIT);
+      const incoming = response.entries.map((entry) =>
+        mapServerChatMessage(entry, this.playersState()),
+      );
+      const existingMessages =
+        this.messagesByChannelState()[activeChannel.id] ?? [];
+      let merged = dedupeById([...existingMessages, ...incoming]).slice(-CHAT_LIMIT);
 
       if (activeChannel.type === "system") {
         try {
@@ -524,6 +580,7 @@ export class ServerChatService {
             id: "motd",
             channelId: activeChannel.id,
             channelType: "system",
+            messageType: "motd",
             playerUuid: "system",
             rank: "admin",
             chatAccess: "allowed",
@@ -545,7 +602,10 @@ export class ServerChatService {
         }
       }
 
-      this.messagesState.set(merged);
+      this.messagesByChannelState.update((messagesByChannel) => ({
+        ...messagesByChannel,
+        [activeChannel.id]: merged,
+      }));
       const last = merged.at(-1);
 
       if (last) {
@@ -555,7 +615,10 @@ export class ServerChatService {
         }));
       }
     } catch (error) {
-      this.messagesState.set([]);
+      this.messagesByChannelState.update((messagesByChannel) => ({
+        ...messagesByChannel,
+        [activeChannel.id]: [],
+      }));
 
       if (this.panelOpenState()) {
         this.statusMessageState.set(toErrorMessage(error));
@@ -768,8 +831,8 @@ export class ServerChatService {
     }
   }
 
-  async createGuild(name: string): Promise<void> {
-    await this.guildService.createGuild(name);
+  async createGuild(input: { name: string; shortName: string }): Promise<void> {
+    await this.guildService.createGuild(input);
     await this.refreshGuildPanel();
     await this.refreshChannels();
   }
@@ -801,6 +864,57 @@ export class ServerChatService {
     await this.guildService.leaveGuild(guildId);
     await this.refreshGuildPanel();
     await this.refreshChannels();
+  }
+
+  async leaveCustomChannel(channelId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(
+        this.serverConnection.serverApiUrl(`/api/chat/channels/${channelId}/leave`),
+        {},
+        { withCredentials: true },
+      ),
+    );
+    await this.refreshChannels();
+    const activeChannelId = this.activeChannelIdState();
+    if (activeChannelId === channelId) {
+      const channels = this.channelsState();
+      const nextChannel = channels.find((c) => c.id !== channelId);
+      this.activeChannelIdState.set(nextChannel?.id ?? null);
+    }
+  }
+
+  async destroyCustomChannel(channelId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(
+        this.serverConnection.serverApiUrl(`/api/chat/channels/${channelId}/destroy`),
+        {},
+        { withCredentials: true },
+      ),
+    );
+    await this.refreshChannels();
+    const activeChannelId = this.activeChannelIdState();
+    if (activeChannelId === channelId) {
+      const channels = this.channelsState();
+      const nextChannel = channels.find((c) => c.id !== channelId);
+      this.activeChannelIdState.set(nextChannel?.id ?? null);
+    }
+  }
+
+  async closeDirectConversation(conversationId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(
+        this.serverConnection.serverApiUrl(`/api/chat/direct/${conversationId}/close`),
+        {},
+        { withCredentials: true },
+      ),
+    );
+    await this.refreshChannels();
+    const activeChannelId = this.activeChannelIdState();
+    if (activeChannelId === conversationId) {
+      const channels = this.channelsState();
+      const nextChannel = channels.find((c) => c.id !== conversationId);
+      this.activeChannelIdState.set(nextChannel?.id ?? null);
+    }
   }
 
   private shouldPollPresence(): boolean {
@@ -847,18 +961,28 @@ export class ServerChatService {
   }
 }
 
-function mapMessage(entry: ServerChatMessageApiView): ServerChatMessageView {
+export function mapServerChatMessage(
+  entry: ServerChatMessageApiView,
+  players: readonly ServerPresencePlayerView[],
+): ServerChatMessageView {
+  const avatarPath = resolveMessageAvatarPath(entry, players);
+
   return {
     id: entry.id,
     channelId: entry.channelId,
     channelType: entry.channelType,
+    messageType: entry.messageType,
     playerUuid: entry.senderCharacterId ?? entry.senderProfileId ?? "system",
     displayName:
       entry.sender.characterName ??
       entry.sender.profileDisplayName ??
       entry.senderCharacterName ??
-      "Unknown Adventurer",
-    avatarPath: undefined,
+      entry.sender.characterId ??
+      entry.sender.profileId ??
+      entry.senderCharacterId ??
+      entry.senderProfileId ??
+      "Unnamed",
+    avatarPath,
     rank: mapRank(entry.sender.badges),
     chatAccess: "allowed",
     chatAccessLabel: "Chat Open",
@@ -867,6 +991,59 @@ function mapMessage(entry: ServerChatMessageApiView): ServerChatMessageView {
     createdAt: entry.createdAt,
     sender: entry.sender,
   };
+}
+
+export function hydrateMessageAvatars(
+  messages: readonly ServerChatMessageView[],
+  players: readonly ServerPresencePlayerView[],
+): readonly ServerChatMessageView[] {
+  return messages.map((message) => {
+    if (message.avatarPath || message.messageType !== "user") {
+      return message;
+    }
+
+    const avatarPath = players.find(
+      (player) => player.playerUuid === message.playerUuid,
+    )?.avatarPath;
+
+    return avatarPath ? { ...message, avatarPath } : message;
+  });
+}
+
+export function hydrateChannelMessageAvatars(
+  messagesByChannel: Record<string, readonly ServerChatMessageView[]>,
+  players: readonly ServerPresencePlayerView[],
+): Record<string, readonly ServerChatMessageView[]> {
+  return Object.fromEntries(
+    Object.entries(messagesByChannel).map(([channelId, messages]) => [
+      channelId,
+      hydrateMessageAvatars(messages, players),
+    ]),
+  );
+}
+
+export function selectActiveChannelMessages(
+  messagesByChannel: Record<string, readonly ServerChatMessageView[]>,
+  activeChannelId: string | null,
+): readonly ServerChatMessageView[] {
+  if (!activeChannelId) {
+    return [];
+  }
+
+  return messagesByChannel[activeChannelId] ?? [];
+}
+
+function resolveMessageAvatarPath(
+  entry: ServerChatMessageApiView,
+  players: readonly ServerPresencePlayerView[],
+): string | undefined {
+  const playerUuid = entry.senderCharacterId ?? entry.senderProfileId;
+
+  if (!playerUuid || entry.messageType !== "user") {
+    return undefined;
+  }
+
+  return players.find((player) => player.playerUuid === playerUuid)?.avatarPath;
 }
 
 function mapRank(badges: readonly { label: string }[]): "player" | "vip" | "moderator" | "admin" {

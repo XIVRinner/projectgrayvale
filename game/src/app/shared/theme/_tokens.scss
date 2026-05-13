@@ -83,6 +83,22 @@
   --gv-color-changelog-meta-border: color-mix(in srgb, var(--gv-color-accent-warm) 52%, var(--gv-color-border-subtle));
   --gv-color-changelog-meta-text: #fff1dd;
 
+  --gv-color-chat-world-bg: color-mix(in srgb, #15314b 72%, var(--gv-color-bg-surface) 28%);
+  --gv-color-chat-world-glow: color-mix(in srgb, var(--gv-color-action-travel) 34%, transparent);
+  --gv-color-chat-world-border: color-mix(in srgb, var(--gv-color-action-travel) 42%, var(--gv-color-border-subtle));
+  --gv-color-chat-help-bg: color-mix(in srgb, #153a2f 72%, var(--gv-color-bg-surface) 28%);
+  --gv-color-chat-help-glow: color-mix(in srgb, var(--gv-color-success) 32%, transparent);
+  --gv-color-chat-help-border: color-mix(in srgb, var(--gv-color-success) 42%, var(--gv-color-border-subtle));
+  --gv-color-chat-guild-bg: color-mix(in srgb, #2d173b 72%, var(--gv-color-bg-surface) 28%);
+  --gv-color-chat-guild-glow: color-mix(in srgb, var(--gv-color-accent-purple) 34%, transparent);
+  --gv-color-chat-guild-border: color-mix(in srgb, var(--gv-color-accent-purple) 44%, var(--gv-color-border-subtle));
+  --gv-color-chat-whisper-bg: color-mix(in srgb, #3c2112 72%, var(--gv-color-bg-surface) 28%);
+  --gv-color-chat-whisper-glow: color-mix(in srgb, var(--gv-color-accent-warm) 34%, transparent);
+  --gv-color-chat-whisper-border: color-mix(in srgb, var(--gv-color-accent) 44%, var(--gv-color-border-subtle));
+  --gv-color-chat-default-bg: color-mix(in srgb, var(--gv-color-bg-surface) 92%, transparent);
+  --gv-color-chat-default-glow: color-mix(in srgb, var(--gv-color-accent-cool) 18%, transparent);
+  --gv-color-chat-default-border: color-mix(in srgb, var(--gv-color-accent-cool) 28%, var(--gv-color-border-subtle));
+
   /* Rarity hierarchy tokens:
    * - Base tiers progress from muted neutrals into vivid accent/signal tones.
    * - Legendary+ and special tiers intentionally blend accent, danger, and travel colors

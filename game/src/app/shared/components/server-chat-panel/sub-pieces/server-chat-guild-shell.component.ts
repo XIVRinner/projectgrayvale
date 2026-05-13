@@ -18,7 +18,7 @@ export class ServerChatGuildShellComponent {
   readonly invitations = input.required<readonly GuildInvitationView[]>();
   readonly loading = input(false);
 
-  readonly createGuildRequested = output<string>();
+  readonly createGuildRequested = output<{ name: string; shortName: string }>();
   readonly inviteRequested = output<{ guildId: string; targetProfileId: string }>();
   readonly invitationResponded = output<{ invitationId: string; accept: boolean }>();
   readonly roleChangeRequested = output<{

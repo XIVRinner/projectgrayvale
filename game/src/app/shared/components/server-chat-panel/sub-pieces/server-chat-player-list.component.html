@@ -1,9 +1,16 @@
+<p-contextmenu
+  #contextMenu
+  [model]="contextMenuItems()"
+  appendTo="body"
+  (onHide)="activeContextTargetId.set(null)"
+/>
+
 @if (players().length === 0) {
   <p class="gv-server-chat-player-list__empty">
     No players are active on this shard right now.
   </p>
 } @else {
-  <ul class="gv-server-chat-player-list">
+  <ul class="gv-server-chat-player-list" (click)="closeContextMenu()">
     @for (player of players(); track trackByPlayerUuid($index, player)) {
       <li
         class="gv-server-chat-player-list__item"
@@ -11,6 +18,7 @@
           player.playerUuid === currentPlayerUuid()
         "
         [class.gv-server-chat-player-list__item--selected]="isSelected(player)"
+        [attr.title]="hasContextActions(player) ? 'Right-click for actions' : null"
         (contextmenu)="openContextActions($event, player)"
       >
         <div class="gv-server-chat-player-list__identity">
@@ -47,28 +55,6 @@
           >
             {{ formatTime(player.lastSeenAt) }}
           </time>
-          @if (canModeratePlayer(player)) {
-            <button
-              type="button"
-              class="gv-server-chat-player-list__action"
-              (click)="playerSelected.emit(player)"
-            >
-              Focus
-            </button>
-          }
-          <button
-            type="button"
-            class="gv-server-chat-player-list__action"
-            (click)="
-              playerActionRequested.emit({
-                action: 'whisper',
-                targetProfileId: player.playerUuid,
-                targetCharacterName: player.displayName
-              })
-            "
-          >
-            Whisper
-          </button>
         </div>
       </li>
     }

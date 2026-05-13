@@ -43,7 +43,9 @@ export interface ChatMessageRecord extends PlayerModerationRecord {
 
 export interface OnlinePlayerRecord extends PlayerModerationRecord {
   readonly playerUuid: string;
+  readonly profileId?: string;
   readonly displayName?: string;
+  readonly guildShortName?: string;
   readonly avatarPath?: string;
   readonly rank: PlayerRank;
   readonly clientId: string;

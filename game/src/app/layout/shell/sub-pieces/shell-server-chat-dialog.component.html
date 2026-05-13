@@ -75,6 +75,9 @@
       (guildInvitationResponded)="guildInvitationResponded.emit($event)"
       (guildRoleChanged)="guildRoleChanged.emit($event)"
       (guildLeaveRequested)="guildLeaveRequested.emit($event)"
+      (channelLeaveRequested)="channelLeaveRequested.emit($event)"
+      (channelCloseRequested)="channelCloseRequested.emit($event)"
+      (channelDestroyRequested)="channelDestroyRequested.emit($event)"
       (sendRequested)="sendRequested.emit($event)"
     />
   </gv-dialog-shell>

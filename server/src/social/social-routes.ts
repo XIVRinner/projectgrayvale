@@ -24,6 +24,9 @@ const sendDirectBodySchema = z.object({
   targetCharacterName: z.string().trim().min(1).max(80),
   body: z.string().trim().min(1).max(500),
 });
+const openDirectConversationBodySchema = z.object({
+  targetProfileId: z.string().trim().uuid(),
+});
 const friendAddBodySchema = z.object({
   target: z.string().trim().min(1).max(80),
 });
@@ -50,6 +53,7 @@ const friendProfileRequestBodySchema = z.object({
 });
 const guildCreateBodySchema = z.object({
   name: z.string().trim().min(2).max(64),
+  shortName: z.string().trim().min(1).max(4).regex(/^[a-z0-9]+$/iu),
 });
 const guildInviteBodySchema = z.object({
   targetProfileId: z.string().uuid(),
@@ -286,6 +290,56 @@ export function createSocialRouter(
   );
 
   router.post(
+    "/chat/channels/:channelId/destroy",
+    enforceWriteRateLimit,
+    async (request, response, next) => {
+      try {
+        const actor = await requireActor(request, socialRepository, multiplayerRepository);
+
+        if (!actor) {
+          response.status(401).json({
+            error: "unauthenticated",
+            message: "Authentication required.",
+          });
+          return;
+        }
+
+        await socialRepository.destroyCustomChannel(
+          actor,
+          routeParam(request.params["channelId"]),
+        );
+        response.status(204).send();
+      } catch (error) {
+        if (isErrorCode(error, "forbidden")) {
+          response.status(403).json({
+            error: "forbidden",
+            message: "Only the channel owner can do that.",
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "channel_destroy_not_allowed")) {
+          response.status(400).json({
+            error: "channel_destroy_not_allowed",
+            message: "Only custom channels can be destroyed.",
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "channel_not_found")) {
+          response.status(404).json({
+            error: "channel_not_found",
+            message: "Channel not found.",
+          });
+          return;
+        }
+
+        next(error);
+      }
+    },
+  );
+
+  router.post(
     "/chat/channels/:channelId/kick",
     enforceWriteRateLimit,
     async (request, response, next) => {
@@ -494,6 +548,16 @@ export function createSocialRouter(
         }
 
         const payload = sendMessageBodySchema.parse(request.body);
+        const channelId = routeParam(request.params["channelId"]);
+
+        if (await socialRepository.isChannelReadOnly(channelId)) {
+          response.status(403).json({
+            error: "read_only_channel",
+            message: "System channel is read-only.",
+          });
+          return;
+        }
+
         const slashResult = await tryHandleSlashCommand(
           socialRepository,
           actor,
@@ -507,7 +571,7 @@ export function createSocialRouter(
 
         const entry = await socialRepository.appendChannelMessage(
           actor,
-          routeParam(request.params["channelId"]),
+          channelId,
           payload.body,
         );
         response.status(201).json({ entry });
@@ -556,6 +620,14 @@ export function createSocialRouter(
           response.status(404).json({
             error: "channel_not_found",
             message: "Channel not found.",
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "read_only_channel")) {
+          response.status(403).json({
+            error: "read_only_channel",
+            message: "System channel is read-only.",
           });
           return;
         }
@@ -614,6 +686,62 @@ export function createSocialRouter(
         response.status(403).json({
           error: "direct_blocked",
           message: "Direct message blocked.",
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "chat_blocked")) {
+        response.status(403).json({
+          error: "chat_blocked",
+          message: "Chat access is currently blocked.",
+        });
+        return;
+      }
+
+      next(error);
+    }
+  });
+
+  router.post("/chat/direct/open", enforceReadRateLimit, async (request, response, next) => {
+    try {
+      const actor = await requireActor(request, socialRepository, multiplayerRepository);
+
+      if (!actor) {
+        response.status(401).json({
+          error: "unauthenticated",
+          message: "Authentication required.",
+        });
+        return;
+      }
+
+      const payload = openDirectConversationBodySchema.parse(request.body);
+      const result = await socialRepository.openDirectConversation(
+        actor,
+        payload.targetProfileId,
+      );
+
+      response.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        response.status(400).json({
+          error: "invalid_request",
+          message: error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "target_not_found")) {
+        response.status(404).json({
+          error: "target_not_found",
+          message: "Target profile not found.",
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "cannot_whisper_self")) {
+        response.status(400).json({
+          error: "cannot_whisper_self",
+          message: "Cannot whisper yourself.",
         });
         return;
       }
@@ -693,6 +821,75 @@ export function createSocialRouter(
           response.status(404).json({
             error: "conversation_not_found",
             message: "Conversation not found.",
+          });
+          return;
+        }
+
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/chat/direct/:conversationId/messages",
+    enforceMessageRateLimit,
+    async (request, response, next) => {
+      try {
+        const actor = await requireActor(request, socialRepository, multiplayerRepository);
+
+        if (!actor) {
+          response.status(401).json({
+            error: "unauthenticated",
+            message: "Authentication required.",
+          });
+          return;
+        }
+
+        const payload = sendMessageBodySchema.parse(request.body);
+        const result = await socialRepository.sendDirectConversationMessage(
+          actor,
+          routeParam(request.params["conversationId"]),
+          payload.body,
+        );
+
+        response.status(201).json(result);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          response.status(400).json({
+            error: "invalid_request",
+            message: error.issues.map((issue) => issue.message).join("; "),
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "forbidden")) {
+          response.status(403).json({
+            error: "forbidden",
+            message: "Conversation access denied.",
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "conversation_not_found")) {
+          response.status(404).json({
+            error: "conversation_not_found",
+            message: "Conversation not found.",
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "direct_blocked")) {
+          response.status(403).json({
+            error: "direct_blocked",
+            message: "Direct message blocked.",
+          });
+          return;
+        }
+
+        if (isErrorCode(error, "chat_blocked")) {
+          response.status(403).json({
+            error: "chat_blocked",
+            message: "Chat access is currently blocked.",
           });
           return;
         }
@@ -1410,6 +1607,23 @@ export function createSocialRouter(
         });
         return;
       }
+
+      if (isErrorCode(error, "target_not_found")) {
+        response.status(404).json({
+          error: "target_not_found",
+          message: "Target profile not found.",
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "cannot_target_self")) {
+        response.status(400).json({
+          error: "cannot_target_self",
+          message: "Cannot target self.",
+        });
+        return;
+      }
+
       next(error);
     }
   });
@@ -1507,6 +1721,23 @@ export function createSocialRouter(
         });
         return;
       }
+
+      if (isErrorCode(error, "target_not_found")) {
+        response.status(404).json({
+          error: "target_not_found",
+          message: "Target profile not found.",
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "cannot_target_self")) {
+        response.status(400).json({
+          error: "cannot_target_self",
+          message: "Cannot target self.",
+        });
+        return;
+      }
+
       next(error);
     }
   });
@@ -1554,6 +1785,23 @@ export function createSocialRouter(
         });
         return;
       }
+
+      if (isErrorCode(error, "target_not_found")) {
+        response.status(404).json({
+          error: "target_not_found",
+          message: "Target profile not found.",
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "cannot_target_self")) {
+        response.status(400).json({
+          error: "cannot_target_self",
+          message: "Cannot target self.",
+        });
+        return;
+      }
+
       next(error);
     }
   });
@@ -1711,6 +1959,7 @@ export function createSocialRouter(
         actorProfileId: actor.profileId,
         actorCharacterId: actor.characterId,
         name: payload.name,
+        shortName: payload.shortName,
       });
       response.status(201).json({ guild });
     } catch (error) {
@@ -1725,6 +1974,13 @@ export function createSocialRouter(
         response.status(409).json({
           error: "guild_already_joined",
           message: "Current character is already in a guild.",
+        });
+        return;
+      }
+      if (isErrorCode(error, "guild_short_name_taken")) {
+        response.status(409).json({
+          error: "guild_short_name_taken",
+          message: "Guild short name is already in use.",
         });
         return;
       }
@@ -2093,6 +2349,8 @@ async function withGuildInvitationResponse(
     const invitationId = z.string().uuid().parse(request.params["invitationId"]);
     await socialRepository.respondGuildInvitation({
       actorProfileId: actor.profileId,
+      actorCharacterId: actor.characterId,
+      actorCharacterName: actor.characterName,
       invitationId,
       accept,
     });

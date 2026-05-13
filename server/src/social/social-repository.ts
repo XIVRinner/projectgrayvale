@@ -44,6 +44,7 @@ interface SessionActorRow {
   readonly profile_id: string | null;
   readonly character_name: string | null;
   readonly profile_display_name: string | null;
+  readonly allowed_display_name: string | null;
   readonly rank: "player" | "vip" | "moderator" | "admin";
   readonly chat_timeout_until: string | null;
   readonly chat_timeout_reason: string | null;
@@ -57,6 +58,7 @@ interface ChannelRow {
   readonly type: ChatChannelType;
   readonly owner_profile_id: string | null;
   readonly guild_id: string | null;
+  readonly destroyed_at?: string | null;
 }
 
 interface ChannelMemberRow {
@@ -83,6 +85,7 @@ interface PresenceRow {
   readonly profile_display_name: string | null;
   readonly current_character_id: string | null;
   readonly current_character_name: string | null;
+  readonly guild_short_name: string | null;
   readonly online: number;
   readonly last_online_at: string | null;
 }
@@ -121,6 +124,7 @@ export class SocialRepository {
           player_characters.profile_id,
           player_characters.name AS character_name,
           player_profiles.display_name AS profile_display_name,
+          allowed_players.display_name AS allowed_display_name,
           allowed_players.rank,
           allowed_players.chat_timeout_until,
           allowed_players.chat_timeout_reason,
@@ -143,6 +147,13 @@ export class SocialRepository {
     }
 
     const profileId = row.profile_id ?? row.character_id;
+    const characterName =
+      row.character_name ?? row.allowed_display_name ?? row.profile_display_name ?? undefined;
+    const profileDisplayName =
+      row.profile_display_name ?? row.allowed_display_name ?? undefined;
+
+    await this.ensureProfileExists(profileId);
+    await this.ensureCharacterExists(row.character_id, profileId, characterName);
     const chatAccess =
       row.chat_banned_at
         ? "banned"
@@ -154,8 +165,8 @@ export class SocialRepository {
       sessionId: row.session_id,
       characterId: row.character_id,
       profileId,
-      characterName: row.character_name ?? undefined,
-      profileDisplayName: row.profile_display_name ?? undefined,
+      characterName,
+      profileDisplayName,
       rank: row.rank,
       chatAccess,
       chatReason: row.chat_ban_reason ?? row.chat_timeout_reason ?? undefined,
@@ -171,32 +182,56 @@ export class SocialRepository {
       WHERE online = 1
     `);
 
+    await this.db.run(
+      `
+        INSERT INTO player_profiles (id, display_name, created_at, updated_at)
+        SELECT
+          COALESCE(player_characters.profile_id, server_sessions.player_uuid) AS profile_id,
+          COALESCE(resolved_profiles.display_name, allowed_players.display_name) AS display_name,
+          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP
+        FROM server_sessions
+        INNER JOIN allowed_players
+          ON allowed_players.player_uuid = server_sessions.player_uuid
+        LEFT JOIN player_characters
+          ON player_characters.id = server_sessions.player_uuid
+        LEFT JOIN player_profiles resolved_profiles
+          ON resolved_profiles.id = COALESCE(player_characters.profile_id, server_sessions.player_uuid)
+        WHERE datetime(server_sessions.last_seen_at) >= datetime('now', ?)
+        ON CONFLICT(id) DO UPDATE SET
+          display_name = COALESCE(player_profiles.display_name, excluded.display_name),
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      `-${activeWindowMinutes} minutes`,
+    );
+
     const onlineRows = await this.db.all<
       Array<{
-        profile_id: string | null;
-        character_id: string;
+        profile_id: string;
+        character_id: string | null;
         character_name: string | null;
         profile_display_name: string | null;
       }>
     >(
       `
         SELECT
-          player_characters.profile_id,
-          server_sessions.player_uuid AS character_id,
-          player_characters.name AS character_name,
-          player_profiles.display_name AS profile_display_name
+          COALESCE(player_characters.profile_id, server_sessions.player_uuid) AS profile_id,
+          player_characters.id AS character_id,
+          COALESCE(player_characters.name, allowed_players.display_name) AS character_name,
+          COALESCE(resolved_profiles.display_name, allowed_players.display_name) AS profile_display_name
         FROM server_sessions
+        INNER JOIN allowed_players
+          ON allowed_players.player_uuid = server_sessions.player_uuid
         LEFT JOIN player_characters
           ON player_characters.id = server_sessions.player_uuid
-        LEFT JOIN player_profiles
-          ON player_profiles.id = player_characters.profile_id
+        LEFT JOIN player_profiles resolved_profiles
+          ON resolved_profiles.id = COALESCE(player_characters.profile_id, server_sessions.player_uuid)
         WHERE datetime(server_sessions.last_seen_at) >= datetime('now', ?)
       `,
       `-${activeWindowMinutes} minutes`,
     );
 
     for (const row of onlineRows) {
-      const profileId = row.profile_id ?? row.character_id;
       await this.db.run(
         `
           INSERT INTO player_presence (
@@ -217,7 +252,7 @@ export class SocialRepository {
             last_online_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         `,
-        profileId,
+        row.profile_id,
         row.profile_display_name,
         row.character_id,
         row.character_name,
@@ -260,6 +295,7 @@ export class SocialRepository {
         INNER JOIN chat_channel_members_v2
           ON chat_channel_members_v2.channel_id = chat_channels_v2.id
         WHERE chat_channels_v2.type = 'custom'
+          AND chat_channels_v2.destroyed_at IS NULL
           AND chat_channel_members_v2.profile_id = ?
           AND chat_channel_members_v2.banned = 0
         ORDER BY chat_channels_v2.updated_at DESC
@@ -353,7 +389,7 @@ export class SocialRepository {
 
     const existing = await this.db.get<ChannelRow>(
       `
-        SELECT id, name, type, owner_profile_id, guild_id
+        SELECT id, name, type, owner_profile_id, guild_id, destroyed_at
         FROM chat_channels_v2
         WHERE lower(name) = lower(?)
           AND type = 'custom'
@@ -362,11 +398,36 @@ export class SocialRepository {
     );
 
     let created = false;
-    const channel = existing
+    let channel = existing
       ? existing
       : await this.createChannel(normalized, "custom", actor.profileId);
 
     if (!existing) {
+      created = true;
+    } else if (existing.destroyed_at) {
+      await this.db.run(
+        `
+          UPDATE chat_channels_v2
+          SET destroyed_at = NULL,
+              owner_profile_id = ?,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `,
+        actor.profileId,
+        existing.id,
+      );
+      await this.db.run(
+        `
+          DELETE FROM chat_channel_members_v2
+          WHERE channel_id = ?
+        `,
+        existing.id,
+      );
+      channel = {
+        ...existing,
+        owner_profile_id: actor.profileId,
+        destroyed_at: null,
+      };
       created = true;
     }
 
@@ -438,6 +499,21 @@ export class SocialRepository {
     const member = await this.requireMember(channel.id, actor.profileId);
 
     if (member.role === "owner") {
+      const activeMembers = await this.db.get<{ count: number }>(
+        `
+          SELECT COUNT(*) AS count
+          FROM chat_channel_members_v2
+          WHERE channel_id = ?
+            AND banned = 0
+        `,
+        channel.id,
+      );
+
+      if ((activeMembers?.count ?? 0) <= 1) {
+        await this.destroyCustomChannel(actor, channel.id);
+        return;
+      }
+
       throw new Error("owner_cannot_leave");
     }
 
@@ -448,6 +524,41 @@ export class SocialRepository {
       `,
       channel.id,
       actor.profileId,
+    );
+  }
+
+  async destroyCustomChannel(actor: SocialActorContext, channelId: string): Promise<void> {
+    const channel = await this.getChannelById(channelId);
+
+    if (!channel) {
+      throw new Error("channel_not_found");
+    }
+
+    if (channel.type !== "custom") {
+      throw new Error("channel_destroy_not_allowed");
+    }
+
+    const member = await this.requireMember(channel.id, actor.profileId);
+    if (member.role !== "owner") {
+      throw new Error("forbidden");
+    }
+
+    await this.db.run(
+      `
+        UPDATE chat_channels_v2
+        SET destroyed_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      channel.id,
+    );
+
+    await this.db.run(
+      `
+        DELETE FROM chat_channel_members_v2
+        WHERE channel_id = ?
+      `,
+      channel.id,
     );
   }
 
@@ -673,6 +784,10 @@ export class SocialRepository {
       throw new Error("channel_not_found");
     }
 
+    if (channel.type === "system" && messageType === "user") {
+      throw new Error("read_only_channel");
+    }
+
     await this.ensureChannelVisibleToActor(actor, channel, true);
     const normalizedBody = normalizeBody(body);
 
@@ -789,105 +904,88 @@ export class SocialRepository {
       throw new Error("cannot_whisper_self");
     }
 
-    if (await this.isProfileMuted(actor.profileId)) {
-      throw new Error("chat_blocked");
-    }
-
-    const blocked = await this.isEitherBlocked(actor.profileId, target.profile_id);
-
-    if (blocked) {
-      throw new Error("direct_blocked");
-    }
-
-    const privacy = await this.getPrivacySettings(target.profile_id);
-    const areFriends = await this.areProfilesFriends(actor.profileId, target.profile_id);
-
-    if (privacy.allowWhispersFrom === "none") {
-      throw new Error("direct_blocked");
-    }
-
-    if (privacy.allowWhispersFrom === "friends" && !areFriends) {
-      throw new Error("direct_blocked");
-    }
-
     const conversation = await this.ensureDirectConversation(
       actor.profileId,
       target.profile_id,
     );
-    const normalizedBody = normalizeBody(body);
+    return this.appendDirectMessage(actor, conversation, target.profile_id, body);
+  }
 
-    if (!normalizedBody) {
-      throw new Error("invalid_chat_message");
+  async openDirectConversation(
+    actor: SocialActorContext,
+    targetProfileId: string,
+  ): Promise<{ conversationId: string }> {
+    if (targetProfileId === actor.profileId) {
+      throw new Error("cannot_whisper_self");
     }
 
-    const messageId = randomUUID();
-
-    await this.db.run(
+    const target = await this.db.get<{ id: string }>(
       `
-        INSERT INTO direct_messages (
-          id,
-          conversation_id,
-          sender_profile_id,
-          sender_character_id,
-          sender_character_name,
-          body,
-          created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        SELECT id
+        FROM player_profiles
+        WHERE id = ?
       `,
-      messageId,
-      conversation.id,
+      targetProfileId,
+    );
+
+    if (!target) {
+      throw new Error("target_not_found");
+    }
+
+    const conversation = await this.ensureDirectConversation(
       actor.profileId,
-      actor.characterId,
-      actor.characterName ?? actor.profileDisplayName ?? null,
-      normalizedBody,
+      targetProfileId,
     );
-
-    await this.db.run(
-      `
-        UPDATE direct_conversations
-        SET updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `,
-      conversation.id,
-    );
-
-    const sender = await this.getIdentity(actor.profileId, actor.characterId, actor.profileId);
-    const created = await this.db.get<DirectMessageRow>(
-      `
-        SELECT
-          id,
-          conversation_id,
-          sender_profile_id,
-          sender_character_id,
-          sender_character_name,
-          body,
-          created_at
-        FROM direct_messages
-        WHERE id = ?
-      `,
-      messageId,
-    );
-
-    if (!created) {
-      throw new Error("chat_append_failed");
-    }
 
     return {
       conversationId: conversation.id,
-      message: {
-        id: created.id,
-        channelId: created.conversation_id,
-        channelType: "direct",
-        senderProfileId: created.sender_profile_id,
-        senderCharacterId: created.sender_character_id ?? undefined,
-        senderCharacterName: created.sender_character_name ?? undefined,
-        body: created.body,
-        createdAt: created.created_at,
-        messageType: "user",
-        sender,
-      },
     };
+  }
+
+  async sendDirectConversationMessage(
+    actor: SocialActorContext,
+    conversationId: string,
+    body: string,
+  ): Promise<{ conversationId: string; message: ChatMessageDto }> {
+    const conversation = await this.getDirectConversation(conversationId);
+
+    if (!conversation) {
+      throw new Error("conversation_not_found");
+    }
+
+    if (
+      conversation.profile_a_id !== actor.profileId &&
+      conversation.profile_b_id !== actor.profileId
+    ) {
+      throw new Error("forbidden");
+    }
+
+    const targetProfileId =
+      conversation.profile_a_id === actor.profileId
+        ? conversation.profile_b_id
+        : conversation.profile_a_id;
+
+    return this.appendDirectMessage(actor, conversation, targetProfileId, body);
+  }
+
+  async getGuildShortNameByCharacterId(characterId: string): Promise<string | null> {
+    const row = await this.db.get<{ short_name: string | null }>(
+      `
+        SELECT guilds.short_name
+        FROM guild_members
+        INNER JOIN guilds ON guilds.id = guild_members.guild_id
+        WHERE guild_members.character_id = ?
+        LIMIT 1
+      `,
+      characterId,
+    );
+
+    return row?.short_name ?? null;
+  }
+
+  async isChannelReadOnly(channelId: string): Promise<boolean> {
+    const channel = await this.getChannelById(channelId);
+    return channel?.type === "system";
   }
 
   async listDirectConversations(actor: SocialActorContext): Promise<readonly DirectConversationDto[]> {
@@ -1013,6 +1111,135 @@ export class SocialRepository {
     return messages;
   }
 
+  private async appendDirectMessage(
+    actor: SocialActorContext,
+    conversation: DirectConversationRow,
+    targetProfileId: string,
+    body: string,
+  ): Promise<{ conversationId: string; message: ChatMessageDto }> {
+    await this.ensureDirectMessagingAllowed(actor, targetProfileId);
+    const normalizedBody = normalizeBody(body);
+
+    if (!normalizedBody) {
+      throw new Error("invalid_chat_message");
+    }
+
+    const messageId = randomUUID();
+
+    await this.db.run(
+      `
+        INSERT INTO direct_messages (
+          id,
+          conversation_id,
+          sender_profile_id,
+          sender_character_id,
+          sender_character_name,
+          body,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `,
+      messageId,
+      conversation.id,
+      actor.profileId,
+      actor.characterId,
+      actor.characterName ?? actor.profileDisplayName ?? null,
+      normalizedBody,
+    );
+
+    await this.db.run(
+      `
+        UPDATE direct_conversations
+        SET updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      conversation.id,
+    );
+
+    const sender = await this.getIdentity(
+      actor.profileId,
+      actor.characterId,
+      actor.profileId,
+    );
+    const created = await this.db.get<DirectMessageRow>(
+      `
+        SELECT
+          id,
+          conversation_id,
+          sender_profile_id,
+          sender_character_id,
+          sender_character_name,
+          body,
+          created_at
+        FROM direct_messages
+        WHERE id = ?
+      `,
+      messageId,
+    );
+
+    if (!created) {
+      throw new Error("chat_append_failed");
+    }
+
+    return {
+      conversationId: conversation.id,
+      message: {
+        id: created.id,
+        channelId: created.conversation_id,
+        channelType: "direct",
+        senderProfileId: created.sender_profile_id,
+        senderCharacterId: created.sender_character_id ?? undefined,
+        senderCharacterName: created.sender_character_name ?? undefined,
+        body: created.body,
+        createdAt: created.created_at,
+        messageType: "user",
+        sender,
+      },
+    };
+  }
+
+  private async ensureDirectMessagingAllowed(
+    actor: SocialActorContext,
+    targetProfileId: string,
+  ): Promise<void> {
+    if (await this.isProfileMuted(actor.profileId)) {
+      throw new Error("chat_blocked");
+    }
+
+    if (await this.isEitherBlocked(actor.profileId, targetProfileId)) {
+      throw new Error("direct_blocked");
+    }
+
+    const privacy = await this.getPrivacySettings(targetProfileId);
+    const areFriends = await this.areProfilesFriends(
+      actor.profileId,
+      targetProfileId,
+    );
+
+    if (privacy.allowWhispersFrom === "none") {
+      throw new Error("direct_blocked");
+    }
+
+    if (privacy.allowWhispersFrom === "friends" && !areFriends) {
+      throw new Error("direct_blocked");
+    }
+  }
+
+  private async getDirectConversation(
+    conversationId: string,
+  ): Promise<DirectConversationRow | null> {
+    return (
+      (await this.db.get<DirectConversationRow>(
+        `
+          SELECT id, profile_a_id, profile_b_id, updated_at
+          FROM direct_conversations
+          WHERE id = ?
+        `,
+        conversationId,
+      )) ?? null
+    );
+  }
+
   async listPlayers(
     actor: SocialActorContext,
     input: { search?: string; page: number; pageSize: number },
@@ -1042,13 +1269,18 @@ export class SocialRepository {
     const rows = await this.db.all<PresenceRow[]>(
       `
         SELECT
-          profile_id,
-          profile_display_name,
-          current_character_id,
-          current_character_name,
-          online,
-          last_online_at
+          player_presence.profile_id,
+          player_presence.profile_display_name,
+          player_presence.current_character_id,
+          player_presence.current_character_name,
+          guilds.short_name AS guild_short_name,
+          player_presence.online,
+          player_presence.last_online_at
         FROM player_presence
+        LEFT JOIN guild_members
+          ON guild_members.character_id = player_presence.current_character_id
+        LEFT JOIN guilds
+          ON guilds.id = guild_members.guild_id
         WHERE (
           ? IS NULL
           OR lower(COALESCE(profile_display_name, '')) LIKE ?
@@ -1073,6 +1305,7 @@ export class SocialRepository {
         profileDisplayName: row.profile_display_name ?? undefined,
         currentCharacterId: row.current_character_id ?? undefined,
         currentCharacterName: row.current_character_name ?? undefined,
+        guildShortName: row.guild_short_name ?? undefined,
         online: Boolean(row.online),
         lastOnlineAt: row.last_online_at ?? undefined,
       })),
@@ -2005,7 +2238,7 @@ export class SocialRepository {
           ON target_presence.profile_id = friendships.target_profile_id
         WHERE requester_profile_id = ?
            OR target_profile_id = ?
-        ORDER BY datetime(updated_at) DESC
+        ORDER BY datetime(friendships.updated_at) DESC
       `,
       profileId,
       profileId,
@@ -2079,6 +2312,12 @@ export class SocialRepository {
     requesterProfileId: string;
     targetProfileId: string;
   }): Promise<void> {
+    if (input.requesterProfileId === input.targetProfileId) {
+      throw new Error("cannot_target_self");
+    }
+
+    await this.ensureProfileExists(input.targetProfileId);
+
     if (await this.isEitherBlocked(input.requesterProfileId, input.targetProfileId)) {
       throw new Error("friend_request_blocked");
     }
@@ -2202,6 +2441,12 @@ export class SocialRepository {
     reason?: string;
     blocked: boolean;
   }): Promise<void> {
+    if (input.blockerProfileId === input.blockedProfileId) {
+      throw new Error("cannot_target_self");
+    }
+
+    await this.ensureProfileExists(input.blockedProfileId);
+
     if (input.blocked) {
       await this.db.run(
         `
@@ -2307,7 +2552,14 @@ export class SocialRepository {
     actorProfileId: string;
     actorCharacterId: string;
     name: string;
-  }): Promise<{ id: string; name: string }> {
+    shortName: string;
+  }): Promise<{ id: string; name: string; shortName: string }> {
+    await this.ensureProfileExists(input.actorProfileId);
+    await this.ensureCharacterExists(
+      input.actorCharacterId,
+      input.actorProfileId,
+    );
+
     const existingMembership = await this.db.get<{ guild_id: string }>(
       `
         SELECT guild_id
@@ -2322,21 +2574,37 @@ export class SocialRepository {
     }
 
     const guildId = randomUUID();
+    const normalizedShortName = normalizeGuildShortName(input.shortName);
+    const existingShortName = await this.db.get<{ id: string }>(
+      `
+        SELECT id
+        FROM guilds
+        WHERE upper(short_name) = ?
+        LIMIT 1
+      `,
+      normalizedShortName,
+    );
+
+    if (existingShortName) {
+      throw new Error("guild_short_name_taken");
+    }
 
     await this.db.run(
       `
         INSERT INTO guilds (
           id,
           name,
+          short_name,
           created_by_profile_id,
           created_by_character_id,
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       guildId,
       input.name.trim(),
+      normalizedShortName,
       input.actorProfileId,
       input.actorCharacterId,
     );
@@ -2362,12 +2630,14 @@ export class SocialRepository {
     return {
       id: guildId,
       name: input.name.trim(),
+      shortName: normalizedShortName,
     };
   }
 
   async getCurrentGuild(characterId: string): Promise<{
     guildId: string;
     guildName: string;
+    guildShortName?: string;
     role: string;
     members: readonly {
       characterId: string;
@@ -2380,9 +2650,14 @@ export class SocialRepository {
       guild_id: string;
       role: string;
       guild_name: string;
+      guild_short_name: string | null;
     }>(
       `
-        SELECT guild_members.guild_id, guild_members.role, guilds.name AS guild_name
+        SELECT
+          guild_members.guild_id,
+          guild_members.role,
+          guilds.name AS guild_name,
+          guilds.short_name AS guild_short_name
         FROM guild_members
         INNER JOIN guilds ON guilds.id = guild_members.guild_id
         WHERE guild_members.character_id = ?
@@ -2426,6 +2701,7 @@ export class SocialRepository {
     return {
       guildId: membership.guild_id,
       guildName: membership.guild_name,
+      guildShortName: membership.guild_short_name ?? undefined,
       role: membership.role,
       members: members.map((member) => ({
         characterId: member.character_id,
@@ -2440,6 +2716,7 @@ export class SocialRepository {
     id: string;
     guildId: string;
     guildName: string;
+    guildShortName?: string;
     inviterProfileId: string;
     inviterCharacterId?: string;
     targetCharacterId?: string;
@@ -2450,6 +2727,7 @@ export class SocialRepository {
         id: string;
         guild_id: string;
         guild_name: string;
+        guild_short_name: string | null;
         inviter_profile_id: string;
         inviter_character_id: string | null;
         target_character_id: string | null;
@@ -2461,6 +2739,7 @@ export class SocialRepository {
           guild_invitations.id,
           guild_invitations.guild_id,
           guilds.name AS guild_name,
+          guilds.short_name AS guild_short_name,
           guild_invitations.inviter_profile_id,
           guild_invitations.inviter_character_id,
           guild_invitations.target_character_id,
@@ -2478,6 +2757,7 @@ export class SocialRepository {
       id: row.id,
       guildId: row.guild_id,
       guildName: row.guild_name,
+      guildShortName: row.guild_short_name ?? undefined,
       inviterProfileId: row.inviter_profile_id,
       inviterCharacterId: row.inviter_character_id ?? undefined,
       targetCharacterId: row.target_character_id ?? undefined,
@@ -2492,6 +2772,13 @@ export class SocialRepository {
     targetProfileId: string;
     targetCharacterId?: string;
   }): Promise<{ invitationId: string }> {
+    await this.ensureProfileExists(input.inviterProfileId);
+    await this.ensureCharacterExists(
+      input.inviterCharacterId,
+      input.inviterProfileId,
+    );
+    await this.ensureProfileExists(input.targetProfileId);
+
     const inviterRole = await this.db.get<{ role: string }>(
       `
         SELECT role
@@ -2537,6 +2824,8 @@ export class SocialRepository {
 
   async respondGuildInvitation(input: {
     actorProfileId: string;
+    actorCharacterId: string;
+    actorCharacterName?: string;
     invitationId: string;
     accept: boolean;
   }): Promise<void> {
@@ -2560,17 +2849,14 @@ export class SocialRepository {
     }
 
     if (input.accept) {
-      const characterId = invitation.target_character_id
-        ?? (await this.db.get<{ id: string }>(
-          `
-            SELECT id
-            FROM player_characters
-            WHERE profile_id = ?
-            ORDER BY updated_at DESC
-            LIMIT 1
-          `,
-          input.actorProfileId,
-        ))?.id;
+      await this.ensureProfileExists(input.actorProfileId);
+      const characterId = invitation.target_character_id ?? input.actorCharacterId;
+
+      await this.ensureCharacterExists(
+        characterId,
+        input.actorProfileId,
+        input.actorCharacterName,
+      );
 
       if (!characterId) {
         throw new Error("character_not_found");
@@ -2679,6 +2965,14 @@ export class SocialRepository {
     targetMessageId?: string;
     reason: string;
   }): Promise<{ reportId: string }> {
+    if (input.targetProfileId) {
+      if (input.targetProfileId === input.reporterProfileId) {
+        throw new Error("cannot_target_self");
+      }
+
+      await this.ensureProfileExists(input.targetProfileId);
+    }
+
     const reportId = randomUUID();
     await this.db.run(
       `
@@ -2846,7 +3140,126 @@ export class SocialRepository {
       `,
       characterId,
     );
-    return row?.profile_id ?? null;
+
+    if (row?.profile_id) {
+      return row.profile_id;
+    }
+
+    const profile = await this.db.get<{ id: string }>(
+      `
+        SELECT id
+        FROM player_profiles
+        WHERE id = ?
+      `,
+      characterId,
+    );
+
+    if (profile?.id) {
+      return profile.id;
+    }
+
+    const allowedPlayer = await this.db.get<{ player_uuid: string }>(
+      `
+        SELECT player_uuid
+        FROM allowed_players
+        WHERE player_uuid = ?
+      `,
+      characterId,
+    );
+
+    return allowedPlayer?.player_uuid ?? null;
+  }
+
+  private async ensureProfileExists(profileId: string): Promise<void> {
+    const row = await this.db.get<{ id: string }>(
+      `
+        SELECT id
+        FROM player_profiles
+        WHERE id = ?
+      `,
+      profileId,
+    );
+
+    if (row) {
+      return;
+    }
+
+    const allowedPlayer = await this.db.get<{
+      player_uuid: string;
+      display_name: string | null;
+    }>(
+      `
+        SELECT player_uuid, display_name
+        FROM allowed_players
+        WHERE player_uuid = ?
+      `,
+      profileId,
+    );
+
+    if (!allowedPlayer) {
+      throw new Error("target_not_found");
+    }
+
+    await this.db.run(
+      `
+        INSERT INTO player_profiles (id, display_name, created_at, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET
+          display_name = COALESCE(player_profiles.display_name, excluded.display_name),
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      allowedPlayer.player_uuid,
+      allowedPlayer.display_name,
+    );
+  }
+
+  private async ensureCharacterExists(
+    characterId: string,
+    profileId: string,
+    characterName?: string,
+  ): Promise<void> {
+    const existing = await this.db.get<{ id: string }>(
+      `
+        SELECT id
+        FROM player_characters
+        WHERE id = ?
+      `,
+      characterId,
+    );
+
+    if (existing) {
+      return;
+    }
+
+    const fallbackName =
+      characterName?.trim() ||
+      (await this.db.get<{ display_name: string | null }>(
+        `
+          SELECT display_name
+          FROM player_profiles
+          WHERE id = ?
+        `,
+        profileId,
+      ))?.display_name?.trim() ||
+      (await this.db.get<{ display_name: string | null }>(
+        `
+          SELECT display_name
+          FROM allowed_players
+          WHERE player_uuid = ?
+        `,
+        characterId,
+      ))?.display_name?.trim() ||
+      characterId;
+
+    await this.db.run(
+      `
+        INSERT INTO player_characters (id, profile_id, name, content_binding_json, created_at, updated_at)
+        VALUES (?, ?, ?, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `,
+      characterId,
+      profileId,
+      fallbackName,
+    );
   }
 
   async areProfilesFriends(profileAId: string, profileBId: string): Promise<boolean> {
@@ -2877,9 +3290,10 @@ export class SocialRepository {
   ): Promise<ChannelRow> {
     const existing = await this.db.get<ChannelRow>(
       `
-        SELECT id, name, type, owner_profile_id, guild_id
+        SELECT id, name, type, owner_profile_id, guild_id, destroyed_at
         FROM chat_channels_v2
         WHERE name = ? AND type = ?
+          AND destroyed_at IS NULL
       `,
       name,
       type,
@@ -2987,17 +3401,35 @@ export class SocialRepository {
   }
 
   private async ensureGuildChannel(guildId: string, guildName: string): Promise<ChannelRow> {
-    const name = `guild:${guildId}`;
+    const trimmedGuildName = guildName.trim();
+    const name = trimmedGuildName.length > 0 ? trimmedGuildName : `guild:${guildId}`;
     const existing = await this.db.get<ChannelRow>(
       `
         SELECT id, name, type, owner_profile_id, guild_id
         FROM chat_channels_v2
         WHERE type = 'guild' AND guild_id = ?
+          AND destroyed_at IS NULL
       `,
       guildId,
     );
 
     if (existing) {
+      if (existing.name !== name) {
+        await this.db.run(
+          `
+            UPDATE chat_channels_v2
+            SET name = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `,
+          name,
+          existing.id,
+        );
+        return {
+          ...existing,
+          name,
+        };
+      }
+
       return existing;
     }
 
@@ -3007,9 +3439,10 @@ export class SocialRepository {
   private async getChannelById(channelId: string): Promise<ChannelRow | null> {
     const row = await this.db.get<ChannelRow>(
       `
-        SELECT id, name, type, owner_profile_id, guild_id
+        SELECT id, name, type, owner_profile_id, guild_id, destroyed_at
         FROM chat_channels_v2
         WHERE id = ?
+          AND destroyed_at IS NULL
       `,
       channelId,
     );
@@ -3250,32 +3683,36 @@ export class SocialRepository {
     const presence = await this.db.get<{
       online: number;
       last_online_at: string | null;
+      profile_display_name: string | null;
+      current_character_name: string | null;
     }>(
       `
-        SELECT online, last_online_at
+        SELECT online, last_online_at, profile_display_name, current_character_name
         FROM player_presence
         WHERE profile_id = ?
       `,
       profileId,
     );
 
-    const rank = await this.db.get<{ rank: "player" | "vip" | "moderator" | "admin" }>(
+    const allowedPlayer = await this.db.get<{
+      display_name: string | null;
+      rank: "player" | "vip" | "moderator" | "admin";
+    }>(
       `
-        SELECT rank
+        SELECT display_name, rank
         FROM allowed_players
-        WHERE player_uuid IN (
-          SELECT id FROM player_characters WHERE profile_id = ? ORDER BY updated_at DESC LIMIT 1
-        )
+        WHERE player_uuid = ?
         LIMIT 1
       `,
-      profileId,
+      character?.id ?? profileId,
     );
 
     const guildRole = character
-      ? await this.db.get<{ role: string }>(
+      ? await this.db.get<{ role: string; short_name: string | null }>(
           `
-            SELECT role
+            SELECT guild_members.role, guilds.short_name
             FROM guild_members
+            INNER JOIN guilds ON guilds.id = guild_members.guild_id
             WHERE character_id = ?
           `,
           character.id,
@@ -3283,7 +3720,7 @@ export class SocialRepository {
       : null;
 
     const badges = buildBadges({
-      rank: rank?.rank ?? "player",
+      rank: allowedPlayer?.rank ?? "player",
       guildRole: guildRole?.role,
       isFriend:
         viewerProfileId !== undefined && viewerProfileId !== profileId
@@ -3294,8 +3731,17 @@ export class SocialRepository {
     return {
       profileId,
       characterId: character?.id,
-      characterName: character?.name,
-      profileDisplayName: profile?.display_name ?? undefined,
+      characterName:
+        character?.name ??
+        presence?.current_character_name ??
+        allowedPlayer?.display_name ??
+        undefined,
+      profileDisplayName:
+        profile?.display_name ??
+        presence?.profile_display_name ??
+        allowedPlayer?.display_name ??
+        undefined,
+      guildShortName: guildRole?.short_name ?? undefined,
       online: Boolean(presence?.online),
       lastOnlineAt: presence?.last_online_at ?? undefined,
       badges,
@@ -3305,6 +3751,10 @@ export class SocialRepository {
 
 function normalizeChannelName(name: string): string {
   return name.trim();
+}
+
+function normalizeGuildShortName(value: string): string {
+  return value.trim().toUpperCase();
 }
 
 function validateCustomChannelName(name: string): void {

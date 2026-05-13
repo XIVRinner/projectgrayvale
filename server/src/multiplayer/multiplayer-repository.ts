@@ -107,6 +107,7 @@ export class MultiplayerRepository {
     }
 
     const passwordHash = hashPassword(password);
+    const normalizedDisplayName = normalizeDisplayName(displayName);
 
     await this.db.run(
       `
@@ -115,9 +116,11 @@ export class MultiplayerRepository {
       `,
       playerUuid,
       passwordHash,
-      normalizeDisplayName(displayName),
+      normalizedDisplayName,
       normalizeAvatarPath(avatarPath),
     );
+
+    await this.ensurePlayerProfileExists(playerUuid, normalizedDisplayName);
 
     const created = await this.getAllowedPlayer(playerUuid);
 
@@ -206,6 +209,8 @@ export class MultiplayerRepository {
   ): Promise<ServerSessionRecord> {
     const sessionId = randomUUID();
 
+    await this.ensurePlayerProfileExists(playerUuid);
+
     await this.db.run(
       `
         INSERT INTO server_sessions (session_id, player_uuid, client_id, ip_address)
@@ -267,6 +272,23 @@ export class MultiplayerRepository {
         WHERE player_uuid = ?
       `,
       playerUuid,
+    );
+  }
+
+  private async ensurePlayerProfileExists(
+    playerUuid: string,
+    displayName?: string | null,
+  ): Promise<void> {
+    await this.db.run(
+      `
+        INSERT INTO player_profiles (id, display_name, created_at, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET
+          display_name = COALESCE(player_profiles.display_name, excluded.display_name),
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      playerUuid,
+      displayName ?? null,
     );
   }
 

@@ -90,9 +90,12 @@ export class ShellServerChatDialogComponent {
   readonly friendAcceptRequested = output<string>();
   readonly friendRejectRequested = output<string>();
   readonly friendshipRemoveRequested = output<string>();
-  readonly guildCreateRequested = output<string>();
+  readonly guildCreateRequested = output<{ name: string; shortName: string }>();
   readonly guildInviteRequested = output<{ guildId: string; targetProfileId: string }>();
   readonly guildInvitationResponded = output<{ invitationId: string; accept: boolean }>();
   readonly guildRoleChanged = output<{ guildId: string; characterId: string; role: "guild_master" | "officer" | "member" | "recruit" }>();
   readonly guildLeaveRequested = output<string>();
+  readonly channelLeaveRequested = output<string>();
+  readonly channelCloseRequested = output<string>();
+  readonly channelDestroyRequested = output<string>();
 }

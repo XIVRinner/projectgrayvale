@@ -18,6 +18,7 @@ export interface SocialIdentityView {
   readonly characterId?: string;
   readonly characterName?: string;
   readonly profileDisplayName?: string;
+  readonly guildShortName?: string;
   readonly online: boolean;
   readonly lastOnlineAt?: string;
   readonly badges: readonly SocialBadgeView[];
@@ -32,7 +33,9 @@ export interface ServerInfoView {
 
 export interface ServerPresencePlayerView {
   readonly playerUuid: string;
+  readonly profileId?: string;
   readonly displayName?: string;
+  readonly guildShortName?: string;
   readonly avatarPath?: string;
   readonly rank: ServerPlayerRank;
   readonly chatAccess: ServerChatAccessState;
@@ -52,6 +55,7 @@ export interface ServerChatMessageView {
   readonly id: string;
   readonly channelId: string;
   readonly channelType: ServerChatChannelType;
+  readonly messageType: "user" | "system" | "motd" | "moderation";
   readonly playerUuid: string;
   readonly displayName?: string;
   readonly avatarPath?: string;
@@ -158,6 +162,7 @@ export interface ServerChatPlayerActionRequest {
     | "mute"
     | "admin_profile";
   readonly targetProfileId: string;
+  readonly targetPlayerUuid?: string;
   readonly targetCharacterName?: string;
 }
 
@@ -188,6 +193,7 @@ export interface GuildInvitationView {
   readonly id: string;
   readonly guildId: string;
   readonly guildName: string;
+  readonly guildShortName?: string;
   readonly inviterProfileId: string;
   readonly inviterCharacterId?: string;
   readonly targetCharacterId?: string;
@@ -197,6 +203,7 @@ export interface GuildInvitationView {
 export interface CurrentGuildView {
   readonly guildId: string;
   readonly guildName: string;
+  readonly guildShortName?: string;
   readonly role: string;
   readonly members: readonly {
     characterId: string;
