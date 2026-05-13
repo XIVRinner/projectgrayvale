@@ -91,6 +91,7 @@
     [selectedServerId]="selectedServerId()"
     [activePlayerUuid]="activePlayerUuid()"
     [statusMessage]="serverStatusMessage()"
+    [serverProfile]="serverProfile()"
     (closed)="serverSelectCloseRequested.emit()"
     (selectedServerChanged)="serverChanged.emit($event)"
     (serverAdded)="serverAdded.emit($event)"

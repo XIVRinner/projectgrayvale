@@ -79,6 +79,33 @@
   padding: var(--gv-space-xs) var(--gv-space-sm);
 }
 
+.gv-server-select__profile {
+  display: flex;
+  align-items: center;
+  gap: var(--gv-space-sm);
+  padding: var(--gv-space-xs) 0;
+}
+
+.gv-server-select__profile-name {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-server-select__profile-tag {
+  font-size: var(--gv-font-size-xxs, 0.6875rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gv-color-success);
+  padding: 2px var(--gv-space-xs);
+  border-radius: var(--gv-radius-sm);
+  border: 1px solid currentColor;
+
+  &--custom {
+    color: var(--gv-color-accent-warm);
+  }
+}
+
 @media (max-width: 64rem) {
   .gv-server-select__grid {
     grid-template-columns: 1fr;

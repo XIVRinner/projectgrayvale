@@ -58,6 +58,13 @@ export class HomeContainerComponent {
       disabled: false
     },
     {
+      label: "Player Profile",
+      description: "Manage your characters and server compatibility bindings.",
+      icon: "pi pi-id-card",
+      route: "/profile",
+      disabled: false
+    },
+    {
       label: "Activities",
       description: "Take on work, gather resources, and build your reputation.",
       icon: "pi pi-bolt",

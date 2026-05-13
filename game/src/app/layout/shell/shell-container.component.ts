@@ -103,6 +103,7 @@ import {
       [selectedServerId]="selectedServerId()"
       [activePlayerUuid]="activePlayerUuid()"
       [serverStatusMessage]="serverStatusMessage()"
+      [serverProfile]="serverProfile()"
       [isServerSelectOpen]="isServerSelectOpen()"
       [isServerChatOpen]="isServerChatOpen()"
       [isServerAdminOpen]="isServerAdminOpen()"
@@ -264,6 +265,7 @@ export class ShellContainerComponent {
     { label: "Home", route: "/" },
     { label: "Creator Lab", route: "/creator" },
     { label: "Changelog", route: "/changelog" },
+    { label: "Profile", route: "/profile" },
   ]);
 
   readonly statusItems = computed<readonly ShellStatusItem[]>(() => {
@@ -480,6 +482,8 @@ export class ShellContainerComponent {
   readonly servers = this.serverConnection.servers;
 
   readonly selectedServerId = this.serverConnection.selectedServerId;
+
+  readonly serverProfile = this.serverConnection.serverProfile;
 
   readonly activePlayerUuid = computed(
     () => this.roster.activeCharacter()?.id ?? null,

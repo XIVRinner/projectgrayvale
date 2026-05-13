@@ -1,0 +1,60 @@
+<section class="gv-player-profile">
+  @if (isLoading()) {
+    <p class="gv-player-profile__loading">Loading profile…</p>
+  } @else if (errorMessage()) {
+    <p class="gv-player-profile__error">{{ errorMessage() }}</p>
+  } @else if (profile(); as prof) {
+    <header class="gv-player-profile__header">
+      <h2 class="gv-player-profile__title">{{ prof.displayName ?? prof.id }}</h2>
+      @if (serverProfile(); as sp) {
+        <div class="gv-player-profile__server-badge"
+          [class.gv-player-profile__server-badge--custom]="sp.customContent">
+          <span class="gv-player-profile__server-name">{{ sp.serverName }}</span>
+          <span class="gv-player-profile__server-tag">
+            {{ sp.customContent ? 'Custom Content' : 'Official' }}
+          </span>
+        </div>
+      }
+    </header>
+
+    <div class="gv-player-profile__characters">
+      <h3 class="gv-player-profile__section-title">Characters</h3>
+
+      @if (characterStatuses().length === 0) {
+        <p class="gv-player-profile__empty">No characters yet. Create one below.</p>
+      } @else {
+        @for (status of characterStatuses(); track status.character.id) {
+          <gv-player-character-card
+            [status]="status"
+            (selectRequested)="selectRequested.emit($event)"
+          />
+        }
+      }
+    </div>
+
+    <div class="gv-player-profile__create">
+      <h3 class="gv-player-profile__section-title">New Character</h3>
+      @if (createErrorMessage()) {
+        <p class="gv-player-profile__error">{{ createErrorMessage() }}</p>
+      }
+      <div class="gv-player-profile__create-row">
+        <input
+          class="gv-player-profile__create-input"
+          type="text"
+          placeholder="Character name"
+          [value]="newCharacterName()"
+          [disabled]="isCreating()"
+          (input)="onNameInput($event)"
+        />
+        <button
+          type="button"
+          class="gv-player-profile__create-btn"
+          [disabled]="isCreating() || !newCharacterName().trim()"
+          (click)="onCreateSubmit()"
+        >
+          {{ isCreating() ? 'Creating…' : 'Create' }}
+        </button>
+      </div>
+    </div>
+  }
+</section>

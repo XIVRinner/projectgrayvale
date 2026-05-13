@@ -28,6 +28,13 @@ export interface CharacterStatUnlockState {
   readonly skills: Readonly<Record<string, boolean>>;
 }
 
+export interface CharacterContentBinding {
+  readonly serverName: string;
+  readonly customContent: boolean;
+  readonly profileToken: string;
+  readonly acceptedAt: string;
+}
+
 export interface CharacterSaveSlot {
   readonly id: string;
   readonly createdAt: string;
@@ -36,6 +43,7 @@ export interface CharacterSaveSlot {
   readonly statUnlocks: CharacterStatUnlockState;
   readonly world: SaveSlotWorldState;
   readonly health?: SaveSlotHealthState;
+  readonly contentBinding?: CharacterContentBinding;
 }
 
 export interface WorldUpdateEvent {
@@ -109,6 +117,13 @@ export class CharacterRosterService {
 
     this.activeSlotIdState.set(slotId);
     this.persist();
+  }
+
+  setActiveSlotContentBinding(binding: CharacterContentBinding): CharacterSaveSlot | null {
+    return this.updateActiveSlot((slot) => ({
+      ...slot,
+      contentBinding: binding
+    }));
   }
 
   deleteSlot(slotId: string): boolean {
@@ -429,7 +444,8 @@ function parseSlot(raw: unknown, index: number): CharacterSaveSlot {
     player: playerWithSeededSkills,
     statUnlocks,
     world: parseWorldState(record["world"], `slots[${index}].world`),
-    health: parseHealthState(record["health"], `slots[${index}].health`)
+    health: parseHealthState(record["health"], `slots[${index}].health`),
+    contentBinding: parseContentBinding(record["contentBinding"])
   };
 }
 
@@ -489,6 +505,34 @@ function parseHealthState(raw: unknown, label: string): SaveSlotHealthState | un
   return {
     currentHp: ensureNumber(record["currentHp"], `${label}.currentHp`),
     maxHp: ensureNumber(record["maxHp"], `${label}.maxHp`)
+  };
+}
+
+function parseContentBinding(raw: unknown): CharacterContentBinding | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const record = raw as Record<string, unknown>;
+
+  if (
+    typeof record["serverName"] !== "string" ||
+    typeof record["customContent"] !== "boolean" ||
+    typeof record["profileToken"] !== "string" ||
+    typeof record["acceptedAt"] !== "string"
+  ) {
+    return undefined;
+  }
+
+  return {
+    serverName: record["serverName"],
+    customContent: record["customContent"],
+    profileToken: record["profileToken"],
+    acceptedAt: record["acceptedAt"]
   };
 }
 

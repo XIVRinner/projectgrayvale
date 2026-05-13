@@ -275,6 +275,28 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
       ON changelog_reads (user_id, release_id);
     CREATE INDEX IF NOT EXISTS idx_changelog_reads_client
       ON changelog_reads (client_id, release_id);
+
+    CREATE TABLE IF NOT EXISTS player_profiles (
+      id TEXT PRIMARY KEY,
+      display_name TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS player_characters (
+      id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      content_binding_json TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_player_characters_profile
+      ON player_characters (profile_id, created_at ASC);
   `;
 }
 
