@@ -170,7 +170,7 @@ export class ServerConnectionService {
 
     if (!profileCheck.allowed) {
       const message = profileCheck.error ??
-        "This server uses custom content, but its compatibility signature could not be validated. You cannot connect to this server.";
+        "Server compatibility check failed. Cannot connect to this server.";
       throw new ServerProfileCompatibilityError(message, profileCheck.profile);
     }
 

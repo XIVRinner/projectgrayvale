@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from "@angular/core";
+import { Component, computed, effect, inject, signal } from "@angular/core";
 
 import { ServerConnectionService } from "../../core/services/server-connection.service";
 import {
@@ -56,7 +56,18 @@ export class PlayerProfileContainerComponent {
   });
 
   constructor() {
-    void this.loadProfile();
+    // Load (or clear) the profile whenever the connection state changes so
+    // that the view updates immediately after the player connects or disconnects.
+    effect(() => {
+      const connected = this.serverConnection.isConnected();
+
+      if (connected) {
+        void this.loadProfile();
+      } else {
+        this.profileState.set(null);
+        this.errorMessage.set("Connect to a server to manage your profile.");
+      }
+    });
   }
 
   protected async onSelectCharacter(characterId: string): Promise<void> {
@@ -100,11 +111,6 @@ export class PlayerProfileContainerComponent {
   }
 
   private async loadProfile(): Promise<void> {
-    if (!this.serverConnection.isConnected()) {
-      this.errorMessage.set("Connect to a server to manage your profile.");
-      return;
-    }
-
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
