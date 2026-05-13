@@ -170,6 +170,42 @@ export interface AdminPlayerListEntryView {
   readonly lastOnlineAt?: string;
 }
 
+export interface SocialFriendshipView {
+  readonly id: string;
+  readonly requesterProfileId: string;
+  readonly targetProfileId: string;
+  readonly counterpartProfileId: string;
+  readonly counterpartDisplayName?: string;
+  readonly counterpartCurrentCharacterName?: string;
+  readonly counterpartOnline: boolean;
+  readonly counterpartLastOnlineAt?: string;
+  readonly type: "character" | "profile";
+  readonly status: "pending_outgoing" | "pending_incoming" | "accepted" | "blocked";
+  readonly updatedAt: string;
+}
+
+export interface GuildInvitationView {
+  readonly id: string;
+  readonly guildId: string;
+  readonly guildName: string;
+  readonly inviterProfileId: string;
+  readonly inviterCharacterId?: string;
+  readonly targetCharacterId?: string;
+  readonly createdAt: string;
+}
+
+export interface CurrentGuildView {
+  readonly guildId: string;
+  readonly guildName: string;
+  readonly role: string;
+  readonly members: readonly {
+    characterId: string;
+    profileId: string;
+    name: string;
+    role: string;
+  }[];
+}
+
 export interface AdminProfilePermissionView {
   readonly permissionId: string;
   readonly grantedAt: string;

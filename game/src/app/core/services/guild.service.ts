@@ -3,27 +3,28 @@ import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { ServerConnectionService } from "./server-connection.service";
+import type { CurrentGuildView, GuildInvitationView } from "./server-chat.models";
 
 @Injectable({ providedIn: "root" })
 export class GuildService {
   private readonly http = inject(HttpClient);
   private readonly serverConnection = inject(ServerConnectionService);
 
-  loadCurrentGuild(): Promise<{
-    guild: {
-      guildId: string;
-      guildName: string;
-      role: string;
-      members: readonly {
-        characterId: string;
-        profileId: string;
-        name: string;
-        role: string;
-      }[];
-    } | null;
-  }> {
+  loadCurrentGuild(): Promise<{ guild: CurrentGuildView | null }> {
     return firstValueFrom(
-      this.http.get(this.serverConnection.serverApiUrl("/api/guilds/current"), {
+      this.http.get<{
+        guild: CurrentGuildView | null;
+      }>(this.serverConnection.serverApiUrl("/api/guilds/current"), {
+        withCredentials: true,
+      }),
+    );
+  }
+
+  loadInvitations(): Promise<{ invitations: readonly GuildInvitationView[] }> {
+    return firstValueFrom(
+      this.http.get<{
+        invitations: readonly GuildInvitationView[];
+      }>(this.serverConnection.serverApiUrl("/api/guilds/invitations"), {
         withCredentials: true,
       }),
     );

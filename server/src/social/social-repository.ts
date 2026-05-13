@@ -1951,6 +1951,11 @@ export class SocialRepository {
     id: string;
     requesterProfileId: string;
     targetProfileId: string;
+    counterpartProfileId: string;
+    counterpartDisplayName?: string;
+    counterpartCurrentCharacterName?: string;
+    counterpartOnline: boolean;
+    counterpartLastOnlineAt?: string;
     type: "character" | "profile";
     status: "pending_outgoing" | "pending_incoming" | "accepted" | "blocked";
     updatedAt: string;
@@ -1960,6 +1965,14 @@ export class SocialRepository {
         id: string;
         requester_profile_id: string;
         target_profile_id: string;
+        requester_display_name: string | null;
+        target_display_name: string | null;
+        requester_online: number | null;
+        target_online: number | null;
+        requester_last_online_at: string | null;
+        target_last_online_at: string | null;
+        requester_current_character_name: string | null;
+        target_current_character_name: string | null;
         type: "character" | "profile";
         status: "pending" | "accepted" | "blocked";
         updated_at: string;
@@ -1967,13 +1980,29 @@ export class SocialRepository {
     >(
       `
         SELECT
-          id,
-          requester_profile_id,
-          target_profile_id,
-          type,
-          status,
-          updated_at
+          friendships.id,
+          friendships.requester_profile_id,
+          friendships.target_profile_id,
+          friendships.type,
+          friendships.status,
+          friendships.updated_at,
+          requester_profile.display_name AS requester_display_name,
+          target_profile.display_name AS target_display_name,
+          requester_presence.online AS requester_online,
+          target_presence.online AS target_online,
+          requester_presence.last_online_at AS requester_last_online_at,
+          target_presence.last_online_at AS target_last_online_at,
+          requester_presence.current_character_name AS requester_current_character_name,
+          target_presence.current_character_name AS target_current_character_name
         FROM friendships
+        LEFT JOIN player_profiles requester_profile
+          ON requester_profile.id = friendships.requester_profile_id
+        LEFT JOIN player_profiles target_profile
+          ON target_profile.id = friendships.target_profile_id
+        LEFT JOIN player_presence requester_presence
+          ON requester_presence.profile_id = friendships.requester_profile_id
+        LEFT JOIN player_presence target_presence
+          ON target_presence.profile_id = friendships.target_profile_id
         WHERE requester_profile_id = ?
            OR target_profile_id = ?
         ORDER BY datetime(updated_at) DESC
@@ -1982,21 +2011,39 @@ export class SocialRepository {
       profileId,
     );
 
-    return rows.map((row) => ({
-      id: row.id,
-      requesterProfileId: row.requester_profile_id,
-      targetProfileId: row.target_profile_id,
-      type: row.type,
-      status:
-        row.status === "accepted"
-          ? "accepted"
-          : row.status === "blocked"
-            ? "blocked"
-            : row.requester_profile_id === profileId
-              ? "pending_outgoing"
-              : "pending_incoming",
-      updatedAt: row.updated_at,
-    }));
+    return rows.map((row) => {
+      const requesterIsViewer = row.requester_profile_id === profileId;
+      const counterpartProfileId = requesterIsViewer ? row.target_profile_id : row.requester_profile_id;
+
+      return {
+        id: row.id,
+        requesterProfileId: row.requester_profile_id,
+        targetProfileId: row.target_profile_id,
+        counterpartProfileId,
+        counterpartDisplayName: requesterIsViewer
+          ? row.target_display_name ?? undefined
+          : row.requester_display_name ?? undefined,
+        counterpartCurrentCharacterName: requesterIsViewer
+          ? row.target_current_character_name ?? undefined
+          : row.requester_current_character_name ?? undefined,
+        counterpartOnline: requesterIsViewer
+          ? Boolean(row.target_online)
+          : Boolean(row.requester_online),
+        counterpartLastOnlineAt: requesterIsViewer
+          ? row.target_last_online_at ?? undefined
+          : row.requester_last_online_at ?? undefined,
+        type: row.type,
+        status:
+          row.status === "accepted"
+            ? "accepted"
+            : row.status === "blocked"
+              ? "blocked"
+              : requesterIsViewer
+                ? "pending_outgoing"
+                : "pending_incoming",
+        updatedAt: row.updated_at,
+      };
+    });
   }
 
   async createCharacterFriendship(input: {
@@ -2261,6 +2308,19 @@ export class SocialRepository {
     actorCharacterId: string;
     name: string;
   }): Promise<{ id: string; name: string }> {
+    const existingMembership = await this.db.get<{ guild_id: string }>(
+      `
+        SELECT guild_id
+        FROM guild_members
+        WHERE character_id = ?
+      `,
+      input.actorCharacterId,
+    );
+
+    if (existingMembership) {
+      throw new Error("guild_already_joined");
+    }
+
     const guildId = randomUUID();
 
     await this.db.run(
@@ -2374,6 +2434,55 @@ export class SocialRepository {
         role: member.role,
       })),
     };
+  }
+
+  async listPendingGuildInvitations(profileId: string): Promise<readonly {
+    id: string;
+    guildId: string;
+    guildName: string;
+    inviterProfileId: string;
+    inviterCharacterId?: string;
+    targetCharacterId?: string;
+    createdAt: string;
+  }[]> {
+    const rows = await this.db.all<
+      Array<{
+        id: string;
+        guild_id: string;
+        guild_name: string;
+        inviter_profile_id: string;
+        inviter_character_id: string | null;
+        target_character_id: string | null;
+        created_at: string;
+      }>
+    >(
+      `
+        SELECT
+          guild_invitations.id,
+          guild_invitations.guild_id,
+          guilds.name AS guild_name,
+          guild_invitations.inviter_profile_id,
+          guild_invitations.inviter_character_id,
+          guild_invitations.target_character_id,
+          guild_invitations.created_at
+        FROM guild_invitations
+        INNER JOIN guilds ON guilds.id = guild_invitations.guild_id
+        WHERE guild_invitations.target_profile_id = ?
+          AND guild_invitations.status = 'pending'
+        ORDER BY datetime(guild_invitations.created_at) DESC
+      `,
+      profileId,
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      guildId: row.guild_id,
+      guildName: row.guild_name,
+      inviterProfileId: row.inviter_profile_id,
+      inviterCharacterId: row.inviter_character_id ?? undefined,
+      targetCharacterId: row.target_character_id ?? undefined,
+      createdAt: row.created_at,
+    }));
   }
 
   async inviteToGuild(input: {
@@ -2494,9 +2603,24 @@ export class SocialRepository {
 
   async setGuildMemberRole(input: {
     guildId: string;
+    actorCharacterId: string;
     characterId: string;
     role: "guild_master" | "officer" | "member" | "recruit";
   }): Promise<void> {
+    const actorMembership = await this.db.get<{ role: string }>(
+      `
+        SELECT role
+        FROM guild_members
+        WHERE guild_id = ? AND character_id = ?
+      `,
+      input.guildId,
+      input.actorCharacterId,
+    );
+
+    if (!actorMembership || actorMembership.role !== "guild_master") {
+      throw new Error("guild_role_forbidden");
+    }
+
     await this.db.run(
       `
         UPDATE guild_members
@@ -2509,7 +2633,25 @@ export class SocialRepository {
     );
   }
 
-  async kickGuildMember(input: { guildId: string; characterId: string }): Promise<void> {
+  async kickGuildMember(input: { guildId: string; actorCharacterId: string; characterId: string }): Promise<void> {
+    const actorMembership = await this.db.get<{ role: string }>(
+      `
+        SELECT role
+        FROM guild_members
+        WHERE guild_id = ? AND character_id = ?
+      `,
+      input.guildId,
+      input.actorCharacterId,
+    );
+
+    if (!actorMembership || (actorMembership.role !== "guild_master" && actorMembership.role !== "officer")) {
+      throw new Error("guild_kick_forbidden");
+    }
+
+    if (input.characterId === input.actorCharacterId) {
+      throw new Error("cannot_target_self");
+    }
+
     await this.db.run(
       `
         DELETE FROM guild_members
@@ -2521,7 +2663,14 @@ export class SocialRepository {
   }
 
   async leaveGuild(input: { guildId: string; characterId: string }): Promise<void> {
-    await this.kickGuildMember(input);
+    await this.db.run(
+      `
+        DELETE FROM guild_members
+        WHERE guild_id = ? AND character_id = ?
+      `,
+      input.guildId,
+      input.characterId,
+    );
   }
 
   async createPlayerReport(input: {

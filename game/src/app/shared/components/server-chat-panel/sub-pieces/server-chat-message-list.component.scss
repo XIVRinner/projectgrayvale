@@ -169,6 +169,22 @@
   font-size: var(--gv-font-size-xs);
 }
 
+.gv-server-chat-message-list__badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: calc(var(--gv-space-xs) * 1.1);
+  margin-inline-start: auto;
+}
+
+.gv-server-chat-message-list__badge {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent) 18%, transparent);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xxs);
+  padding: 0.1rem 0.4rem;
+}
+
 .gv-server-chat-message-list__body {
   color: var(--gv-color-text-primary);
   line-height: 1.42;

@@ -8,11 +8,16 @@ import { ChatEmotesLoader } from "../../data/loaders/chat-emotes.loader";
 import { AdminSocialService } from "./admin-social.service";
 import { ChatApiService } from "./chat-api.service";
 import { DirectMessageService } from "./direct-message.service";
+import { GuildService } from "./guild.service";
 import { SERVER_CHAT_COMMANDS } from "./server-chat-commands";
 import { ServerConnectionService } from "./server-connection.service";
+import { SocialService } from "./social.service";
 import {
   AdminPlayerListEntryView,
   AdminProfileDetailView,
+  CurrentGuildView,
+  GuildInvitationView,
+  SocialFriendshipView,
   ServerChatChannelView,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
@@ -59,6 +64,8 @@ export class ServerChatService {
   private readonly chatApi = inject(ChatApiService);
   private readonly directMessageService = inject(DirectMessageService);
   private readonly adminSocialService = inject(AdminSocialService);
+  private readonly socialService = inject(SocialService);
+  private readonly guildService = inject(GuildService);
 
   private readonly panelOpenState = signal(false);
   private readonly infoState = signal<ServerInfoView | null>(null);
@@ -88,6 +95,17 @@ export class ServerChatService {
   private readonly adminProfileDetailState = signal<AdminProfileDetailView | null>(null);
   private readonly grantablePermissionsState = signal<readonly string[]>([]);
   private readonly adminPanelAccessState = signal(false);
+  private readonly socialPlayersState = signal<readonly AdminPlayerListEntryView[]>([]);
+  private readonly socialPlayersTotalState = signal(0);
+  private readonly socialPlayersPageState = signal(1);
+  private readonly socialPlayersPageSizeState = signal(20);
+  private readonly socialPlayersSearchState = signal("");
+  private readonly socialPlayersLoadingState = signal(false);
+  private readonly friendshipsState = signal<readonly SocialFriendshipView[]>([]);
+  private readonly friendsLoadingState = signal(false);
+  private readonly currentGuildState = signal<CurrentGuildView | null>(null);
+  private readonly guildInvitationsState = signal<readonly GuildInvitationView[]>([]);
+  private readonly guildLoadingState = signal(false);
 
   private presenceRefreshInFlight = false;
   private channelsRefreshInFlight = false;
@@ -190,6 +208,17 @@ export class ServerChatService {
   readonly selectedAdminProfileId = this.selectedAdminProfileIdState.asReadonly();
   readonly adminProfileDetail = this.adminProfileDetailState.asReadonly();
   readonly grantablePermissions = this.grantablePermissionsState.asReadonly();
+  readonly socialPlayers = this.socialPlayersState.asReadonly();
+  readonly socialPlayersTotal = this.socialPlayersTotalState.asReadonly();
+  readonly socialPlayersPage = this.socialPlayersPageState.asReadonly();
+  readonly socialPlayersPageSize = this.socialPlayersPageSizeState.asReadonly();
+  readonly socialPlayersSearch = this.socialPlayersSearchState.asReadonly();
+  readonly socialPlayersLoading = this.socialPlayersLoadingState.asReadonly();
+  readonly friendships = this.friendshipsState.asReadonly();
+  readonly friendsLoading = this.friendsLoadingState.asReadonly();
+  readonly currentGuild = this.currentGuildState.asReadonly();
+  readonly guildInvitations = this.guildInvitationsState.asReadonly();
+  readonly guildLoading = this.guildLoadingState.asReadonly();
 
   constructor() {
     this.chatEmotesLoader
@@ -221,6 +250,16 @@ export class ServerChatService {
         this.adminProfileDetailState.set(null);
         this.grantablePermissionsState.set([]);
         this.adminPanelAccessState.set(false);
+        this.socialPlayersState.set([]);
+        this.socialPlayersTotalState.set(0);
+        this.socialPlayersPageState.set(1);
+        this.socialPlayersSearchState.set("");
+        this.socialPlayersLoadingState.set(false);
+        this.friendshipsState.set([]);
+        this.friendsLoadingState.set(false);
+        this.currentGuildState.set(null);
+        this.guildInvitationsState.set([]);
+        this.guildLoadingState.set(false);
         queueMicrotask(() => void this.refreshAll());
       },
       { allowSignalWrites: true },
@@ -352,6 +391,7 @@ export class ServerChatService {
       this.refreshPresence(),
       this.refreshChannelsAndMessages(),
       this.refreshAdminPanel(),
+      this.refreshSocialPanels(),
     ]);
   }
 
@@ -626,6 +666,141 @@ export class ServerChatService {
 
     await this.adminSocialService.addNote(profileId, body);
     await this.refreshAdminPanel();
+  }
+
+  async refreshSocialPanels(): Promise<void> {
+    await Promise.allSettled([
+      this.refreshPlayerDirectory(),
+      this.refreshFriendships(),
+      this.refreshGuildPanel(),
+    ]);
+  }
+
+  async refreshPlayerDirectory(): Promise<void> {
+    this.socialPlayersLoadingState.set(true);
+    try {
+      const response = await this.socialService.loadPlayers({
+        page: this.socialPlayersPageState(),
+        pageSize: this.socialPlayersPageSizeState(),
+        search: this.socialPlayersSearchState(),
+      });
+      this.socialPlayersState.set(response.entries);
+      this.socialPlayersTotalState.set(response.total);
+    } catch (error) {
+      this.socialPlayersState.set([]);
+      this.socialPlayersTotalState.set(0);
+      if (this.panelOpenState()) {
+        this.statusMessageState.set(toErrorMessage(error));
+      }
+    } finally {
+      this.socialPlayersLoadingState.set(false);
+    }
+  }
+
+  setSocialPlayersSearch(search: string): void {
+    this.socialPlayersSearchState.set(search.trim());
+    this.socialPlayersPageState.set(1);
+    void this.refreshPlayerDirectory();
+  }
+
+  setSocialPlayersPage(page: number): void {
+    this.socialPlayersPageState.set(Math.max(1, page));
+    void this.refreshPlayerDirectory();
+  }
+
+  async refreshFriendships(): Promise<void> {
+    this.friendsLoadingState.set(true);
+    try {
+      const response = await this.socialService.listFriends();
+      this.friendshipsState.set(response.friendships);
+    } catch (error) {
+      this.friendshipsState.set([]);
+      if (this.panelOpenState()) {
+        this.statusMessageState.set(toErrorMessage(error));
+      }
+    } finally {
+      this.friendsLoadingState.set(false);
+    }
+  }
+
+  async addCharacterFriend(targetProfileId: string, targetCharacterId?: string): Promise<void> {
+    await this.socialService.addCharacterFriend(targetProfileId, targetCharacterId);
+    await this.refreshFriendships();
+  }
+
+  async requestProfileFriend(targetProfileId: string): Promise<void> {
+    await this.socialService.requestProfileFriend(targetProfileId);
+    await this.refreshFriendships();
+  }
+
+  async acceptFriendRequest(friendshipId: string): Promise<void> {
+    await this.socialService.acceptFriendRequest(friendshipId);
+    await this.refreshFriendships();
+  }
+
+  async rejectFriendRequest(friendshipId: string): Promise<void> {
+    await this.socialService.rejectFriendRequest(friendshipId);
+    await this.refreshFriendships();
+  }
+
+  async removeFriendship(friendshipId: string): Promise<void> {
+    await this.socialService.removeFriendship(friendshipId);
+    await this.refreshFriendships();
+  }
+
+  async refreshGuildPanel(): Promise<void> {
+    this.guildLoadingState.set(true);
+    try {
+      const [currentGuildResponse, invitationsResponse] = await Promise.all([
+        this.guildService.loadCurrentGuild(),
+        this.guildService.loadInvitations(),
+      ]);
+      this.currentGuildState.set(currentGuildResponse.guild);
+      this.guildInvitationsState.set(invitationsResponse.invitations);
+    } catch (error) {
+      this.currentGuildState.set(null);
+      this.guildInvitationsState.set([]);
+      if (this.panelOpenState()) {
+        this.statusMessageState.set(toErrorMessage(error));
+      }
+    } finally {
+      this.guildLoadingState.set(false);
+    }
+  }
+
+  async createGuild(name: string): Promise<void> {
+    await this.guildService.createGuild(name);
+    await this.refreshGuildPanel();
+    await this.refreshChannels();
+  }
+
+  async inviteToGuild(guildId: string, targetProfileId: string, targetCharacterId?: string): Promise<void> {
+    await this.guildService.inviteToGuild(guildId, {
+      targetProfileId,
+      targetCharacterId,
+    });
+    await this.refreshGuildPanel();
+  }
+
+  async respondGuildInvitation(invitationId: string, accept: boolean): Promise<void> {
+    await this.guildService.respondToInvitation(invitationId, accept);
+    await this.refreshGuildPanel();
+    await this.refreshChannels();
+  }
+
+  async setGuildMemberRole(
+    guildId: string,
+    characterId: string,
+    role: "guild_master" | "officer" | "member" | "recruit",
+  ): Promise<void> {
+    await this.guildService.setMemberRole(guildId, characterId, role);
+    await this.refreshGuildPanel();
+  }
+
+  async leaveGuild(guildId: string): Promise<void> {
+    await this.guildService.leaveGuild(guildId);
+    await this.refreshGuildPanel();
+    await this.refreshChannels();
   }
 
   private shouldPollPresence(): boolean {

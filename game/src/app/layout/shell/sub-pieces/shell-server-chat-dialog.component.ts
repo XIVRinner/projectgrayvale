@@ -3,6 +3,9 @@ import { Component, input, output } from "@angular/core";
 import {
   type AdminPlayerListEntryView,
   type AdminProfileDetailView,
+  type CurrentGuildView,
+  type GuildInvitationView,
+  type SocialFriendshipView,
   type ServerChatChannelView,
   type ServerChatCommandView,
   type ServerChatCustomEmojiView,
@@ -51,6 +54,17 @@ export class ShellServerChatDialogComponent {
   readonly selectedAdminProfileId = input<string | null>(null);
   readonly adminProfileDetail = input<AdminProfileDetailView | null>(null);
   readonly grantablePermissions = input.required<readonly string[]>();
+  readonly socialPlayers = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly socialPlayersTotal = input(0);
+  readonly socialPlayersPage = input(1);
+  readonly socialPlayersPageSize = input(20);
+  readonly socialPlayersSearch = input("");
+  readonly socialPlayersLoading = input(false);
+  readonly friendships = input.required<readonly SocialFriendshipView[]>();
+  readonly friendsLoading = input(false);
+  readonly currentGuild = input<CurrentGuildView | null>(null);
+  readonly guildInvitations = input.required<readonly GuildInvitationView[]>();
+  readonly guildLoading = input(false);
 
   readonly closed = output<void>();
   readonly refreshRequested = output<void>();
@@ -69,4 +83,16 @@ export class ShellServerChatDialogComponent {
   readonly adminPermissionRevoked = output<{ profileId: string; permissionId: string }>();
   readonly adminModerationRequested = output<{ profileId: string; action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn" }>();
   readonly adminNoteAdded = output<{ profileId: string; body: string }>();
+  readonly socialPlayersSearchChanged = output<string>();
+  readonly socialPlayersPageChanged = output<number>();
+  readonly friendAddCharacterRequested = output<{ profileId: string; characterId?: string }>();
+  readonly friendAddProfileRequested = output<string>();
+  readonly friendAcceptRequested = output<string>();
+  readonly friendRejectRequested = output<string>();
+  readonly friendshipRemoveRequested = output<string>();
+  readonly guildCreateRequested = output<string>();
+  readonly guildInviteRequested = output<{ guildId: string; targetProfileId: string }>();
+  readonly guildInvitationResponded = output<{ invitationId: string; accept: boolean }>();
+  readonly guildRoleChanged = output<{ guildId: string; characterId: string; role: "guild_master" | "officer" | "member" | "recruit" }>();
+  readonly guildLeaveRequested = output<string>();
 }

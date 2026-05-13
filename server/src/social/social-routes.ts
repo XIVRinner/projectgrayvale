@@ -180,12 +180,12 @@ export function createSocialRouter(
     enforceCustomChannelCreateLimit,
     async (request, response, next) => {
       try {
-        const actor = await requireAdminActor(request, socialRepository, multiplayerRepository);
+        const actor = await requireActor(request, socialRepository, multiplayerRepository);
 
         if (!actor) {
           response.status(401).json({
-            error: "forbidden",
-            message: "Admin rank is required.",
+            error: "unauthenticated",
+            message: "Authentication required.",
           });
           return;
         }
@@ -907,12 +907,12 @@ export function createSocialRouter(
     enforceReadRateLimit,
     async (request, response, next) => {
       try {
-        const actor = await requireActor(request, socialRepository, multiplayerRepository);
+        const actor = await requireAdminActor(request, socialRepository, multiplayerRepository);
 
         if (!actor) {
-          response.status(401).json({
-            error: "unauthenticated",
-            message: "Authentication required.",
+          response.status(403).json({
+            error: "forbidden",
+            message: "Admin rank is required.",
           });
           return;
         }
@@ -1679,6 +1679,23 @@ export function createSocialRouter(
     }
   });
 
+  router.get("/guilds/invitations", enforceReadRateLimit, async (request, response, next) => {
+    try {
+      const actor = await requireActor(request, socialRepository, multiplayerRepository);
+      if (!actor) {
+        response.status(401).json({
+          error: "unauthenticated",
+          message: "Authentication required.",
+        });
+        return;
+      }
+      const invitations = await socialRepository.listPendingGuildInvitations(actor.profileId);
+      response.json({ invitations });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/guilds", enforceWriteRateLimit, async (request, response, next) => {
     try {
       const actor = await requireActor(request, socialRepository, multiplayerRepository);
@@ -1701,6 +1718,13 @@ export function createSocialRouter(
         response.status(400).json({
           error: "invalid_request",
           message: error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+      if (isErrorCode(error, "guild_already_joined")) {
+        response.status(409).json({
+          error: "guild_already_joined",
+          message: "Current character is already in a guild.",
         });
         return;
       }
@@ -1784,6 +1808,7 @@ export function createSocialRouter(
       const payload = guildRoleBodySchema.parse(request.body);
       await socialRepository.setGuildMemberRole({
         guildId,
+        actorCharacterId: actor.characterId,
         characterId,
         role: payload.role,
       });
@@ -1793,6 +1818,13 @@ export function createSocialRouter(
         response.status(400).json({
           error: "invalid_request",
           message: error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+      if (isErrorCode(error, "guild_role_forbidden")) {
+        response.status(403).json({
+          error: "guild_role_forbidden",
+          message: "Only guild master can change guild member roles.",
         });
         return;
       }
@@ -1812,13 +1844,31 @@ export function createSocialRouter(
       }
       const guildId = z.string().uuid().parse(request.params["guildId"]);
       const characterId = z.string().uuid().parse(request.params["characterId"]);
-      await socialRepository.kickGuildMember({ guildId, characterId });
+      await socialRepository.kickGuildMember({
+        guildId,
+        actorCharacterId: actor.characterId,
+        characterId,
+      });
       response.status(204).send();
     } catch (error) {
       if (error instanceof z.ZodError) {
         response.status(400).json({
           error: "invalid_request",
           message: error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+      if (isErrorCode(error, "guild_kick_forbidden")) {
+        response.status(403).json({
+          error: "guild_kick_forbidden",
+          message: "Guild master or officer role is required to kick.",
+        });
+        return;
+      }
+      if (isErrorCode(error, "cannot_target_self")) {
+        response.status(400).json({
+          error: "cannot_target_self",
+          message: "Cannot target self.",
         });
         return;
       }

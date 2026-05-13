@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { ServerConnectionService } from "./server-connection.service";
-import type { AdminPlayerListEntryView } from "./server-chat.models";
+import type { AdminPlayerListEntryView, SocialFriendshipView } from "./server-chat.models";
 
 @Injectable({ providedIn: "root" })
 export class SocialService {
@@ -33,11 +33,14 @@ export class SocialService {
     );
   }
 
-  listFriends(): Promise<unknown> {
+  listFriends(): Promise<{ friendships: readonly SocialFriendshipView[] }> {
     return firstValueFrom(
-      this.http.get(this.serverConnection.serverApiUrl("/api/social/friends"), {
+      this.http.get<{ friendships: readonly SocialFriendshipView[] }>(
+        this.serverConnection.serverApiUrl("/api/social/friends"),
+        {
         withCredentials: true,
-      }),
+        },
+      ),
     );
   }
 

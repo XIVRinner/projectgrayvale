@@ -3,6 +3,9 @@ import { Component, input, output, signal } from "@angular/core";
 import {
   AdminPlayerListEntryView,
   AdminProfileDetailView,
+  CurrentGuildView,
+  GuildInvitationView,
+  SocialFriendshipView,
   ServerChatChannelView,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
@@ -14,8 +17,11 @@ import {
 } from "../../../core/services/server-chat.models";
 import { ServerChatComposerComponent } from "./sub-pieces/server-chat-composer.component";
 import { ServerChatAdminPanelComponent } from "./sub-pieces/server-chat-admin-panel.component";
+import { ServerChatFriendListComponent } from "./sub-pieces/server-chat-friend-list.component";
+import { ServerChatGuildShellComponent } from "./sub-pieces/server-chat-guild-shell.component";
 import { ServerChatMessageListComponent } from "./sub-pieces/server-chat-message-list.component";
 import { ServerChatModerationBannerComponent } from "./sub-pieces/server-chat-moderation-banner.component";
+import { ServerChatPlayerDirectoryComponent } from "./sub-pieces/server-chat-player-directory.component";
 import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-list.component";
 
 @Component({
@@ -24,8 +30,11 @@ import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-l
   imports: [
     ServerChatComposerComponent,
     ServerChatAdminPanelComponent,
+    ServerChatFriendListComponent,
+    ServerChatGuildShellComponent,
     ServerChatMessageListComponent,
     ServerChatModerationBannerComponent,
+    ServerChatPlayerDirectoryComponent,
     ServerChatPlayerListComponent,
   ],
   templateUrl: "./server-chat-panel.component.html",
@@ -59,6 +68,17 @@ export class ServerChatPanelComponent {
   readonly selectedAdminProfileId = input<string | null>(null);
   readonly adminProfileDetail = input<AdminProfileDetailView | null>(null);
   readonly grantablePermissions = input.required<readonly string[]>();
+  readonly socialPlayers = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly socialPlayersTotal = input(0);
+  readonly socialPlayersPage = input(1);
+  readonly socialPlayersPageSize = input(20);
+  readonly socialPlayersSearch = input("");
+  readonly socialPlayersLoading = input(false);
+  readonly friendships = input.required<readonly SocialFriendshipView[]>();
+  readonly friendsLoading = input(false);
+  readonly currentGuild = input<CurrentGuildView | null>(null);
+  readonly guildInvitations = input.required<readonly GuildInvitationView[]>();
+  readonly guildLoading = input(false);
 
   readonly refreshRequested = output<void>();
   readonly openServerSelectRequested = output<void>();
@@ -76,10 +96,22 @@ export class ServerChatPanelComponent {
   readonly adminPermissionRevoked = output<{ profileId: string; permissionId: string }>();
   readonly adminModerationRequested = output<{ profileId: string; action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn" }>();
   readonly adminNoteAdded = output<{ profileId: string; body: string }>();
+  readonly socialPlayersSearchChanged = output<string>();
+  readonly socialPlayersPageChanged = output<number>();
+  readonly friendAddCharacterRequested = output<{ profileId: string; characterId?: string }>();
+  readonly friendAddProfileRequested = output<string>();
+  readonly friendAcceptRequested = output<string>();
+  readonly friendRejectRequested = output<string>();
+  readonly friendshipRemoveRequested = output<string>();
+  readonly guildCreateRequested = output<string>();
+  readonly guildInviteRequested = output<{ guildId: string; targetProfileId: string }>();
+  readonly guildInvitationResponded = output<{ invitationId: string; accept: boolean }>();
+  readonly guildRoleChanged = output<{ guildId: string; characterId: string; role: "guild_master" | "officer" | "member" | "recruit" }>();
+  readonly guildLeaveRequested = output<string>();
 
-  protected readonly activePanel = signal<"chat" | "admin">("chat");
+  protected readonly activePanel = signal<"chat" | "friends" | "guild" | "players" | "admin">("chat");
 
-  protected selectPanel(panel: "chat" | "admin"): void {
+  protected selectPanel(panel: "chat" | "friends" | "guild" | "players" | "admin"): void {
     if (panel === "admin" && !this.canShowAdminPanel()) {
       return;
     }
@@ -87,7 +119,7 @@ export class ServerChatPanelComponent {
     this.activePanel.set(panel);
   }
 
-  protected isPanelActive(panel: "chat" | "admin"): boolean {
+  protected isPanelActive(panel: "chat" | "friends" | "guild" | "players" | "admin"): boolean {
     return this.activePanel() === panel;
   }
 

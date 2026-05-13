@@ -1,0 +1,55 @@
+<section class="gv-server-chat-player-directory">
+  <header class="gv-server-chat-player-directory__header">
+    <h4>Player Directory</h4>
+    <p>{{ total() }} profiles</p>
+  </header>
+
+  <input
+    type="search"
+    [value]="search()"
+    placeholder="Search players..."
+    aria-label="Search players"
+    (input)="searchChanged.emit(($any($event.target).value ?? '').trim())"
+  />
+
+  @if (loading()) {
+    <p class="gv-server-chat-player-directory__empty">Loading players...</p>
+  } @else if (entries().length === 0) {
+    <p class="gv-server-chat-player-directory__empty">No players found.</p>
+  } @else {
+    <ul class="gv-server-chat-player-directory__list">
+      @for (entry of sortedEntries(); track entry.profileId) {
+        <li class="gv-server-chat-player-directory__item">
+          <div>
+            <strong>{{ entry.profileDisplayName ?? entry.profileId }}</strong>
+            <p>
+              {{ entry.currentCharacterName ?? "No active character" }} ·
+              @if (entry.online) {
+                <span class="gv-server-chat-player-directory__chip">Online</span>
+              } @else {
+                Offline
+              }
+              @if (entry.lastOnlineAt) { · last {{ entry.lastOnlineAt | date: "short" }} }
+            </p>
+          </div>
+          <div class="gv-server-chat-player-directory__actions">
+            <button type="button" class="gv-server-chat-player-directory__button" (click)="actionRequested.emit({ action: 'whisper', profileId: entry.profileId, characterName: entry.currentCharacterName })">Whisper</button>
+            <button type="button" class="gv-server-chat-player-directory__button" (click)="actionRequested.emit({ action: 'friend_profile', profileId: entry.profileId, characterName: entry.currentCharacterName })">Friend</button>
+            <button type="button" class="gv-server-chat-player-directory__button" (click)="actionRequested.emit({ action: 'block', profileId: entry.profileId, characterName: entry.currentCharacterName })">Block</button>
+            <button type="button" class="gv-server-chat-player-directory__button" (click)="actionRequested.emit({ action: 'report', profileId: entry.profileId, characterName: entry.currentCharacterName })">Report</button>
+            <button type="button" class="gv-server-chat-player-directory__button" (click)="actionRequested.emit({ action: 'guild_invite', profileId: entry.profileId, characterName: entry.currentCharacterName })">Guild Invite</button>
+            @if (canAdminTools()) {
+              <button type="button" class="gv-server-chat-player-directory__button" (click)="actionRequested.emit({ action: 'admin_profile', profileId: entry.profileId, characterName: entry.currentCharacterName })">Admin</button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <footer class="gv-server-chat-player-directory__footer">
+    <button type="button" class="gv-server-chat-player-directory__button" [disabled]="page() <= 1" (click)="pageChanged.emit(page() - 1)">Prev</button>
+    <span>Page {{ page() }} / {{ totalPages() }}</span>
+    <button type="button" class="gv-server-chat-player-directory__button" [disabled]="page() >= totalPages()" (click)="pageChanged.emit(page() + 1)">Next</button>
+  </footer>
+</section>

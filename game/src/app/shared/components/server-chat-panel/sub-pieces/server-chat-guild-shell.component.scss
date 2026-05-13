@@ -1,0 +1,64 @@
+:host {
+  display: block;
+}
+
+.gv-server-chat-guild-shell {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-chat-guild-shell__header h4,
+.gv-server-chat-guild-shell__header p,
+.gv-server-chat-guild-shell__member p,
+.gv-server-chat-guild-shell__empty,
+h5 {
+  margin: 0;
+}
+
+.gv-server-chat-guild-shell__actions {
+  display: flex;
+  gap: calc(var(--gv-space-xs) * 1.3);
+}
+
+.gv-server-chat-guild-shell__actions input {
+  flex: 1;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-surface);
+  color: var(--gv-color-text-primary);
+  padding: 0.35rem 0.45rem;
+}
+
+.gv-server-chat-guild-shell__members,
+.gv-server-chat-guild-shell__invitations {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 1.4);
+}
+
+.gv-server-chat-guild-shell__member,
+.gv-server-chat-guild-shell__invitation {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-surface);
+  padding: 0.4rem 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-chat-guild-shell__member-actions {
+  display: flex;
+  gap: calc(var(--gv-space-xs) * 1.2);
+}
+
+.gv-server-chat-guild-shell__button {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}

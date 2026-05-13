@@ -67,6 +67,30 @@
         >
           Chat
         </button>
+        <button
+          type="button"
+          class="gv-server-chat-panel__tab"
+          [class.gv-server-chat-panel__tab--active]="isPanelActive('friends')"
+          (click)="selectPanel('friends')"
+        >
+          Friends
+        </button>
+        <button
+          type="button"
+          class="gv-server-chat-panel__tab"
+          [class.gv-server-chat-panel__tab--active]="isPanelActive('guild')"
+          (click)="selectPanel('guild')"
+        >
+          Guild
+        </button>
+        <button
+          type="button"
+          class="gv-server-chat-panel__tab"
+          [class.gv-server-chat-panel__tab--active]="isPanelActive('players')"
+          (click)="selectPanel('players')"
+        >
+          Players
+        </button>
         @if (canShowAdminPanel()) {
           <button
             type="button"
@@ -144,6 +168,53 @@
         [hint]="sendHint()"
         (sendRequested)="sendRequested.emit($event)"
       />
+      } @else if (isPanelActive("friends")) {
+        <gv-server-chat-friend-list
+          [friendships]="friendships()"
+          [loading]="friendsLoading()"
+          (acceptRequested)="friendAcceptRequested.emit($event)"
+          (rejectRequested)="friendRejectRequested.emit($event)"
+          (removeRequested)="friendshipRemoveRequested.emit($event)"
+          (addCharacterFriendRequested)="friendAddCharacterRequested.emit($event)"
+          (addProfileFriendRequested)="friendAddProfileRequested.emit($event)"
+          (whisperRequested)="
+            playerActionRequested.emit({
+              action: 'whisper',
+              targetProfileId: $event.profileId,
+              targetCharacterName: $event.characterName
+            })
+          "
+        />
+      } @else if (isPanelActive("guild")) {
+        <gv-server-chat-guild-shell
+          [guild]="currentGuild()"
+          [invitations]="guildInvitations()"
+          [loading]="guildLoading()"
+          (createGuildRequested)="guildCreateRequested.emit($event)"
+          (inviteRequested)="guildInviteRequested.emit($event)"
+          (invitationResponded)="guildInvitationResponded.emit($event)"
+          (roleChangeRequested)="guildRoleChanged.emit($event)"
+          (leaveGuildRequested)="guildLeaveRequested.emit($event)"
+        />
+      } @else if (isPanelActive("players")) {
+        <gv-server-chat-player-directory
+          [entries]="socialPlayers()"
+          [total]="socialPlayersTotal()"
+          [page]="socialPlayersPage()"
+          [pageSize]="socialPlayersPageSize()"
+          [search]="socialPlayersSearch()"
+          [loading]="socialPlayersLoading()"
+          [canAdminTools]="canShowAdminPanel()"
+          (searchChanged)="socialPlayersSearchChanged.emit($event)"
+          (pageChanged)="socialPlayersPageChanged.emit($event)"
+          (actionRequested)="
+            playerActionRequested.emit({
+              action: $event.action,
+              targetProfileId: $event.profileId,
+              targetCharacterName: $event.characterName
+            })
+          "
+        />
       } @else {
         <gv-server-chat-admin-panel
           [entries]="adminEntries()"

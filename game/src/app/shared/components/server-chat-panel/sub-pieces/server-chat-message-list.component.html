@@ -43,6 +43,13 @@
             >
               {{ displayName(message) }}
             </button>
+            @if (message.sender.badges.length > 0) {
+              <span class="gv-server-chat-message-list__badges">
+                @for (badge of message.sender.badges; track badge.type + ':' + badge.label) {
+                  <span class="gv-server-chat-message-list__badge">{{ badge.label }}</span>
+                }
+              </span>
+            }
             <p class="gv-server-chat-message-list__meta">
               {{ message.rank.toUpperCase() }} -
               {{ formatTime(message.createdAt) }}

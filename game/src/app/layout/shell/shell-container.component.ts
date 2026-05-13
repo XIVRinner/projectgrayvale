@@ -138,6 +138,17 @@ import {
       [selectedAdminProfileId]="serverChat.selectedAdminProfileId()"
       [adminProfileDetail]="serverChat.adminProfileDetail()"
       [grantablePermissions]="serverChat.grantablePermissions()"
+      [socialPlayers]="serverChat.socialPlayers()"
+      [socialPlayersTotal]="serverChat.socialPlayersTotal()"
+      [socialPlayersPage]="serverChat.socialPlayersPage()"
+      [socialPlayersPageSize]="serverChat.socialPlayersPageSize()"
+      [socialPlayersSearch]="serverChat.socialPlayersSearch()"
+      [socialPlayersLoading]="serverChat.socialPlayersLoading()"
+      [friendships]="serverChat.friendships()"
+      [friendsLoading]="serverChat.friendsLoading()"
+      [currentGuild]="serverChat.currentGuild()"
+      [guildInvitations]="serverChat.guildInvitations()"
+      [guildLoading]="serverChat.guildLoading()"
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
@@ -192,6 +203,18 @@ import {
       (adminPermissionRevoked)="revokeAdminPermission($event)"
       (adminModerationRequested)="handleAdminModerationRequest($event)"
       (adminNoteAdded)="addAdminNote($event)"
+      (socialPlayersSearchChanged)="setSocialPlayersSearch($event)"
+      (socialPlayersPageChanged)="setSocialPlayersPage($event)"
+      (friendAddCharacterRequested)="addCharacterFriend($event)"
+      (friendAddProfileRequested)="addProfileFriend($event)"
+      (friendAcceptRequested)="acceptFriendRequest($event)"
+      (friendRejectRequested)="rejectFriendRequest($event)"
+      (friendshipRemoveRequested)="removeFriendship($event)"
+      (guildCreateRequested)="createGuild($event)"
+      (guildInviteRequested)="inviteGuildMember($event)"
+      (guildInvitationResponded)="respondGuildInvitation($event)"
+      (guildRoleChanged)="changeGuildRole($event)"
+      (guildLeaveRequested)="leaveGuild($event)"
       (serverAdminSubmitted)="submitServerAdminDialog($event)"
       (serverModerationSubmitted)="submitServerModeration($event)"
       (serverModerationCleared)="closeServerModerationDialog()"
@@ -725,6 +748,129 @@ export class ShellContainerComponent {
     this.serverChat.selectAdminProfile(profileId);
   }
 
+  protected setSocialPlayersSearch(search: string): void {
+    this.serverChat.setSocialPlayersSearch(search);
+  }
+
+  protected setSocialPlayersPage(page: number): void {
+    this.serverChat.setSocialPlayersPage(page);
+  }
+
+  protected async addCharacterFriend(input: {
+    profileId: string;
+    characterId?: string;
+  }): Promise<void> {
+    if (!input.profileId.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.addCharacterFriend(input.profileId.trim(), input.characterId);
+      this.serverChat.showStatusMessage("Character friend added.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async addProfileFriend(profileId: string): Promise<void> {
+    if (!profileId.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.requestProfileFriend(profileId.trim());
+      this.serverChat.showStatusMessage("Profile friend request sent.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async acceptFriendRequest(friendshipId: string): Promise<void> {
+    try {
+      await this.serverChat.acceptFriendRequest(friendshipId);
+      this.serverChat.showStatusMessage("Friend request accepted.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async rejectFriendRequest(friendshipId: string): Promise<void> {
+    try {
+      await this.serverChat.rejectFriendRequest(friendshipId);
+      this.serverChat.showStatusMessage("Friend request rejected.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async removeFriendship(friendshipId: string): Promise<void> {
+    try {
+      await this.serverChat.removeFriendship(friendshipId);
+      this.serverChat.showStatusMessage("Friend removed.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async createGuild(name: string): Promise<void> {
+    if (!name.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.createGuild(name.trim());
+      this.serverChat.showStatusMessage("Guild created.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async inviteGuildMember(input: {
+    guildId: string;
+    targetProfileId: string;
+  }): Promise<void> {
+    if (!input.targetProfileId.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.inviteToGuild(input.guildId, input.targetProfileId.trim());
+      this.serverChat.showStatusMessage("Guild invitation sent.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async respondGuildInvitation(input: {
+    invitationId: string;
+    accept: boolean;
+  }): Promise<void> {
+    try {
+      await this.serverChat.respondGuildInvitation(input.invitationId, input.accept);
+      this.serverChat.showStatusMessage(input.accept ? "Guild invitation accepted." : "Guild invitation rejected.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async changeGuildRole(input: {
+    guildId: string;
+    characterId: string;
+    role: "guild_master" | "officer" | "member" | "recruit";
+  }): Promise<void> {
+    try {
+      await this.serverChat.setGuildMemberRole(input.guildId, input.characterId, input.role);
+      this.serverChat.showStatusMessage("Guild member role updated.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async leaveGuild(guildId: string): Promise<void> {
+    try {
+      await this.serverChat.leaveGuild(guildId);
+      this.serverChat.showStatusMessage("Left guild.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
   protected async grantAdminPermission(input: {
     profileId: string;
     permissionId: string;
@@ -783,12 +929,20 @@ export class ShellContainerComponent {
       return;
     }
 
-    if (request.action === "friend_profile" || request.action === "friend_character") {
-      const target = request.targetCharacterName ?? request.targetProfileId;
-
+    if (request.action === "friend_profile") {
       try {
-        await this.socialService.addFriendByName(target);
-        this.serverChat.showStatusMessage(`Added ${target} as a friend.`);
+        await this.serverChat.requestProfileFriend(request.targetProfileId);
+        this.serverChat.showStatusMessage("Profile friend request sent.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "friend_character") {
+      try {
+        await this.serverChat.addCharacterFriend(request.targetProfileId);
+        this.serverChat.showStatusMessage("Character friend added.");
       } catch (error) {
         this.serverChat.showStatusMessage(errorToMessage(error));
       }
