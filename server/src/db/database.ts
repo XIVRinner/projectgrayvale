@@ -297,6 +297,139 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
 
     CREATE INDEX IF NOT EXISTS idx_player_characters_profile
       ON player_characters (profile_id, created_at ASC);
+
+    CREATE TABLE IF NOT EXISTS player_presence (
+      profile_id TEXT PRIMARY KEY,
+      profile_display_name TEXT,
+      current_character_id TEXT,
+      current_character_name TEXT,
+      online INTEGER NOT NULL DEFAULT 0,
+      last_online_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_player_presence_online
+      ON player_presence (online, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS social_friend_links (
+      profile_id TEXT NOT NULL,
+      target_profile_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (profile_id, target_profile_id),
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS social_blocks (
+      profile_id TEXT NOT NULL,
+      target_profile_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (profile_id, target_profile_id),
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS guild_memberships (
+      character_id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      guild_name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (character_id)
+        REFERENCES player_characters (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guild_memberships_profile
+      ON guild_memberships (profile_id, joined_at DESC);
+
+    CREATE TABLE IF NOT EXISTS chat_channels_v2 (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      owner_profile_id TEXT,
+      guild_id TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(type, name)
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_channel_members_v2 (
+      channel_id TEXT NOT NULL,
+      profile_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      banned INTEGER NOT NULL DEFAULT 0,
+      joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (channel_id, profile_id),
+      FOREIGN KEY (channel_id)
+        REFERENCES chat_channels_v2 (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages_v2 (
+      id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      sender_profile_id TEXT,
+      sender_character_id TEXT,
+      sender_character_name TEXT,
+      body TEXT NOT NULL,
+      message_type TEXT NOT NULL DEFAULT 'user',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (channel_id)
+        REFERENCES chat_channels_v2 (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_v2_channel_created
+      ON chat_messages_v2 (channel_id, created_at ASC);
+
+    CREATE TABLE IF NOT EXISTS direct_conversations (
+      id TEXT PRIMARY KEY,
+      profile_a_id TEXT NOT NULL,
+      profile_b_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_direct_conversations_pair
+      ON direct_conversations (
+        CASE WHEN profile_a_id < profile_b_id THEN profile_a_id ELSE profile_b_id END,
+        CASE WHEN profile_a_id < profile_b_id THEN profile_b_id ELSE profile_a_id END
+      );
+
+    CREATE TABLE IF NOT EXISTS direct_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      sender_profile_id TEXT NOT NULL,
+      sender_character_id TEXT,
+      sender_character_name TEXT,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (conversation_id)
+        REFERENCES direct_conversations (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_direct_messages_conversation_created
+      ON direct_messages (conversation_id, created_at ASC);
   `;
 }
 

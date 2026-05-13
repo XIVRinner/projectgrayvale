@@ -40,6 +40,8 @@ import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
 import { PlayerProfileRepository } from "./player-profile/player-profile-repository";
 import { createPlayerProfileRouter } from "./player-profile/player-profile-routes";
+import { SocialRepository } from "./social/social-repository";
+import { createSocialRouter } from "./social/social-routes";
 import { registerAdminTagRoutes } from "./tags/admin-tag-routes";
 import { createTagRegistryRouter } from "./tags/tag-registry";
 import { TagRegistryService } from "./tags/tag-registry-service";
@@ -76,6 +78,7 @@ export async function createApp(
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
   const playerProfileRepository = new PlayerProfileRepository(db);
+  const socialRepository = new SocialRepository(db);
   const changelogRepository = new ChangelogRepository(db);
   const changelogService = new ChangelogService(changelogRepository);
   const changelogController = new ChangelogController(
@@ -150,7 +153,16 @@ export async function createApp(
   );
   app.use(
     "/api/player",
-    createPlayerProfileRouter(playerProfileRepository, multiplayerRepository, config),
+    createPlayerProfileRouter(
+      playerProfileRepository,
+      multiplayerRepository,
+      config,
+      socialRepository,
+    ),
+  );
+  app.use(
+    "/api",
+    createSocialRouter(socialRepository, multiplayerRepository),
   );
   registerDefinitionAssetRoutes(app, definitionAssetService);
   registerAdminDefinitionRoutes(

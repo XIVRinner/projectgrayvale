@@ -9,6 +9,7 @@ import type { CharacterContentBinding } from "./player-profile-types";
 import { extractSessionId } from "../auth/session-auth";
 import { buildServerProfile } from "../server-profile/server-profile-service";
 import { validateServerProfileToken } from "../server-profile/server-profile-token";
+import type { SocialRepository } from "../social/social-repository";
 
 const characterNameSchema = z.string().trim().min(1).max(80);
 const contentBindingSchema = z.object({
@@ -25,6 +26,7 @@ export function createPlayerProfileRouter(
   repository: PlayerProfileRepository,
   multiplayerRepository: MultiplayerRepository,
   config: ServerConfig,
+  socialRepository?: SocialRepository,
 ): Router {
   const router = Router();
 
@@ -81,7 +83,26 @@ export function createPlayerProfileRouter(
         return;
       }
 
-      response.json(summary);
+      const socialSummary = socialRepository
+        ? await socialRepository.getProfileSummary(playerUuid)
+        : null;
+      response.json({
+        ...summary,
+        profileId: summary.id,
+        currentCharacterId: socialSummary?.currentCharacterId,
+        currentCharacterName: socialSummary?.currentCharacterName,
+        badges: socialSummary?.badges ?? [],
+        friendSummary: {
+          count: socialSummary?.friendCount ?? 0,
+        },
+        guildSummary: socialSummary?.guild
+          ? {
+              id: socialSummary.guild.id,
+              name: socialSummary.guild.name,
+              role: socialSummary.guild.role,
+            }
+          : null,
+      });
     } catch (error) {
       next(error);
     }
