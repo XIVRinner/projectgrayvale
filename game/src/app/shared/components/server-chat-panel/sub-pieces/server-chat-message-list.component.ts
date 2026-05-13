@@ -200,6 +200,14 @@ function buildMessageActionItems(
   const targetPlayerUuid = message.playerUuid;
   const targetCharacterName = message.sender.characterName;
   const items: MenuItem[] = [
+    createActionItem("Inspect Profile", "pi pi-id-card", () =>
+      emit({
+        action: "inspect_profile",
+        targetProfileId,
+        targetPlayerUuid,
+        targetCharacterName,
+      }),
+    ),
     createActionItem("Whisper", "pi pi-send", () =>
       emit({
         action: "whisper",

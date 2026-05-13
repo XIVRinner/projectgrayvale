@@ -19,6 +19,7 @@ import type {
   ServerChatMessageView,
   ServerModerationRequest,
   ServerChatPanelView,
+  ServerRelayProfileView,
   ServerFooterSummaryView,
   ServerPresencePlayerView,
 } from "../../core/services/server-chat.models";
@@ -125,6 +126,7 @@ export class ShellViewComponent {
   readonly isServerAdminOpen = input.required<boolean>();
   readonly serverFooterSummary = input.required<ServerFooterSummaryView>();
   readonly serverChatPanel = input.required<ServerChatPanelView>();
+  readonly serverRelayProfile = input<ServerRelayProfileView | null>(null);
   readonly serverChatPlayers =
     input.required<readonly ServerPresencePlayerView[]>();
   readonly serverChatMessages =

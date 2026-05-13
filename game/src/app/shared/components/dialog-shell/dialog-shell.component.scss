@@ -78,6 +78,20 @@
   overflow: auto;
 }
 
+.gv-dialog-shell[data-width="relay"] {
+  inline-size: 85vw;
+  block-size: 95vh;
+  max-block-size: 95vh;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.gv-dialog-shell[data-width="relay"] .gv-dialog-shell__body {
+  min-block-size: 0;
+  block-size: 100%;
+  overflow: auto;
+}
+
 .gv-dialog-shell[data-width="creator"] {
   inline-size: min(95vw, 100%);
   block-size: 95dvh;

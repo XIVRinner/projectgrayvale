@@ -1,4 +1,4 @@
-import { Component, input, output, signal, viewChild } from "@angular/core";
+import { Component, effect, input, output, signal, viewChild } from "@angular/core";
 import { MenuItem } from "primeng/api";
 import { ContextMenu, ContextMenuModule } from "primeng/contextmenu";
 
@@ -13,6 +13,7 @@ import {
   ServerChatCustomEmojiView,
   ServerChatMessageView,
   ServerChatPlayerActionRequest,
+  ServerRelayProfileView,
   ServerModerationRequest,
   ServerChatPanelView,
   ServerPresencePlayerView,
@@ -45,6 +46,7 @@ import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-l
 })
 export class ServerChatPanelComponent {
   readonly panel = input.required<ServerChatPanelView>();
+  readonly relayProfile = input<ServerRelayProfileView | null>(null);
   readonly players = input.required<readonly ServerPresencePlayerView[]>();
   readonly messages = input.required<readonly ServerChatMessageView[]>();
   readonly customEmojis = input.required<readonly ServerChatCustomEmojiView[]>();
@@ -115,10 +117,40 @@ export class ServerChatPanelComponent {
   readonly channelCloseRequested = output<string>();
   readonly channelDestroyRequested = output<string>();
 
+  protected readonly activeRootMenu = signal<"communications" | "profile">(
+    "communications",
+  );
   protected readonly activePanel = signal<"chat" | "friends" | "guild" | "players" | "admin">("chat");
   protected readonly contextMenuItems = signal<MenuItem[]>([]);
   protected readonly activeContextChannelId = signal<string | null>(null);
+  protected readonly selectedProfileAvatarPath = signal<string | null>(null);
+  protected readonly inspectProfile = signal<InspectProfilePreview | null>(null);
+  protected readonly profileAvatarOptions = PROFILE_AVATAR_OPTIONS;
   protected readonly contextMenu = viewChild<ContextMenu>("channelContextMenu");
+
+  constructor() {
+    effect(() => {
+      const profileId = this.relayProfile()?.profileId;
+
+      if (!profileId) {
+        this.selectedProfileAvatarPath.set(null);
+        return;
+      }
+
+      const persisted = readProfileAvatar(profileId);
+      this.selectedProfileAvatarPath.set(
+        persisted ?? PROFILE_AVATAR_OPTIONS[0]?.src ?? null,
+      );
+    });
+  }
+
+  protected selectRootMenu(menu: "communications" | "profile"): void {
+    this.activeRootMenu.set(menu);
+  }
+
+  protected isRootMenuActive(menu: "communications" | "profile"): boolean {
+    return this.activeRootMenu() === menu;
+  }
 
   protected selectPanel(panel: "chat" | "friends" | "guild" | "players" | "admin"): void {
     if (panel === "admin" && !this.canShowAdminPanel()) {
@@ -219,6 +251,42 @@ export class ServerChatPanelComponent {
     this.moderatePlayerRequested.emit(player);
   }
 
+  protected handlePlayerActionRequest(request: ServerChatPlayerActionRequest): void {
+    if (request.action === "inspect_profile") {
+      this.openInspectProfile(request);
+      return;
+    }
+
+    this.playerActionRequested.emit(request);
+  }
+
+  protected profileAvatarPath(): string | null {
+    return this.selectedProfileAvatarPath();
+  }
+
+  protected selectProfileAvatar(path: string): void {
+    const profileId = this.relayProfile()?.profileId;
+
+    if (!profileId) {
+      return;
+    }
+
+    this.selectedProfileAvatarPath.set(path);
+    writeProfileAvatar(profileId, path);
+  }
+
+  protected profileCharacterFriendships() {
+    return this.relayProfile()?.friendships.filter((entry) => entry.type === "character") ?? [];
+  }
+
+  protected profileAccountFriendships() {
+    return this.relayProfile()?.friendships.filter((entry) => entry.type === "profile") ?? [];
+  }
+
+  protected closeInspectProfile(): void {
+    this.inspectProfile.set(null);
+  }
+
   protected closeChannelContextMenu(): void {
     this.activeContextChannelId.set(null);
     this.contextMenu()?.hide();
@@ -284,5 +352,79 @@ export class ServerChatPanelComponent {
       this.contextMenuItems.set(items);
       this.contextMenu()?.show(event);
     }
+  }
+
+  private openInspectProfile(request: ServerChatPlayerActionRequest): void {
+    const targetProfileId = request.targetProfileId.trim();
+
+    if (!targetProfileId) {
+      return;
+    }
+
+    const playerByUuid = request.targetPlayerUuid
+      ? this.players().find((entry) => entry.playerUuid === request.targetPlayerUuid)
+      : undefined;
+    const playerByProfile =
+      playerByUuid ??
+      this.players().find((entry) => entry.profileId?.trim() === targetProfileId);
+    const latestMessage = this.messages()
+      .slice()
+      .reverse()
+      .find((entry) => entry.sender.profileId === targetProfileId);
+    const displayName =
+      request.targetCharacterName?.trim() ||
+      playerByProfile?.displayName?.trim() ||
+      latestMessage?.displayName?.trim() ||
+      latestMessage?.sender.characterName?.trim() ||
+      latestMessage?.sender.profileDisplayName?.trim() ||
+      targetProfileId;
+
+    this.inspectProfile.set({
+      profileId: targetProfileId,
+      displayName,
+      avatarPath: playerByProfile?.avatarPath ?? latestMessage?.avatarPath,
+    });
+  }
+}
+
+interface InspectProfilePreview {
+  readonly profileId: string;
+  readonly displayName: string;
+  readonly avatarPath?: string;
+}
+
+interface ProfileAvatarOption {
+  readonly id: string;
+  readonly label: string;
+  readonly src: string;
+}
+
+const PROFILE_AVATAR_OPTIONS: readonly ProfileAvatarOption[] = [
+  { id: "human", label: "Human", src: "assets/images/character/race-icons/human.png" },
+  { id: "elf", label: "Elf", src: "assets/images/character/race-icons/elf.png" },
+  { id: "night-elf", label: "Night Elf", src: "assets/images/character/race-icons/nelf.png" },
+  { id: "catfolk", label: "Catfolk", src: "assets/images/character/race-icons/catfolk.svg" },
+  { id: "oni", label: "Oni", src: "assets/images/character/race-icons/oni.png" },
+  { id: "golem", label: "Golem", src: "assets/images/character/race-icons/golem.svg" },
+  { id: "high-goblin", label: "High Goblin", src: "assets/images/character/race-icons/highgoblin.png" },
+];
+
+function avatarStorageKey(profileId: string): string {
+  return `grayvale:relay-profile-avatar:${profileId}`;
+}
+
+function readProfileAvatar(profileId: string): string | null {
+  try {
+    return localStorage.getItem(avatarStorageKey(profileId));
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileAvatar(profileId: string, path: string): void {
+  try {
+    localStorage.setItem(avatarStorageKey(profileId), path);
+  } catch {
+    // Ignore browser storage failures.
   }
 }

@@ -9,6 +9,10 @@ import { ActivityService } from "../../core/services/activity.service";
 import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
 import { ChangelogService } from "../../features/changelog/changelog.service";
 import type { ChangelogRelease } from "../../features/changelog/changelog.types";
+import {
+  PlayerProfileApiService,
+  type PlayerProfileData,
+} from "../../features/player-profile/player-profile-api.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
@@ -26,6 +30,7 @@ import { GuildService } from "../../core/services/guild.service";
 import { SocialService } from "../../core/services/social.service";
 import type {
   ServerChatPlayerActionRequest,
+  ServerRelayProfileView,
   ServerModerationRequest,
   ServerPresencePlayerView,
 } from "../../core/services/server-chat.models";
@@ -113,6 +118,7 @@ import {
       [isServerAdminOpen]="isServerAdminOpen()"
       [serverFooterSummary]="serverChat.footerSummary()"
       [serverChatPanel]="serverChat.panel()"
+      [serverRelayProfile]="serverRelayProfile()"
       [serverChatPlayers]="serverChat.players()"
       [serverChatMessages]="serverChat.messages()"
       [serverChatCustomEmojis]="serverChat.customEmojis()"
@@ -236,6 +242,7 @@ export class ShellContainerComponent {
   private readonly activityService = inject(ActivityService);
   private readonly combatEncounter = inject(CombatEncounterService);
   private readonly changelogService = inject(ChangelogService);
+  private readonly playerProfileApi = inject(PlayerProfileApiService);
   private readonly debugLog = inject(DebugLogService);
   private readonly gameplayLog = inject(GameplayLogService);
   private readonly gameQuests = inject(GameQuestService);
@@ -273,6 +280,7 @@ export class ShellContainerComponent {
   protected readonly whatsNewUnreadCount = signal(0);
   protected readonly selectedModerationPlayer =
     signal<ServerPresencePlayerView | null>(null);
+  protected readonly relayProfileState = signal<PlayerProfileData | null>(null);
   protected readonly trackedQuestIdsState = signal<readonly string[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(
     null,
@@ -606,6 +614,25 @@ export class ShellContainerComponent {
     };
   });
 
+  readonly serverRelayProfile = computed<ServerRelayProfileView | null>(() => {
+    const profile = this.relayProfileState();
+
+    if (!profile) {
+      return null;
+    }
+
+    return {
+      profileId: profile.id,
+      playerUuid: this.serverChat.currentPlayerUuid(),
+      displayName: profile.displayName?.trim() || profile.id,
+      characters: profile.characters.map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+      })),
+      friendships: this.serverChat.friendships(),
+    };
+  });
+
   protected openCharacterCreation(): void {
     this.logUi("Opening character creation dialog.");
     this.closeServerChat();
@@ -717,6 +744,7 @@ export class ShellContainerComponent {
     this.isGegVisualizerOpen.set(false);
     this.isServerChatOpen.set(true);
     this.serverChat.openPanel();
+    void this.refreshRelayProfile();
   }
 
   protected closeServerChat(): void {
@@ -734,6 +762,7 @@ export class ShellContainerComponent {
   protected refreshServerChat(): void {
     this.logUi("Refreshing server relay data.");
     void this.serverChat.refreshAll();
+    void this.refreshRelayProfile();
   }
 
   protected selectServerChatChannel(channelId: string): void {
@@ -1187,6 +1216,7 @@ export class ShellContainerComponent {
   protected selectServer(serverId: string): void {
     this.logUi("Selecting server.", { serverId });
     this.serverConnection.selectServer(serverId);
+    this.relayProfileState.set(null);
     this.serverStatusMessage.set(`Selected ${serverId}.`);
   }
 
@@ -1244,6 +1274,7 @@ export class ShellContainerComponent {
       this.serverStatusMessage.set(
         `Connected ${session.playerUuid} as ${session.rank.toUpperCase()}.`,
       );
+      await this.refreshRelayProfile();
       this.logUi("Connected player to server.", session);
     } catch (error) {
       const message = errorToMessage(error);
@@ -1318,6 +1349,20 @@ export class ShellContainerComponent {
 
   protected async giveAdminRights(adminPassword: string): Promise<void> {
     await this.grantAdminRights(adminPassword, "server-select");
+  }
+
+  private async refreshRelayProfile(): Promise<void> {
+    if (!this.serverConnection.session()) {
+      this.relayProfileState.set(null);
+      return;
+    }
+
+    try {
+      const profile = await this.playerProfileApi.getProfile();
+      this.relayProfileState.set(profile);
+    } catch {
+      this.relayProfileState.set(null);
+    }
   }
 
   private async grantAdminRights(

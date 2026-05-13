@@ -145,6 +145,14 @@ function buildPlayerActionItems(
 
   if (targetProfileId) {
     items.push(
+      createActionItem("Inspect Profile", "pi pi-id-card", () =>
+        emit({
+          action: "inspect_profile",
+          targetProfileId,
+          targetPlayerUuid: player.playerUuid,
+          targetCharacterName: player.displayName,
+        }),
+      ),
       createActionItem("Whisper", "pi pi-send", () =>
         emit({
           action: "whisper",

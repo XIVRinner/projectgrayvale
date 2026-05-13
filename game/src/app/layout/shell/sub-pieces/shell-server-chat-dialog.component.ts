@@ -11,6 +11,7 @@ import {
   type ServerChatCustomEmojiView,
   type ServerChatMessageView,
   type ServerChatPlayerActionRequest,
+  type ServerRelayProfileView,
   type ServerModerationRequest,
   type ServerChatPanelView,
   type ServerPresencePlayerView,
@@ -28,6 +29,7 @@ import { ServerChatPanelComponent } from "../../../shared/components/server-chat
 export class ShellServerChatDialogComponent {
   readonly open = input.required<boolean>();
   readonly panel = input.required<ServerChatPanelView>();
+  readonly relayProfile = input<ServerRelayProfileView | null>(null);
   readonly players = input.required<readonly ServerPresencePlayerView[]>();
   readonly messages = input.required<readonly ServerChatMessageView[]>();
   readonly customEmojis = input.required<readonly ServerChatCustomEmojiView[]>();

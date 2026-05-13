@@ -2,7 +2,7 @@
   <gv-dialog-shell
     [open]="open()"
     variant="special"
-    width="wide"
+    width="relay"
     eyebrow="Server"
     title="World Relay"
     subtitle="Presence readout, online players, and shard chat for the selected server."
@@ -11,6 +11,7 @@
   >
     <gv-server-chat-panel
       [panel]="panel()"
+      [relayProfile]="relayProfile()"
       [players]="players()"
       [messages]="messages()"
       [customEmojis]="customEmojis()"

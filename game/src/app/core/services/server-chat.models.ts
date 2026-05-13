@@ -110,6 +110,19 @@ export interface ServerChatPanelView {
   readonly activeChannelId: string | null;
 }
 
+export interface ServerRelayProfileCharacterView {
+  readonly id: string;
+  readonly name: string;
+}
+
+export interface ServerRelayProfileView {
+  readonly profileId: string;
+  readonly playerUuid: string | null;
+  readonly displayName: string;
+  readonly characters: readonly ServerRelayProfileCharacterView[];
+  readonly friendships: readonly SocialFriendshipView[];
+}
+
 export interface ServerChatChannelView {
   readonly id: string;
   readonly name: string;
@@ -152,6 +165,7 @@ export interface ServerDirectConversationView {
 export interface ServerChatPlayerActionRequest {
   readonly action:
     | "whisper"
+    | "inspect_profile"
     | "friend_character"
     | "friend_profile"
     | "guild_invite"
