@@ -374,7 +374,7 @@ describe("GameplayLogService", () => {
       latestLog = entries;
     });
 
-    gameplayLog.appendEntry({
+    gameplayLog.appendManualEntry({
       type: "combat",
       text: "Defeat penalty: 30s attack lockout",
     });

@@ -259,7 +259,7 @@ export class CombatEncounterService {
       // and how combat HP should persist back into the main player model.
       // Do not implement until: the defeat consequence contract is defined.
       for (const penalty of finalized.penalties) {
-        this.gameplayLog.appendEntry({
+        this.gameplayLog.appendManualEntry({
           type: "combat",
           text: `Defeat penalty: ${penalty.durationSeconds}s attack lockout`,
         });

@@ -54,7 +54,7 @@ export class GameplayLogService {
       return;
     }
 
-    this.appendEntry(mappedEntry);
+    this.appendStoredEntry(mappedEntry);
   }
 
   processWorldUpdate(event: WorldUpdateEvent): void {
@@ -64,7 +64,7 @@ export class GameplayLogService {
       return;
     }
 
-    this.appendEntry(mappedEntry);
+    this.appendStoredEntry(mappedEntry);
   }
 
   processDialogEvent(event: GameDialogEvent): void {
@@ -74,7 +74,7 @@ export class GameplayLogService {
       return;
     }
 
-    this.appendEntry(mappedEntry);
+    this.appendStoredEntry(mappedEntry);
   }
 
   processQuestEvent(event: GameQuestEvent): void {
@@ -84,10 +84,17 @@ export class GameplayLogService {
       return;
     }
 
-    this.appendEntry(mappedEntry);
+    this.appendStoredEntry(mappedEntry);
   }
 
-  private appendEntry(entry: StoredGameplayLogEntry): void {
+  appendManualEntry(entry: GameLogEntry): void {
+    this.appendStoredEntry({
+      entry,
+      mergeState: null,
+    });
+  }
+
+  private appendStoredEntry(entry: StoredGameplayLogEntry): void {
     let next = appendGameplayLogEntry(this.storedEntries, entry);
     if (next.length > MAX_STORED_LOG_ENTRIES) {
       next = next.slice(-MAX_STORED_LOG_ENTRIES);

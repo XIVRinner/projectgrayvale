@@ -87,7 +87,7 @@ export class KairosEditDialogComponent {
     activities: [],
     actions: [],
   });
-  protected readonly tagTargetOptions = TAG_TARGET_OPTIONS;
+  protected readonly tagTargetOptions = [...TAG_TARGET_OPTIONS];
   protected readonly tagRegistry = signal<KairosTagRegistry | null>(null);
   protected readonly tagRegistryLoading = signal(false);
   protected readonly tagRegistrySaving = signal(false);
