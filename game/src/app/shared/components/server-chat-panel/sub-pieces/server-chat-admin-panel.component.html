@@ -12,6 +12,7 @@
   <div class="gv-server-chat-admin-panel__search">
     <input
       type="search"
+      aria-label="Search admin player profiles"
       [value]="search()"
       placeholder="Search profiles or current character..."
       (input)="searchChanged.emit(($any($event.target).value ?? '').trim())"
@@ -87,7 +88,7 @@
           }
         </ul>
         <div>
-          <input #newNote type="text" placeholder="Add admin note..." />
+          <input #newNote type="text" aria-label="Add admin note text" placeholder="Add admin note..." />
           <button
             type="button"
             class="gv-server-chat-admin-panel__button"

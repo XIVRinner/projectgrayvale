@@ -414,8 +414,11 @@ export class ServerChatService {
       let directFetchFailed = false;
       const [channelsResponse, directResponse] = await Promise.all([
         this.chatApi.loadChannels().then((channels) => ({ channels })),
-        this.directMessageService.loadDirectConversations().then((conversations) => ({ conversations })).catch(() => {
+        this.directMessageService.loadDirectConversations().then((conversations) => ({ conversations })).catch((error) => {
           directFetchFailed = true;
+          if (this.panelOpenState()) {
+            this.statusMessageState.set(toErrorMessage(error));
+          }
           return { conversations: [] as readonly ServerDirectConversationView[] };
         }),
       ]);
@@ -427,9 +430,7 @@ export class ServerChatService {
       this.directConversationsState.set(directResponse.conversations);
       this.channelsState.set(normalizedChannels);
       if (directFetchFailed && this.panelOpenState()) {
-        this.statusMessageState.set(
-          "Direct conversations are temporarily unavailable.",
-        );
+        this.statusMessageState.set("Direct conversations are temporarily unavailable. Try again shortly.");
       }
 
       if (

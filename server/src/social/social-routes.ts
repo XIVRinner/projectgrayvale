@@ -1328,13 +1328,6 @@ export function createSocialRouter(
         });
         return;
       }
-      if (isErrorCode(error, "guild_invite_forbidden")) {
-        response.status(403).json({
-          error: "guild_invite_forbidden",
-          message: "Guild master or officer role is required to invite.",
-        });
-        return;
-      }
       next(error);
     }
   });
@@ -1740,6 +1733,13 @@ export function createSocialRouter(
         response.status(400).json({
           error: "invalid_request",
           message: error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+      if (isErrorCode(error, "guild_invite_forbidden")) {
+        response.status(403).json({
+          error: "guild_invite_forbidden",
+          message: "Guild master or officer role is required to invite.",
         });
         return;
       }

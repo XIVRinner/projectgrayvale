@@ -774,7 +774,9 @@ export class ShellContainerComponent {
     request: ServerChatPlayerActionRequest,
   ): Promise<void> {
     if (request.action === "whisper" && request.targetCharacterName) {
-      const safeTargetName = request.targetCharacterName.replace(/"/g, "").trim();
+      const safeTargetName = request.targetCharacterName
+        .replace(/[^a-zA-Z0-9 '\-]/g, "")
+        .trim();
       this.serverChat.showStatusMessage(
         `Whisper target selected: use /whisper "${safeTargetName}" <message>`,
       );
@@ -836,7 +838,7 @@ export class ShellContainerComponent {
 
     if (request.action === "guild_invite" && request.targetProfileId) {
       try {
-        const guildResponse = await this.guildService.loadCurrentGuild() as { guild?: { guildId: string } };
+        const guildResponse = await this.guildService.loadCurrentGuild();
 
         if (!guildResponse.guild?.guildId) {
           this.serverChat.showStatusMessage("Join or create a guild before inviting.");

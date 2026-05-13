@@ -9,7 +9,19 @@ export class GuildService {
   private readonly http = inject(HttpClient);
   private readonly serverConnection = inject(ServerConnectionService);
 
-  loadCurrentGuild(): Promise<unknown> {
+  loadCurrentGuild(): Promise<{
+    guild: {
+      guildId: string;
+      guildName: string;
+      role: string;
+      members: readonly {
+        characterId: string;
+        profileId: string;
+        name: string;
+        role: string;
+      }[];
+    } | null;
+  }> {
     return firstValueFrom(
       this.http.get(this.serverConnection.serverApiUrl("/api/guilds/current"), {
         withCredentials: true,

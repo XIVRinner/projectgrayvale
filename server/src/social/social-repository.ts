@@ -30,13 +30,13 @@ const RESERVED_CHANNEL_NAMES = new Set([
   "server",
 ]);
 
-const GRANTABLE_PROFILE_PERMISSIONS = [
+const GRANTABLE_PROFILE_PERMISSIONS = new Set([
   "admin_panel",
   "can_create_custom_channels",
   "can_invite_guild",
   "can_moderate_chat",
   "can_priority_reports",
-] as const;
+]);
 
 interface SessionActorRow {
   readonly session_id: string;
@@ -1512,7 +1512,7 @@ export class SocialRepository {
   }
 
   getGrantablePermissions(): readonly string[] {
-    return [...GRANTABLE_PROFILE_PERMISSIONS];
+    return [...GRANTABLE_PROFILE_PERMISSIONS.values()];
   }
 
   async getProfilePermissions(profileId: string): Promise<readonly AdminPermissionDto[]> {
@@ -1559,7 +1559,7 @@ export class SocialRepository {
     targetProfileId: string,
     permissionId: string,
   ): Promise<void> {
-    if (!GRANTABLE_PROFILE_PERMISSIONS.includes(permissionId as (typeof GRANTABLE_PROFILE_PERMISSIONS)[number])) {
+    if (!GRANTABLE_PROFILE_PERMISSIONS.has(permissionId)) {
       throw new Error("permission_not_grantable");
     }
 
@@ -2838,7 +2838,7 @@ export class SocialRepository {
   }
 
   private async ensureGuildChannel(guildId: string, guildName: string): Promise<ChannelRow> {
-    const name = `guild:${guildName}`;
+    const name = `guild:${guildId}`;
     const existing = await this.db.get<ChannelRow>(
       `
         SELECT id, name, type, owner_profile_id, guild_id
