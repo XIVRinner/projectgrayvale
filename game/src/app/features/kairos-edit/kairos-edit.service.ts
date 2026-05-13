@@ -8,21 +8,9 @@ import { ServerConnectionService } from "../../core/services/server-connection.s
 import type {
   KairosDefinitionListItem,
   KairosDefinitionType,
+  KairosTagRegistry,
   KairosTagOption,
 } from "./kairos-edit.types";
-
-interface TagRegistryResponse {
-  readonly categories: readonly {
-    readonly id: string;
-    readonly label: string;
-    readonly tags: readonly {
-      readonly id: string;
-      readonly label: string;
-      readonly description: string;
-    }[];
-    readonly allowedFor: readonly string[];
-  }[];
-}
 
 interface SaveDefinitionResponse {
   readonly id: string;
@@ -119,14 +107,14 @@ export class KairosEditService {
       return cached;
     }
 
-    const registry = await firstValueFrom(
-      this.http.get<TagRegistryResponse>(this.serverConnection.serverApiUrl("/api/tags"), {
-        withCredentials: true,
-      }),
-    );
+    const registry = await this.getTagRegistry();
 
     const options = registry.categories
-      .filter((category) => category.allowedFor.includes(type))
+      .filter((category) =>
+        type === "locations"
+          ? category.allowedFor.includes("locations") || category.allowedFor.includes("sublocations")
+          : category.allowedFor.includes(type),
+      )
       .flatMap((category) =>
         category.tags.map((tag) => ({
           id: tag.id,
@@ -140,5 +128,23 @@ export class KairosEditService {
 
     this.tagOptionCache.set(type, options);
     return options;
+  }
+
+  async getTagRegistry(): Promise<KairosTagRegistry> {
+    return firstValueFrom(
+      this.http.get<KairosTagRegistry>(this.serverConnection.serverApiUrl("/api/tags"), {
+        withCredentials: true,
+      }),
+    );
+  }
+
+  async saveTagRegistry(registry: KairosTagRegistry): Promise<KairosTagRegistry> {
+    const response = await firstValueFrom(
+      this.http.put<KairosTagRegistry>(this.serverConnection.serverApiUrl("/api/admin/tags"), registry, {
+        withCredentials: true,
+      }),
+    );
+    this.tagOptionCache.clear();
+    return response;
   }
 }

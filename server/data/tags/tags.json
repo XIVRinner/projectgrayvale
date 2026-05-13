@@ -4,7 +4,7 @@
       "id": "inventory_classification",
       "label": "Inventory Classification",
       "description": "Tags used to group editable item and material definitions.",
-      "allowedFor": ["items", "materials", "activities"],
+      "allowedFor": ["items", "materials", "activities", "actions"],
       "tags": [
         { "id": "starter", "label": "Starter", "description": "Used by starter gear or early-loop content." },
         { "id": "junk", "label": "Junk", "description": "Marks low-value or disposable equipment." },
@@ -21,7 +21,7 @@
       "id": "combat_style",
       "label": "Combat Style",
       "description": "Tags describing combat role or weapon style.",
-      "allowedFor": ["items", "activities", "skills"],
+      "allowedFor": ["items", "activities", "actions"],
       "tags": [
         { "id": "dagger", "label": "Dagger", "description": "Dagger weapon family." },
         { "id": "short_blade", "label": "Short Blade", "description": "Short-blade weapon specialization." },
@@ -30,14 +30,14 @@
         { "id": "defense", "label": "Defense", "description": "Defensive combat skills or content." },
         { "id": "ranged", "label": "Ranged", "description": "Ranged combat skills or content." },
         { "id": "magic", "label": "Magic", "description": "Magic-oriented skills or content." },
-        { "id": "healing", "label": "Healing", "description": "Healing-oriented actions, activities, or skills." }
+        { "id": "healing", "label": "Healing", "description": "Healing-oriented actions and activities." }
       ]
     },
     {
       "id": "equipment_slot",
       "label": "Equipment Slot",
       "description": "Tags used to classify wearable equipment pieces.",
-      "allowedFor": ["items"],
+      "allowedFor": ["items", "materials"],
       "tags": [
         { "id": "head", "label": "Head", "description": "Head slot equipment." },
         { "id": "chest", "label": "Chest", "description": "Chest slot equipment." },
@@ -50,7 +50,7 @@
       "id": "resource_family",
       "label": "Resource Family",
       "description": "Tags describing raw material families and gathering outputs.",
-      "allowedFor": ["materials", "activities"],
+      "allowedFor": ["materials", "activities", "items"],
       "tags": [
         { "id": "herb", "label": "Herb", "description": "Plant-based gathering resource." },
         { "id": "fiber", "label": "Fiber", "description": "Fiber or cloth-making resource." },
@@ -68,23 +68,23 @@
       "id": "crafting_discipline",
       "label": "Crafting Discipline",
       "description": "Tags that map content to crafting or service disciplines.",
-      "allowedFor": ["materials", "activities", "actions", "skills"],
+      "allowedFor": ["materials", "activities", "actions", "items"],
       "tags": [
-        { "id": "alchemy", "label": "Alchemy", "description": "Alchemy-related material or skill." },
-        { "id": "cooking", "label": "Cooking", "description": "Cooking-related material or skill." },
+        { "id": "alchemy", "label": "Alchemy", "description": "Alchemy-related material or activity." },
+        { "id": "cooking", "label": "Cooking", "description": "Cooking-related material or activity." },
         { "id": "leather", "label": "Leather", "description": "Leather-related material grouping." },
         { "id": "labour", "label": "Labour", "description": "Work or labour-related content." },
         { "id": "service", "label": "Service", "description": "Service-oriented content." },
-        { "id": "general", "label": "General", "description": "General-purpose skill grouping." },
-        { "id": "knowledge", "label": "Knowledge", "description": "Knowledge-focused skill grouping." },
-        { "id": "utility", "label": "Utility", "description": "Utility-focused skill grouping." }
+        { "id": "general", "label": "General", "description": "General-purpose taxonomy placeholder." },
+        { "id": "knowledge", "label": "Knowledge", "description": "Knowledge-focused taxonomy placeholder." },
+        { "id": "utility", "label": "Utility", "description": "Utility-focused taxonomy placeholder." }
       ]
     },
     {
       "id": "world_context",
       "label": "World Context",
       "description": "Tags that describe where or how content appears in the world.",
-      "allowedFor": ["activities", "actions"],
+      "allowedFor": ["activities", "actions", "locations", "sublocations"],
       "tags": [
         { "id": "village", "label": "Village", "description": "Village-based content." },
         { "id": "forest", "label": "Forest", "description": "Forest-based content." },
@@ -103,7 +103,7 @@
       "id": "progression_tier",
       "label": "Progression Tier",
       "description": "Tags that identify content tiers.",
-      "allowedFor": ["items", "materials", "activities"],
+      "allowedFor": ["items", "materials", "activities", "actions", "locations", "sublocations"],
       "tags": [
         { "id": "t1", "label": "Tier 1", "description": "Baseline tier-one content." }
       ]

@@ -3,6 +3,31 @@ import type { DefinitionApiType } from "../../data/api-paths";
 export type KairosDefinitionType = DefinitionApiType;
 export type KairosPathSegment = string | number;
 export type KairosFieldPath = readonly KairosPathSegment[];
+export type KairosTagTarget =
+  | "items"
+  | "materials"
+  | "locations"
+  | "sublocations"
+  | "activities"
+  | "actions";
+
+export interface KairosTagRegistryTag {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+}
+
+export interface KairosTagRegistryCategory {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+  readonly allowedFor: readonly KairosTagTarget[];
+  readonly tags: readonly KairosTagRegistryTag[];
+}
+
+export interface KairosTagRegistry {
+  readonly categories: readonly KairosTagRegistryCategory[];
+}
 
 export interface KairosTagOption {
   readonly id: string;
@@ -75,10 +100,19 @@ export const KAIROS_TABS: readonly {
   },
   {
     id: "tags",
-    label: "Tags — WIP",
-    description: "Tag registry editing remains intentionally out of scope for this milestone."
+    label: "Tags",
+    description: "View and edit the centralized tag registry used by all definition editors."
   }
 ] as const;
+
+export const TAG_TARGET_OPTIONS: readonly { readonly value: KairosTagTarget; readonly label: string }[] = [
+  { value: "items", label: "Items" },
+  { value: "materials", label: "Materials" },
+  { value: "locations", label: "Locations" },
+  { value: "sublocations", label: "Sublocations" },
+  { value: "activities", label: "Activities" },
+  { value: "actions", label: "Actions" },
+];
 
 export const ITEM_CATEGORY_OPTIONS = [
   { label: "Equipment", value: "equipment" },

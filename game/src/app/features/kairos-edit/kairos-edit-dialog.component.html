@@ -22,10 +22,106 @@
         @for (tab of tabs; track tab.id) {
           <p-tabpanel [value]="tab.id">
             @if (tab.id === 'tags') {
-              <section class="gv-kairos-edit__wip">
-                <span class="gv-kairos-edit__wip-pill">WIP</span>
-                <h2>Tags registry editing is out of scope for this milestone.</h2>
-                <p>Definitions can already select from the centralized tag registry, but editing the registry itself lands later.</p>
+              <section class="gv-kairos-tags" aria-label="Kairos tag registry editor">
+                <aside class="gv-kairos-tags__categories">
+                  <header class="gv-kairos-tags__categories-header">
+                    <h3>Categories</h3>
+                    <button type="button" pButton size="small" label="Add" (click)="addTagCategory()"></button>
+                  </header>
+                  <ul class="gv-kairos-tags__category-list">
+                    @for (category of tagRegistry()?.categories ?? []; track category.id + '-' + $index) {
+                      <li>
+                        <button
+                          type="button"
+                          class="gv-kairos-tags__category-btn"
+                          [class.gv-kairos-tags__category-btn--active]="selectedTagCategoryId() === category.id"
+                          (click)="selectTagCategory(category.id)"
+                        >
+                          {{ category.label || category.id || 'New category' }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                  <div class="gv-kairos-tags__actions">
+                    <button type="button" pButton size="small" label="Reload" severity="secondary" [disabled]="tagRegistryLoading()" (click)="reloadTagRegistry()"></button>
+                    <button type="button" pButton size="small" label="Save Registry" [disabled]="tagRegistrySaving() || tagRegistryValidation().errors.length > 0 || tagRegistry() === null" (click)="saveTagRegistry()"></button>
+                  </div>
+                </aside>
+
+                <section class="gv-kairos-tags__editor">
+                  @if (tagRegistryStatusMessage(); as statusMessage) {
+                    <p class="gv-kairos-tags__status">{{ statusMessage }}</p>
+                  }
+                  @if (tagRegistryValidation().errors.length > 0) {
+                    <ul class="gv-kairos-tags__issues gv-kairos-tags__issues--error">
+                      @for (issue of tagRegistryValidation().errors; track issue) {
+                        <li>{{ issue }}</li>
+                      }
+                    </ul>
+                  }
+                  @if (tagRegistryValidation().warnings.length > 0) {
+                    <ul class="gv-kairos-tags__issues gv-kairos-tags__issues--warning">
+                      @for (issue of tagRegistryValidation().warnings; track issue) {
+                        <li>{{ issue }}</li>
+                      }
+                    </ul>
+                  }
+
+                  @if (selectedTagCategory(); as category) {
+                    <div class="gv-kairos-tags__category-form">
+                      <label>
+                        <span>ID</span>
+                        <input pInputText [ngModel]="category.id" (ngModelChange)="updateSelectedCategoryField('id', $event)" />
+                      </label>
+                      <label>
+                        <span>Label</span>
+                        <input pInputText [ngModel]="category.label" (ngModelChange)="updateSelectedCategoryField('label', $event)" />
+                      </label>
+                      <label>
+                        <span>Description</span>
+                        <input pInputText [ngModel]="category.description" (ngModelChange)="updateSelectedCategoryField('description', $event)" />
+                      </label>
+                      <label>
+                        <span>Allowed For</span>
+                        <p-multiselect
+                          [options]="tagTargetOptions"
+                          optionLabel="label"
+                          optionValue="value"
+                          [ngModel]="category.allowedFor"
+                          appendTo="body"
+                          (ngModelChange)="updateSelectedCategoryAllowedFor($event ?? [])"
+                        />
+                      </label>
+                    </div>
+
+                    <header class="gv-kairos-tags__tags-header">
+                      <h4>Tags</h4>
+                      <button type="button" pButton size="small" label="Add Tag" severity="secondary" (click)="addTagToSelectedCategory()"></button>
+                    </header>
+                    <table class="gv-kairos-tags__table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Label</th>
+                          <th>Description</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (tag of category.tags; track tag.id + '-' + $index) {
+                          <tr>
+                            <td><input pInputText [ngModel]="tag.id" (ngModelChange)="updateTagField($index, 'id', $event)" /></td>
+                            <td><input pInputText [ngModel]="tag.label" (ngModelChange)="updateTagField($index, 'label', $event)" /></td>
+                            <td><input pInputText [ngModel]="tag.description" (ngModelChange)="updateTagField($index, 'description', $event)" /></td>
+                            <td><button type="button" pButton severity="danger" size="small" label="Remove" (click)="removeTag($index)"></button></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <p class="gv-kairos-edit__placeholder">Select or create a category to edit tags.</p>
+                  }
+                </section>
               </section>
             } @else if (tab.id === activeTab()) {
               @if (currentEditorState(); as currentEditorState) {
@@ -54,7 +150,7 @@
                       <gv-kairos-material-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('materials', $event)" (jsonTextChange)="updateJsonText('materials', $event)" />
                     }
                     @case ('locations') {
-                      <gv-kairos-location-editor [definition]="definition" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('locations', $event)" (jsonTextChange)="updateJsonText('locations', $event)" />
+                      <gv-kairos-location-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('locations', $event)" (jsonTextChange)="updateJsonText('locations', $event)" />
                     }
                     @case ('activities') {
                       <gv-kairos-activity-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('activities', $event)" (jsonTextChange)="updateJsonText('activities', $event)" />

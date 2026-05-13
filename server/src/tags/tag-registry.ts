@@ -1,15 +1,12 @@
-import { readFile } from "node:fs/promises";
-
 import { Router } from "express";
-import { type TagRegistry, tagRegistrySchema } from "./tag-registry-schema";
+import { TagRegistryService } from "./tag-registry-service";
 
-export function createTagRegistryRouter(tagRegistryPath: string): Router {
+export function createTagRegistryRouter(service: TagRegistryService): Router {
   const router = Router();
-  let registryPromise: Promise<TagRegistry> | null = null;
 
   router.get("/", async (_request, response, next) => {
     try {
-      const registry = await getRegistry();
+      const registry = await service.getRegistry();
       response.setHeader("Cache-Control", "no-cache").json(registry);
     } catch (error) {
       next(error);
@@ -17,19 +14,4 @@ export function createTagRegistryRouter(tagRegistryPath: string): Router {
   });
 
   return router;
-
-  function getRegistry(): Promise<TagRegistry> {
-    if (!registryPromise) {
-      registryPromise = readRegistryFile(tagRegistryPath);
-    }
-
-    return registryPromise;
-  }
-}
-
-async function readRegistryFile(
-  tagRegistryPath: string,
-): Promise<TagRegistry> {
-  const rawRegistry = await readFile(tagRegistryPath, "utf8");
-  return tagRegistrySchema.parse(JSON.parse(rawRegistry) as unknown);
 }

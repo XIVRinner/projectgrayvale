@@ -3,6 +3,7 @@ import {
   createDefaultDefinition,
   readStringArrayValue,
   validateDefinitionDraft,
+  validateTagRegistryDraft,
 } from "./kairos-edit.utils";
 
 describe("validateDefinitionDraft", () => {
@@ -46,5 +47,35 @@ describe("readStringArrayValue", () => {
     };
 
     expect(readStringArrayValue(definition, ["tags"])).toBe(tags);
+  });
+});
+
+describe("validateTagRegistryDraft", () => {
+  it("rejects case-insensitive duplicate category/tag ids", () => {
+    expect(
+      validateTagRegistryDraft({
+        categories: [
+          {
+            id: "world_context",
+            label: "World Context",
+            description: "",
+            allowedFor: ["locations"],
+            tags: [{ id: "camp", label: "Camp", description: "" }],
+          },
+          {
+            id: "World_Context",
+            label: "Duplicate",
+            description: "",
+            allowedFor: ["locations"],
+            tags: [{ id: "Camp", label: "Camp duplicate", description: "" }],
+          },
+        ],
+      }).errors,
+    ).toEqual([
+      "Category id \"World_Context\" must use lowercase letters, numbers, underscores, or hyphens.",
+      "Duplicate category id (case-insensitive): world_context / World_Context",
+      "Tag id \"Camp\" must use lowercase letters, numbers, underscores, or hyphens.",
+      "Duplicate tag id (case-insensitive): camp / Camp",
+    ]);
   });
 });

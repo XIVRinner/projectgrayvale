@@ -38,7 +38,9 @@ import { registerEntityRoutes } from "./entities/entity-routes";
 import { seedApiEntities } from "./entities/entity-seed";
 import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
+import { registerAdminTagRoutes } from "./tags/admin-tag-routes";
 import { createTagRegistryRouter } from "./tags/tag-registry";
+import { TagRegistryService } from "./tags/tag-registry-service";
 
 let appPromise: Promise<Express> | null = null;
 let configCache: ServerConfig | null = null;
@@ -60,11 +62,14 @@ export async function createApp(
   const definitionAssetService = new DefinitionAssetService(
     resolve(config.definitionRoot, "..", "..", "public", "assets", "definitions"),
   );
+  const tagRegistryService = new TagRegistryService(
+    resolve(config.definitionRoot, "..", "tags", "tags.json"),
+  );
   const adminDefinitionService = new AdminDefinitionService(
     definitionRepository,
     definitionAssetService,
     config.definitionRoot,
-    resolve(config.definitionRoot, "tag-registry.json"),
+    tagRegistryService.registryPath,
   );
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
@@ -134,7 +139,7 @@ export async function createApp(
   app.use("/api/auth", createAuthRouter(multiplayerRepository));
   app.use(
     "/api/tags",
-    createTagRegistryRouter(resolve(config.definitionRoot, "tag-registry.json")),
+    createTagRegistryRouter(tagRegistryService),
   );
   app.use(
     "/api/server",
@@ -145,6 +150,12 @@ export async function createApp(
     app,
     adminDefinitionService,
     multiplayerRepository,
+  );
+  registerAdminTagRoutes(
+    app,
+    tagRegistryService,
+    multiplayerRepository,
+    config.definitionRoot,
   );
   registerDefinitionRoutes(app, definitionService);
   registerEntityRoutes(app, "/api/attributes", "attribute", entityRepository);

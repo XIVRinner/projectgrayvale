@@ -75,7 +75,7 @@ export function registerAdminDefinitionRoutes(
   }
 }
 
-async function requireAdminActor(
+export async function requireAdminActor(
   request: Request,
   response: Response,
   multiplayerRepository: MultiplayerRepository,
