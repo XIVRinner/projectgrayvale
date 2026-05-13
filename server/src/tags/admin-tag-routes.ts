@@ -13,10 +13,6 @@ import {
   validateTagRegistry,
 } from "./tag-validation";
 
-const bodySchema = z.object({
-  categories: z.unknown(),
-});
-
 export function registerAdminTagRoutes(
   app: Express,
   tagRegistryService: TagRegistryService,
@@ -30,9 +26,7 @@ export function registerAdminTagRoutes(
         return;
       }
 
-      const payload = bodySchema.parse(request.body);
-      const registry = tagRegistryService.parseRegistry(payload);
-      tagRegistryService.validateRegistry(registry);
+      const registry = tagRegistryService.parseRegistry(request.body);
       const registryValidation = validateTagRegistry(registry);
       const usageScan = await scanDefinitionTagUsage(definitionRoot);
       const usageValidation = validateDefinitionTagsAgainstRegistry(registry, usageScan);

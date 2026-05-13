@@ -3,8 +3,9 @@ import { resolve } from "node:path";
 
 import { type AllowedTagTarget, type TagRegistry, allowedTagTargets } from "./tag-registry-schema";
 
-const definitionTypesWithSublocations = allowedTagTargets;
-const definitionTypes = ["items", "materials", "locations", "activities", "actions"] as const;
+// Tag targets can include nested sublocations, while definition files exist only for top-level types.
+const tagTargetTypes = allowedTagTargets;
+const definitionFileTypes = ["items", "materials", "locations", "activities", "actions"] as const;
 
 export interface TagUsageOccurrence {
   readonly definitionType: AllowedTagTarget;
@@ -66,7 +67,7 @@ export function validateTagRegistry(registry: TagRegistry): TagValidationResult 
   const warnings: string[] = [];
   const categoryIds = new Map<string, string>();
   const tagIds = new Map<string, string>();
-  const validAllowedFor = new Set<string>(definitionTypesWithSublocations);
+  const validAllowedFor = new Set<string>(tagTargetTypes);
 
   for (const category of registry.categories) {
     const normalizedCategoryId = category.id.toLowerCase();
@@ -111,11 +112,11 @@ export async function scanDefinitionTagUsage(
   readonly usages: readonly TagUsageOccurrence[];
 }> {
   const tagsByType = new Map<AllowedTagTarget, Set<string>>(
-    definitionTypesWithSublocations.map((type) => [type, new Set<string>()]),
+    tagTargetTypes.map((type) => [type, new Set<string>()]),
   );
   const usages: TagUsageOccurrence[] = [];
 
-  for (const definitionType of definitionTypes) {
+  for (const definitionType of definitionFileTypes) {
     const directoryPath = resolve(definitionRoot, definitionType);
     const entries = await readdir(directoryPath, { withFileTypes: true });
 
@@ -137,7 +138,7 @@ export async function scanDefinitionTagUsage(
   );
 
   const tagsByDefinitionType = {} as Record<AllowedTagTarget, readonly string[]>;
-  for (const type of definitionTypesWithSublocations) {
+  for (const type of tagTargetTypes) {
     tagsByDefinitionType[type] = [...(tagsByType.get(type) ?? new Set<string>())].sort(
       (left, right) => left.localeCompare(right),
     );
@@ -209,8 +210,6 @@ function collectTagUsages(
 
   const record = value as Record<string, unknown>;
   const rawTags = record["tags"];
-  const currentType = definitionType;
-
   if (Array.isArray(rawTags)) {
     for (const rawTag of rawTags) {
       if (typeof rawTag !== "string" || rawTag.trim().length === 0) {
@@ -219,12 +218,12 @@ function collectTagUsages(
 
       const tag = rawTag.trim();
       usages.push({
-        definitionType: currentType,
+        definitionType,
         definitionId,
         tag,
         source: sourcePath,
       });
-      tagsByType.get(currentType)?.add(tag);
+      tagsByType.get(definitionType)?.add(tag);
     }
   }
 
@@ -254,7 +253,7 @@ function buildRegistryTagLookup(registry: TagRegistry): Map<string, string> {
 
 function buildAllowedTagLookup(registry: TagRegistry): Map<AllowedTagTarget, Set<string>> {
   const byType = new Map<AllowedTagTarget, Set<string>>(
-    definitionTypesWithSublocations.map((type) => [type, new Set<string>()]),
+    tagTargetTypes.map((type) => [type, new Set<string>()]),
   );
 
   for (const category of registry.categories) {
@@ -283,5 +282,5 @@ function toDefinitionId(
     return id.trim();
   }
 
-  return fallbackFileName.replace(/\.json$/u, "");
+  return fallbackFileName.replace(/\.json$/, "");
 }

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 
 import {
   actionDefinitionSchema,
@@ -89,6 +89,9 @@ export class DefinitionValidationError extends Error {
 }
 
 export class AdminDefinitionValidationService {
+  private cachedTagRegistry: TagRegistry | null = null;
+  private cachedTagRegistryMtimeMs: number | null = null;
+
   constructor(
     private readonly assetService: DefinitionAssetService,
     private readonly tagRegistryPath: string,
@@ -194,8 +197,20 @@ export class AdminDefinitionValidationService {
   }
 
   private async getTagRegistry(): Promise<TagRegistry> {
+    const fileStats = await stat(this.tagRegistryPath);
+    if (
+      this.cachedTagRegistry &&
+      this.cachedTagRegistryMtimeMs !== null &&
+      this.cachedTagRegistryMtimeMs === fileStats.mtimeMs
+    ) {
+      return this.cachedTagRegistry;
+    }
+
     const raw = await readFile(this.tagRegistryPath, "utf8");
-    return tagRegistrySchema.parse(JSON.parse(raw) as unknown);
+    const parsed = tagRegistrySchema.parse(JSON.parse(raw) as unknown);
+    this.cachedTagRegistry = parsed;
+    this.cachedTagRegistryMtimeMs = fileStats.mtimeMs;
+    return parsed;
   }
 }
 

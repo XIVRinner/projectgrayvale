@@ -107,7 +107,7 @@ export class KairosEditDialogComponent {
   });
   private readonly initializedTypes = new Set<KairosDefinitionType>();
   private readonly loadedTagTypes = new Set<KairosDefinitionType>();
-  private tagsLoaded = false;
+  private tagRegistryLoaded = false;
   private readonly ensureEditorReadyInFlight = new Set<KairosDefinitionType>();
   private readonly queuedEditorReadyTypes = new Set<KairosDefinitionType>();
 
@@ -153,7 +153,7 @@ export class KairosEditDialogComponent {
     });
 
     effect(() => {
-      if (!this.open() || this.activeTab() !== "tags" || this.tagsLoaded) {
+      if (!this.open() || this.activeTab() !== "tags" || this.tagRegistryLoaded) {
         return;
       }
 
@@ -343,6 +343,7 @@ export class KairosEditDialogComponent {
 
   private replaceCategory(updatedCategory: KairosTagRegistryCategory): void {
     const registry = this.tagRegistry();
+    const selectedCategory = this.selectedTagCategory();
     const selectedCategoryId = this.selectedTagCategoryId();
     if (!registry) {
       return;
@@ -351,9 +352,7 @@ export class KairosEditDialogComponent {
     const previousCategoryId = selectedCategoryId ?? "";
     const nextRegistry: KairosTagRegistry = {
       categories: registry.categories.map((category) =>
-        category === this.selectedTagCategory() || category.id === previousCategoryId
-          ? updatedCategory
-          : category,
+        category === selectedCategory ? updatedCategory : category,
       ),
     };
     this.tagRegistry.set(nextRegistry);
@@ -362,7 +361,7 @@ export class KairosEditDialogComponent {
   }
 
   private async loadTagRegistry(force = false): Promise<void> {
-    if (this.tagRegistryLoading() || (!force && this.tagsLoaded)) {
+    if (this.tagRegistryLoading() || (!force && this.tagRegistryLoaded)) {
       return;
     }
 
@@ -372,7 +371,7 @@ export class KairosEditDialogComponent {
     try {
       const registry = await this.kairosEdit.getTagRegistry();
       this.tagRegistry.set(registry);
-      this.tagsLoaded = true;
+      this.tagRegistryLoaded = true;
       if (registry.categories.length > 0) {
         this.selectedTagCategoryId.set(registry.categories[0]?.id ?? null);
       } else {

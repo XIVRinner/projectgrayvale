@@ -225,11 +225,23 @@ export function validateDefinitionDraft(
   }
 
   const tags = collectTagValuesForDefinition(type, definition);
-  const allowedTags = new Set(tagOptions.map((option) => option.id.toLowerCase()));
-  const invalidTags = tags.filter((tag) => !allowedTags.has(tag.toLowerCase()));
+  const allowedTagByLower = new Map(tagOptions.map((option) => [option.id.toLowerCase(), option.id]));
+  const invalidTags = tags.filter((tag) => !allowedTagByLower.has(tag.toLowerCase()));
+  const caseConflicts = tags.reduce<Array<{ tag: string; canonical: string }>>((accumulator, tag) => {
+    const canonical = allowedTagByLower.get(tag.toLowerCase());
+    if (canonical && canonical !== tag) {
+      accumulator.push({ tag, canonical });
+    }
+    return accumulator;
+  }, []);
 
   if (invalidTags.length > 0) {
     errors.push(`Unknown tags selected: ${invalidTags.join(", ")}.`);
+  }
+  if (caseConflicts.length > 0) {
+    errors.push(
+      `Tag casing conflicts: ${caseConflicts.map((entry) => `${entry.tag} (canonical: ${entry.canonical})`).join(", ")}.`,
+    );
   }
 
   switch (type) {
@@ -308,9 +320,11 @@ export function validateTagRegistryDraft(
   const tagIds = new Map<string, string>();
 
   for (const category of registry.categories) {
-    if (!category.id.trim()) {
+    const trimmedCategoryId = category.id.trim();
+
+    if (!trimmedCategoryId) {
       errors.push("Category id is required.");
-    } else if (!ID_PATTERN.test(category.id.trim())) {
+    } else if (!ID_PATTERN.test(trimmedCategoryId)) {
       errors.push(`Category id "${category.id}" must use lowercase letters, numbers, underscores, or hyphens.`);
     }
 
@@ -331,7 +345,7 @@ export function validateTagRegistryDraft(
       }
     }
 
-    const normalizedCategoryId = category.id.toLowerCase();
+    const normalizedCategoryId = trimmedCategoryId.toLowerCase();
     const existingCategory = categoryIds.get(normalizedCategoryId);
     if (existingCategory) {
       errors.push(`Duplicate category id (case-insensitive): ${existingCategory} / ${category.id}`);
