@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { firstValueFrom, of } from "rxjs";
 
+import { DefinitionImageService } from "../definition-image.service";
 import { GameApiCacheService } from "../game-api-cache.service";
 import { WorldLocationsLoader } from "./world-locations.loader";
 
@@ -36,8 +37,14 @@ function createWorldLocationsLoader(payload: unknown): WorldLocationsLoader {
   const apiCache = {
     getJsonWithFallback: jest.fn(() => of(payload))
   };
+  const definitionImageService = {
+    getImageUrl: jest.fn(async (_type: string, assetId: string) => `/cached/${assetId}`)
+  };
   const injector = Injector.create({
-    providers: [{ provide: GameApiCacheService, useValue: apiCache }]
+    providers: [
+      { provide: GameApiCacheService, useValue: apiCache },
+      { provide: DefinitionImageService, useValue: definitionImageService }
+    ]
   });
 
   return runInInjectionContext(injector, () => new WorldLocationsLoader());

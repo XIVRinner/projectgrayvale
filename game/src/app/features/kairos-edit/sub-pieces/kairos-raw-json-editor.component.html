@@ -1,0 +1,11 @@
+<section class="gv-kairos-json-field">
+  <label class="gv-kairos-json-field__label">{{ label() }}</label>
+  <textarea
+    class="gv-kairos-json-field__textarea"
+    [ngModel]="value()"
+    (ngModelChange)="valueChange.emit($event)"
+  ></textarea>
+  @if (error(); as error) {
+    <p class="gv-kairos-json-field__error">{{ error }}</p>
+  }
+</section>

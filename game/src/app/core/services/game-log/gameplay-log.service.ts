@@ -2,10 +2,9 @@ import { Injectable, inject } from "@angular/core";
 import type { Delta } from "@rinner/grayvale-core";
 import { BehaviorSubject, type Observable } from "rxjs";
 
-import {
-  CharacterRosterService,
-  type WorldUpdateEvent,
-} from "../character-roster.service";
+const MAX_STORED_LOG_ENTRIES = 300;
+
+import { CharacterRosterService, type WorldUpdateEvent } from "../character-roster.service";
 import { GameDialogService } from "../game-dialog.service";
 import { GameQuestService } from "../game-quest.service";
 import {
@@ -55,11 +54,7 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(
-      this.storedEntries,
-      mappedEntry,
-    );
-    this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
+    this.appendEntry(mappedEntry);
   }
 
   processWorldUpdate(event: WorldUpdateEvent): void {
@@ -69,11 +64,7 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(
-      this.storedEntries,
-      mappedEntry,
-    );
-    this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
+    this.appendEntry(mappedEntry);
   }
 
   processDialogEvent(event: GameDialogEvent): void {
@@ -83,11 +74,7 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(
-      this.storedEntries,
-      mappedEntry,
-    );
-    this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
+    this.appendEntry(mappedEntry);
   }
 
   processQuestEvent(event: GameQuestEvent): void {
@@ -97,18 +84,15 @@ export class GameplayLogService {
       return;
     }
 
-    this.storedEntries = appendGameplayLogEntry(
-      this.storedEntries,
-      mappedEntry,
-    );
-    this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
+    this.appendEntry(mappedEntry);
   }
 
-  appendEntry(entry: GameLogEntry): void {
-    this.storedEntries = appendGameplayLogEntry(this.storedEntries, {
-      entry,
-      mergeState: null,
-    });
+  private appendEntry(entry: StoredGameplayLogEntry): void {
+    let next = appendGameplayLogEntry(this.storedEntries, entry);
+    if (next.length > MAX_STORED_LOG_ENTRIES) {
+      next = next.slice(-MAX_STORED_LOG_ENTRIES);
+    }
+    this.storedEntries = next;
     this.logEntriesSubject.next(toGameplayLogEntries(this.storedEntries));
   }
 }

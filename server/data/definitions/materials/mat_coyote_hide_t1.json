@@ -1,0 +1,18 @@
+{
+  "id": "mat_coyote_hide_t1",
+  "name": "Coyote Hide (T1)",
+  "category": "material",
+  "rarity": "common",
+  "tags": [
+    "hide",
+    "leather",
+    "t1",
+    "crafting"
+  ],
+  "quantity": 0,
+  "qualityStars": 1,
+  "craftingTags": [
+    "leatherworking"
+  ],
+  "source": "Forest Edge"
+}

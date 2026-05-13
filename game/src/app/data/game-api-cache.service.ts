@@ -1,9 +1,8 @@
 import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import { firstValueFrom, from, map, of, switchMap, type Observable } from "rxjs";
+import { API_RESPONSE_STORE_NAME, openGrayvaleIndexedDb } from "./grayvale-indexed-db";
 
-const CACHE_DB_NAME = "grayvale-api-cache";
-const CACHE_STORE_NAME = "responses";
 const CACHE_STORAGE_PREFIX = "grayvale:api-cache:v1:";
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const HOT_DATA_TTL_MS = 15 * 60 * 1000;
@@ -201,9 +200,9 @@ export class GameApiCacheService {
       return null;
     }
 
-    return new Promise((resolve) => {
-      const transaction = db.transaction(CACHE_STORE_NAME, "readonly");
-      const request = transaction.objectStore(CACHE_STORE_NAME).get(key);
+      return new Promise((resolve) => {
+      const transaction = db.transaction(API_RESPONSE_STORE_NAME, "readonly");
+      const request = transaction.objectStore(API_RESPONSE_STORE_NAME).get(key);
 
       request.onsuccess = () => {
         resolve(normalizeCachedEntry(request.result));
@@ -222,9 +221,9 @@ export class GameApiCacheService {
       return false;
     }
 
-    return new Promise((resolve) => {
-      const transaction = db.transaction(CACHE_STORE_NAME, "readwrite");
-      const request = transaction.objectStore(CACHE_STORE_NAME).put(entry);
+      return new Promise((resolve) => {
+      const transaction = db.transaction(API_RESPONSE_STORE_NAME, "readwrite");
+      const request = transaction.objectStore(API_RESPONSE_STORE_NAME).put(entry);
 
       request.onsuccess = () => resolve(true);
       request.onerror = () => resolve(false);
@@ -239,8 +238,8 @@ export class GameApiCacheService {
     }
 
     await new Promise<void>((resolve) => {
-      const transaction = db.transaction(CACHE_STORE_NAME, "readwrite");
-      const request = transaction.objectStore(CACHE_STORE_NAME).clear();
+      const transaction = db.transaction(API_RESPONSE_STORE_NAME, "readwrite");
+      const request = transaction.objectStore(API_RESPONSE_STORE_NAME).clear();
 
       request.onsuccess = () => resolve();
       request.onerror = () => resolve();
@@ -299,25 +298,8 @@ export class GameApiCacheService {
   }
 
   private async openIndexedDb(): Promise<IDBDatabase | null> {
-    if (typeof indexedDB === "undefined") {
-      return null;
-    }
-
     if (!this.indexedDbPromise) {
-      this.indexedDbPromise = new Promise((resolve) => {
-        const request = indexedDB.open(CACHE_DB_NAME, 1);
-
-        request.onupgradeneeded = () => {
-          const db = request.result;
-
-          if (!db.objectStoreNames.contains(CACHE_STORE_NAME)) {
-            db.createObjectStore(CACHE_STORE_NAME, { keyPath: "key" });
-          }
-        };
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => resolve(null);
-      });
+      this.indexedDbPromise = openGrayvaleIndexedDb();
     }
 
     return this.indexedDbPromise;
@@ -367,7 +349,10 @@ function resolveCacheTtl(url: string): number {
 function isHotDataUrl(url: string): boolean {
   return [
     "/api/items",
+    "/api/inventory-items",
     "/api/equipment-items",
+    "/api/activity-definitions",
+    "/api/action-definitions",
     "/api/quests",
     "/api/dialogues",
     "/api/world-locations",

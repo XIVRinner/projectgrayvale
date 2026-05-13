@@ -132,6 +132,12 @@
   border-color: color-mix(in srgb, var(--gv-color-accent) 50%, transparent);
 }
 
+.gv-footer__btn--kairos {
+  border-color: color-mix(in srgb, var(--gv-color-accent-purple) 52%, transparent);
+  background: color-mix(in srgb, var(--gv-color-accent-purple) 18%, transparent);
+  color: var(--gv-color-text-primary);
+}
+
 .gv-footer__version-badge {
   display: inline-flex;
   align-items: center;

@@ -19,8 +19,8 @@ export class ActivitiesLoader {
 
   load(): Observable<readonly GameActivityDefinition[]> {
     return this.apiCache.getJsonWithFallback<unknown>(
-      [apiPath("activities"), dataApiPath("activities")],
-      { cacheKey: apiPath("activities") }
+      [apiPath("activity-definitions"), dataApiPath("activities")],
+      { cacheKey: apiPath("activity-definitions") }
     ).pipe(
       map((raw) => parseActivities(raw))
     );
@@ -172,4 +172,3 @@ function parseLocation(entry: unknown, index: number): GameActivityLocation {
     sublocationId: typeof sublocationId === "string" ? sublocationId : undefined
   };
 }
-

@@ -1,0 +1,119 @@
+{
+  "id": "village-arkama",
+  "label": "Arkama Village",
+  "subtitle": "The unofficial name the locals use for their nameless settlement.",
+  "availableNpcIds": [
+    "village-chief"
+  ],
+  "sublocations": [
+    {
+      "id": "chief-house",
+      "label": "Chief House",
+      "subtitle": "A quiet recovery room under the village chief's roof.",
+      "availableNpcIds": [
+        "village-chief"
+      ],
+      "isReturnable": true,
+      "entryActionLabel": "Return to chief house",
+      "exitActionLabel": "Leave chief house",
+      "entryGuards": [
+        {
+          "type": "quest_not_started",
+          "params": {
+            "questId": "quest_chief_labour"
+          }
+        }
+      ],
+      "exitGuards": [
+        {
+          "type": "quest_completed",
+          "params": {
+            "questId": "quest_recovery"
+          }
+        },
+        {
+          "type": "player_attribute_at_least",
+          "params": {
+            "attributeId": "vitality",
+            "minimumValue": 10
+          }
+        }
+      ],
+      "sceneImageId": "village-arkama__chief-house"
+    },
+    {
+      "id": "tavern",
+      "label": "Tavern",
+      "subtitle": "A warm common room built on gossip, soup, and stubborn planks.",
+      "availableNpcIds": [
+        "bartender"
+      ],
+      "isReturnable": true,
+      "entryActionLabel": "Enter tavern",
+      "exitActionLabel": "Leave tavern",
+      "sceneImageId": "village-arkama__tavern"
+    },
+    {
+      "id": "bridgitte-house",
+      "label": "Bridgitte's House",
+      "subtitle": "A quiet house where an old adventurer keeps her past within arm's reach.",
+      "availableNpcIds": [
+        "bridgitte"
+      ],
+      "isReturnable": true,
+      "entryActionLabel": "Visit Bridgitte's house",
+      "exitActionLabel": "Leave Bridgitte's house",
+      "entryGuards": [
+        {
+          "type": "quest_completed",
+          "params": {
+            "questId": "quest_chief_labour"
+          }
+        }
+      ],
+      "sceneImageId": "village-arkama__bridgitte-house"
+    },
+    {
+      "id": "smithy",
+      "label": "Smithy",
+      "subtitle": "A hot forge where Lydia keeps tools, hinges, and tempers in working order.",
+      "availableNpcIds": [
+        "lydia"
+      ],
+      "isReturnable": true,
+      "entryActionLabel": "Visit the smithy",
+      "exitActionLabel": "Leave the smithy",
+      "entryGuards": [
+        {
+          "type": "quest_started",
+          "params": {
+            "questId": "lydia_smithing_intro"
+          }
+        }
+      ],
+      "sceneImageId": "village-arkama__smithy"
+    },
+    {
+      "id": "shopkeep",
+      "label": "Shop",
+      "subtitle": "A tidy supply shop that has not opened up to gameplay yet.",
+      "availableNpcIds": [
+        "shopkeeper"
+      ],
+      "isReturnable": true,
+      "entryActionLabel": "Visit the shop",
+      "exitActionLabel": "Leave the shop",
+      "entryDisabledReason": "Shop UI and trade mechanics are not implemented yet.",
+      "entryGuards": [
+        {
+          "type": "quest_started",
+          "params": {
+            "questId": "shopkeep_forest_supplies"
+          }
+        }
+      ],
+      "sceneImageId": "village-arkama__shopkeep"
+    }
+  ],
+  "sceneImageId": "village-arkama"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "armor_legs_travel_rags",
+  "name": "Travel Rags Legwraps",
+  "category": "equipment",
+  "rarity": "trash",
+  "tags": [
+    "starter",
+    "junk",
+    "legs",
+    "cloth"
+  ],
+  "slot": "legs",
+  "itemLevel": 1,
+  "description": "Wrapped cloth that keeps brambles off your skin and little more.",
+  "tooltip": {
+    "statLines": [
+      "No combat stats"
+    ],
+    "flavorText": "Cheap cloth with no resale worth speaking of."
+  }
+}

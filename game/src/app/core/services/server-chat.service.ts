@@ -1,7 +1,8 @@
+import { DOCUMENT } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
 import { Injectable, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { firstValueFrom, timer } from "rxjs";
+import { firstValueFrom, fromEvent, timer } from "rxjs";
 
 import { ChatEmotesLoader } from "../../data/loaders/chat-emotes.loader";
 import { SERVER_CHAT_COMMANDS } from "./server-chat-commands";
@@ -27,6 +28,7 @@ const CHAT_POLL_MS = 4_000;
 @Injectable({ providedIn: "root" })
 export class ServerChatService {
   private readonly http = inject(HttpClient);
+  private readonly document = inject(DOCUMENT);
   private readonly chatEmotesLoader = inject(ChatEmotesLoader);
   private readonly serverConnection = inject(ServerConnectionService);
 
@@ -41,6 +43,10 @@ export class ServerChatService {
   private readonly messagesState = signal<readonly ServerChatMessageView[]>([]);
   private readonly statusMessageState = signal<string | null>(null);
   private readonly sendingState = signal(false);
+  private readonly documentVisibleState = signal(!this.document.hidden);
+
+  private presenceRefreshInFlight = false;
+  private messagesRefreshInFlight = false;
 
   readonly panelOpen = this.panelOpenState.asReadonly();
   readonly info = this.infoState.asReadonly();
@@ -144,13 +150,33 @@ export class ServerChatService {
       { allowSignalWrites: true },
     );
 
+    fromEvent(this.document, "visibilitychange")
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.documentVisibleState.set(!this.document.hidden);
+
+        if (!this.document.hidden) {
+          void this.refreshAll();
+        }
+      });
+
     timer(0, PRESENCE_POLL_MS)
       .pipe(takeUntilDestroyed())
-      .subscribe(() => void this.refreshPresence());
+      .subscribe(() => {
+        if (!this.shouldPollPresence()) {
+          return;
+        }
+
+        void this.refreshPresence();
+      });
 
     timer(0, CHAT_POLL_MS)
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
+        if (!this.shouldPollMessages()) {
+          return;
+        }
+
         void this.refreshMessages();
       });
   }
@@ -249,6 +275,12 @@ export class ServerChatService {
   }
 
   async refreshPresence(): Promise<void> {
+    if (this.presenceRefreshInFlight) {
+      return;
+    }
+
+    this.presenceRefreshInFlight = true;
+
     try {
       const response = await firstValueFrom(
         this.http.get<ServerPresenceResponse>(
@@ -280,10 +312,18 @@ export class ServerChatService {
       if (this.panelOpenState()) {
         this.statusMessageState.set(toErrorMessage(error));
       }
+    } finally {
+      this.presenceRefreshInFlight = false;
     }
   }
 
   async refreshMessages(): Promise<void> {
+    if (this.messagesRefreshInFlight) {
+      return;
+    }
+
+    this.messagesRefreshInFlight = true;
+
     try {
       const response = await firstValueFrom(
         this.http.get<ServerChatHistoryResponse>(
@@ -302,7 +342,17 @@ export class ServerChatService {
       if (this.panelOpenState()) {
         this.statusMessageState.set(toErrorMessage(error));
       }
+    } finally {
+      this.messagesRefreshInFlight = false;
     }
+  }
+
+  private shouldPollPresence(): boolean {
+    return this.documentVisibleState() && (this.panelOpenState() || this.serverConnection.isConnected());
+  }
+
+  private shouldPollMessages(): boolean {
+    return this.documentVisibleState() && this.panelOpenState();
   }
 
   private async refreshInfo(): Promise<void> {

@@ -2,25 +2,22 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   output,
   signal
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { catchError, map, of } from "rxjs";
 
 import {
   type EquipmentSlot,
-  type InventoryEquipmentItem,
   type Loadout,
-  type Player,
-  inventoryEquipmentItemSchema
+  type Player
 } from "@rinner/grayvale-core";
 
-import { apiPath, dataApiPath } from "../../../data/api-paths";
-import { GameApiCacheService } from "../../../data/game-api-cache.service";
-import { parseEquipmentItemArrayWithGameFields } from "../character-sheet-item-assets";
+import { DefinitionImageService } from "../../../data/definition-image.service";
+import { DefinitionRepositoryService } from "../../../data/definition-repository.service";
+import type { GameInventoryEquipmentItem } from "../../../data/definition-parsers";
 import {
   buildEquipmentRequirementStatuses,
   checkEquipmentRequirements
@@ -82,7 +79,9 @@ const ALL_SLOTS: EquipmentSlot[] = [
   `
 })
 export class LoadoutSelectorContainerComponent {
-  private readonly apiCache = inject(GameApiCacheService);
+  private readonly definitionRepository = inject(DefinitionRepositoryService);
+  private readonly definitionImageService = inject(DefinitionImageService);
+  private loadGeneration = 0;
 
   /** All loadouts keyed by ID — provided by the parent character-sheet container. */
   readonly loadoutsRecord = input.required<Readonly<Record<string, Loadout>>>();
@@ -98,7 +97,7 @@ export class LoadoutSelectorContainerComponent {
 
   protected readonly isLoading = signal(true);
   protected readonly error = signal<string | null>(null);
-  private readonly itemRegistry = signal<Map<string, InventoryEquipmentItem>>(new Map());
+  private readonly itemRegistry = signal<Map<string, GameInventoryEquipmentItem>>(new Map());
 
   protected readonly loadoutRows = computed<readonly LoadoutRowView[]>(() => {
     const record = this.loadoutsRecord();
@@ -156,32 +155,68 @@ export class LoadoutSelectorContainerComponent {
   });
 
   constructor() {
-    this.apiCache
-      .getJsonWithFallback<unknown>(
-        [apiPath("equipment-items"), dataApiPath("equipment-items")],
-        { cacheKey: apiPath("equipment-items") }
-      )
-      .pipe(
-        map((raw) =>
-          parseEquipmentItemArrayWithGameFields(raw, (entry) =>
-            inventoryEquipmentItemSchema.parse(entry)
-          )
-        ),
-        catchError((err: unknown) => {
-          const message = err instanceof Error ? err.message : "Failed to load items.";
-          this.error.set(message);
-          this.isLoading.set(false);
-          return of([] as InventoryEquipmentItem[]);
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe((items) => {
-        const map = new Map<string, InventoryEquipmentItem>();
-        for (const item of items) {
-          map.set(item.id, item);
-        }
-        this.itemRegistry.set(map);
-        this.isLoading.set(false);
-      });
+    effect(() => {
+      const player = this.player();
+      const loadoutItemIds = Object.values(this.loadoutsRecord())
+        .flatMap((loadout) => Object.values(loadout.slots));
+      const ownedItemIds = player
+        ? Object.entries(player.inventory.items)
+            .filter(([, quantity]) => quantity > 0)
+            .map(([itemId]) => itemId)
+        : [];
+      void this.loadItems(dedupeItemIds([...loadoutItemIds, ...ownedItemIds]));
+    });
   }
+
+  private async loadItems(itemIds: readonly string[]): Promise<void> {
+    const generation = ++this.loadGeneration;
+    this.error.set(null);
+
+    if (itemIds.length === 0) {
+      this.itemRegistry.set(new Map());
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    try {
+      const items = await this.definitionRepository.getItems(itemIds);
+      const equipmentItems = items.filter(
+        (item): item is GameInventoryEquipmentItem => item.category === "equipment"
+      );
+      const hydratedItems = await Promise.all(
+        equipmentItems.map(async (item) => ({
+          ...item,
+          iconPath: await this.definitionImageService.getImageUrl(
+            "items",
+            item.imageId ?? null
+          )
+        }))
+      );
+      const map = new Map<string, GameInventoryEquipmentItem>();
+
+      for (const item of hydratedItems) {
+        map.set(item.id, item);
+      }
+
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.itemRegistry.set(map);
+      this.isLoading.set(false);
+    } catch (err: unknown) {
+      if (generation !== this.loadGeneration) {
+        return;
+      }
+
+      this.error.set(err instanceof Error ? err.message : "Failed to load items.");
+      this.isLoading.set(false);
+    }
+  }
+}
+
+function dedupeItemIds(ids: readonly (string | null | undefined)[]): string[] {
+  return Array.from(new Set(ids.filter((id): id is string => typeof id === "string" && id.length > 0)));
 }

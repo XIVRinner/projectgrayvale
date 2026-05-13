@@ -1,0 +1,20 @@
+{
+  "id": "mat_brittle_copper_t1",
+  "name": "Brittle Copper (T1)",
+  "category": "material",
+  "rarity": "common",
+  "tags": [
+    "metal",
+    "ore",
+    "t1",
+    "crafting",
+    "brittle_copper"
+  ],
+  "quantity": 0,
+  "qualityStars": 1,
+  "craftingTags": [
+    "smithing"
+  ],
+  "source": "Forest Edge",
+  "imageId": "mat_brittle_copper_t1"
+}

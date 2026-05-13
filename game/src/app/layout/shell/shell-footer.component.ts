@@ -29,8 +29,10 @@ const TIPS: readonly string[] = [
 export class ShellFooterComponent {
   readonly version = input("0.0.1");
   readonly serverSummary = input.required<ServerFooterSummaryView>();
+  readonly canOpenKairosEdit = input(false);
   readonly whatsNewUnreadCount = input(0);
   readonly gegVisualizerRequested = output<void>();
+  readonly kairosEditRequested = output<void>();
   readonly serverInfoRequested = output<void>();
   readonly whatsNewRequested = output<void>();
 

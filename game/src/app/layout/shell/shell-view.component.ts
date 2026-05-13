@@ -26,6 +26,7 @@ import { ShellGameplayLogDialogComponent } from "./sub-pieces/shell-gameplay-log
 import { ShellQuestLogDialogComponent } from "./sub-pieces/shell-quest-log-dialog.component";
 import { ShellServerAdminDialogComponent } from "./sub-pieces/shell-server-admin-dialog.component";
 import { ShellServerChatDialogComponent } from "./sub-pieces/shell-server-chat-dialog.component";
+import { ShellKairosEditDialogComponent } from "./sub-pieces/shell-kairos-edit-dialog.component";
 import { ShellTopbarComponent } from "./sub-pieces/shell-topbar.component";
 import { ShellActionPanelComponent } from "./sub-pieces/shell-action-panel.component";
 import { ShellQuestTrackerComponent } from "./sub-pieces/shell-quest-tracker.component";
@@ -56,6 +57,7 @@ import type { ServerDirectoryEntry } from "../../core/services/server-connection
     ShellCharacterSheetDialogComponent,
     ShellCharacterCreationDialogComponent,
     ShellFooterComponent,
+    ShellKairosEditDialogComponent,
     ShellGegVisualizerDialogComponent,
     ShellGameplayLogDialogComponent,
     ShellQuestLogDialogComponent,
@@ -81,6 +83,8 @@ export class ShellViewComponent {
   readonly saveSummary = input.required<ShellTopbarSaveSummary>();
   readonly topbarActions = input.required<readonly ShellTopbarAction[]>();
   readonly whatsNewUnreadCount = input(0);
+  readonly canOpenKairosEdit = input(false);
+  readonly isKairosEditOpen = input.required<boolean>();
   readonly isWhatsNewOpen = input.required<boolean>();
   readonly whatsNewReleases = input.required<readonly ChangelogRelease[]>();
   readonly isWhatsNewLoading = input.required<boolean>();
@@ -148,6 +152,8 @@ export class ShellViewComponent {
   readonly trackedQuestIdsChanged = output<readonly string[]>();
   readonly gegVisualizerOpenRequested = output<void>();
   readonly gegVisualizerCloseRequested = output<void>();
+  readonly kairosEditRequested = output<void>();
+  readonly kairosEditCloseRequested = output<void>();
   readonly topbarActionSelected = output<string>();
   readonly whatsNewOpenRequested = output<void>();
   readonly whatsNewCloseRequested = output<void>();

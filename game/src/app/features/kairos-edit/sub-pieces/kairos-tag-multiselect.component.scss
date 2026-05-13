@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.gv-kairos-tag-field {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-kairos-tag-field__label {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+}

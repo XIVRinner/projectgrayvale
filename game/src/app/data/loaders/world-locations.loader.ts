@@ -1,8 +1,9 @@
 import { Injectable, inject } from "@angular/core";
-import { forkJoin, map, type Observable } from "rxjs";
+import { forkJoin, from, map, switchMap, type Observable } from "rxjs";
 import type { Guard } from "@rinner/grayvale-worldgraph";
 
 import { apiPath, dataApiPath } from "../api-paths";
+import { DefinitionImageService } from "../definition-image.service";
 import { GameApiCacheService } from "../game-api-cache.service";
 import {
   cloneSaveSlotWorldState,
@@ -13,6 +14,7 @@ export interface WorldSublocationMetadata {
   readonly id: string;
   readonly label: string;
   readonly subtitle: string;
+  readonly sceneImageId?: string;
   readonly sceneImagePath?: string;
   readonly availableNpcIds: readonly string[];
   readonly isReturnable: boolean;
@@ -27,6 +29,7 @@ export interface WorldLocationMetadata {
   readonly id: string;
   readonly label: string;
   readonly subtitle: string;
+  readonly sceneImageId?: string;
   readonly sceneImagePath?: string;
   readonly availableNpcIds: readonly string[];
   readonly sublocations: readonly WorldSublocationMetadata[];
@@ -40,6 +43,7 @@ export interface WorldLocationsCatalog {
 @Injectable({ providedIn: "root" })
 export class WorldLocationsLoader {
   private readonly apiCache = inject(GameApiCacheService);
+  private readonly definitionImageService = inject(DefinitionImageService);
 
   load(): Observable<WorldLocationsCatalog> {
     return forkJoin({
@@ -52,8 +56,33 @@ export class WorldLocationsLoader {
         { cacheKey: apiPath("world-locations") }
       )
     }).pipe(
-      map(({ defaultState, locations }) => parseWorldLocationsCatalog(defaultState, locations))
+      map(({ defaultState, locations }) => parseWorldLocationsCatalog(defaultState, locations)),
+      switchMap((catalog) => from(this.resolveSceneImages(catalog)))
     );
+  }
+
+  private async resolveSceneImages(catalog: WorldLocationsCatalog): Promise<WorldLocationsCatalog> {
+    return {
+      ...catalog,
+      locations: await Promise.all(
+        catalog.locations.map(async (location) => ({
+          ...location,
+          sceneImagePath:
+            location.sceneImageId
+              ? await this.definitionImageService.getImageUrl("locations", location.sceneImageId)
+              : location.sceneImagePath,
+          sublocations: await Promise.all(
+            location.sublocations.map(async (sublocation) => ({
+              ...sublocation,
+              sceneImagePath:
+                sublocation.sceneImageId
+                  ? await this.definitionImageService.getImageUrl("locations", sublocation.sceneImageId)
+                  : sublocation.sceneImagePath
+            }))
+          )
+        }))
+      )
+    };
   }
 }
 
@@ -95,6 +124,7 @@ function parseLocationMetadata(raw: unknown, label: string): WorldLocationMetada
     id: ensureString(record["id"], `${label}.id`),
     label: ensureString(record["label"], `${label}.label`),
     subtitle: ensureString(record["subtitle"], `${label}.subtitle`),
+    sceneImageId: parseOptionalString(record["sceneImageId"], `${label}.sceneImageId`),
     sceneImagePath: parseOptionalString(record["sceneImagePath"], `${label}.sceneImagePath`),
     availableNpcIds: parseStringArray(record["availableNpcIds"], `${label}.availableNpcIds`),
     sublocations: ensureOptionalArray(record["sublocations"], `${label}.sublocations`).map(
@@ -110,6 +140,7 @@ function parseSublocationMetadata(raw: unknown, label: string): WorldSublocation
     id: ensureString(record["id"], `${label}.id`),
     label: ensureString(record["label"], `${label}.label`),
     subtitle: ensureString(record["subtitle"], `${label}.subtitle`),
+    sceneImageId: parseOptionalString(record["sceneImageId"], `${label}.sceneImageId`),
     sceneImagePath: parseOptionalString(record["sceneImagePath"], `${label}.sceneImagePath`),
     availableNpcIds: parseStringArray(record["availableNpcIds"], `${label}.availableNpcIds`),
     isReturnable: ensureBoolean(record["isReturnable"], `${label}.isReturnable`),

@@ -19,6 +19,7 @@ export interface DebugLogEntry {
 }
 
 const MAX_DEBUG_LOG_ENTRIES = 400;
+const MAX_RAW_LOG_DELTAS = 200;
 
 @Injectable({ providedIn: "root" })
 export class DebugLogService {
@@ -46,7 +47,8 @@ export class DebugLogService {
   }
 
   logRaw(delta: Delta): void {
-    this.rawLogSubject.next([...this.rawLogSubject.value, delta]);
+    const next = [...this.rawLogSubject.value, delta];
+    this.rawLogSubject.next(next.length > MAX_RAW_LOG_DELTAS ? next.slice(-MAX_RAW_LOG_DELTAS) : next);
     this.pushEntry({
       scope: "delta",
       message: summarizeDelta(delta),

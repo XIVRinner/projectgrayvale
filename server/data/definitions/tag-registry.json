@@ -1,0 +1,112 @@
+{
+  "categories": [
+    {
+      "id": "inventory_classification",
+      "label": "Inventory Classification",
+      "description": "Tags used to group editable item and material definitions.",
+      "allowedFor": ["items", "materials", "activities"],
+      "tags": [
+        { "id": "starter", "label": "Starter", "description": "Used by starter gear or early-loop content." },
+        { "id": "junk", "label": "Junk", "description": "Marks low-value or disposable equipment." },
+        { "id": "crafting", "label": "Crafting", "description": "Used by crafting materials and related activities." },
+        { "id": "quest", "label": "Quest", "description": "Marks story-gated or quest-driven content." },
+        { "id": "repeatable", "label": "Repeatable", "description": "Used by repeatable gathering or labour content." },
+        { "id": "special", "label": "Special", "description": "Marks special-case or bespoke content." },
+        { "id": "tutorial", "label": "Tutorial", "description": "Used by onboarding content." },
+        { "id": "instant", "label": "Instant", "description": "Used by actions that resolve immediately." },
+        { "id": "beast", "label": "Beast", "description": "Marks beast-sourced items or rewards." }
+      ]
+    },
+    {
+      "id": "combat_style",
+      "label": "Combat Style",
+      "description": "Tags describing combat role or weapon style.",
+      "allowedFor": ["items", "activities", "skills"],
+      "tags": [
+        { "id": "dagger", "label": "Dagger", "description": "Dagger weapon family." },
+        { "id": "short_blade", "label": "Short Blade", "description": "Short-blade weapon specialization." },
+        { "id": "melee", "label": "Melee", "description": "Close-range combat content." },
+        { "id": "combat", "label": "Combat", "description": "General combat-oriented content." },
+        { "id": "defense", "label": "Defense", "description": "Defensive combat skills or content." },
+        { "id": "ranged", "label": "Ranged", "description": "Ranged combat skills or content." },
+        { "id": "magic", "label": "Magic", "description": "Magic-oriented skills or content." },
+        { "id": "healing", "label": "Healing", "description": "Healing-oriented actions, activities, or skills." }
+      ]
+    },
+    {
+      "id": "equipment_slot",
+      "label": "Equipment Slot",
+      "description": "Tags used to classify wearable equipment pieces.",
+      "allowedFor": ["items"],
+      "tags": [
+        { "id": "head", "label": "Head", "description": "Head slot equipment." },
+        { "id": "chest", "label": "Chest", "description": "Chest slot equipment." },
+        { "id": "legs", "label": "Legs", "description": "Leg slot equipment." },
+        { "id": "boots", "label": "Boots", "description": "Boot slot equipment." },
+        { "id": "cloth", "label": "Cloth", "description": "Cloth armour or wearable material." }
+      ]
+    },
+    {
+      "id": "resource_family",
+      "label": "Resource Family",
+      "description": "Tags describing raw material families and gathering outputs.",
+      "allowedFor": ["materials", "activities"],
+      "tags": [
+        { "id": "herb", "label": "Herb", "description": "Plant-based gathering resource." },
+        { "id": "fiber", "label": "Fiber", "description": "Fiber or cloth-making resource." },
+        { "id": "ore", "label": "Ore", "description": "Ore and mining resource." },
+        { "id": "log", "label": "Log", "description": "Wood log resource." },
+        { "id": "hide", "label": "Hide", "description": "Leatherworking hide resource." },
+        { "id": "meat", "label": "Meat", "description": "Cookable meat resource." },
+        { "id": "wood", "label": "Wood", "description": "Woodworking resource." },
+        { "id": "metal", "label": "Metal", "description": "Metalworking resource." },
+        { "id": "brittle_copper", "label": "Brittle Copper", "description": "Brittle copper ore family." },
+        { "id": "resource", "label": "Resource", "description": "General resource-gathering content." }
+      ]
+    },
+    {
+      "id": "crafting_discipline",
+      "label": "Crafting Discipline",
+      "description": "Tags that map content to crafting or service disciplines.",
+      "allowedFor": ["materials", "activities", "actions", "skills"],
+      "tags": [
+        { "id": "alchemy", "label": "Alchemy", "description": "Alchemy-related material or skill." },
+        { "id": "cooking", "label": "Cooking", "description": "Cooking-related material or skill." },
+        { "id": "leather", "label": "Leather", "description": "Leather-related material grouping." },
+        { "id": "labour", "label": "Labour", "description": "Work or labour-related content." },
+        { "id": "service", "label": "Service", "description": "Service-oriented content." },
+        { "id": "general", "label": "General", "description": "General-purpose skill grouping." },
+        { "id": "knowledge", "label": "Knowledge", "description": "Knowledge-focused skill grouping." },
+        { "id": "utility", "label": "Utility", "description": "Utility-focused skill grouping." }
+      ]
+    },
+    {
+      "id": "world_context",
+      "label": "World Context",
+      "description": "Tags that describe where or how content appears in the world.",
+      "allowedFor": ["activities", "actions"],
+      "tags": [
+        { "id": "village", "label": "Village", "description": "Village-based content." },
+        { "id": "forest", "label": "Forest", "description": "Forest-based content." },
+        { "id": "camp", "label": "Camp", "description": "Camp-related content." },
+        { "id": "tavern", "label": "Tavern", "description": "Tavern-based content." },
+        { "id": "indoor", "label": "Indoor", "description": "Indoor or sheltered content." },
+        { "id": "recovery", "label": "Recovery", "description": "Recovery-focused content." },
+        { "id": "rest", "label": "Rest", "description": "Resting content." },
+        { "id": "gathering", "label": "Gathering", "description": "General gathering activity." },
+        { "id": "hunting", "label": "Hunting", "description": "Hunting activity." },
+        { "id": "logging", "label": "Logging", "description": "Logging activity." },
+        { "id": "mining", "label": "Mining", "description": "Mining activity." }
+      ]
+    },
+    {
+      "id": "progression_tier",
+      "label": "Progression Tier",
+      "description": "Tags that identify content tiers.",
+      "allowedFor": ["items", "materials", "activities"],
+      "tags": [
+        { "id": "t1", "label": "Tier 1", "description": "Baseline tier-one content." }
+      ]
+    }
+  ]
+}

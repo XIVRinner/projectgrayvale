@@ -1,0 +1,71 @@
+:host {
+  display: block;
+}
+
+.gv-kairos-form {
+  display: grid;
+  gap: var(--gv-space-lg);
+}
+
+.gv-kairos-form__grid {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-kairos-form__grid--three-up {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gv-kairos-form__grid label,
+.gv-kairos-form__checkbox {
+  display: grid;
+  gap: var(--gv-space-xs);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-kairos-form__nested-list,
+.gv-kairos-form__nested-card {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-kairos-form__nested-header,
+.gv-kairos-form__nested-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-kairos-form__nested-card {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-lg);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  padding: var(--gv-space-md);
+}
+
+.gv-kairos-form__nested-card-header button {
+  border: 0;
+  background: transparent;
+  color: var(--gv-color-danger);
+  cursor: pointer;
+}
+
+.gv-kairos-form__checkbox {
+  align-items: center;
+  grid-auto-flow: column;
+  justify-content: start;
+}
+
+@media (max-width: 70rem) {
+  .gv-kairos-form__grid--three-up {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48rem) {
+  .gv-kairos-form__grid--three-up {
+    grid-template-columns: 1fr;
+  }
+}

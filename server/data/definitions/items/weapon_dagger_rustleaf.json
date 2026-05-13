@@ -1,0 +1,44 @@
+{
+  "id": "weapon_dagger_rustleaf",
+  "name": "Old Dagger",
+  "category": "equipment",
+  "rarity": "uncommon",
+  "tags": [
+    "dagger",
+    "melee",
+    "short_blade",
+    "starter"
+  ],
+  "slot": "main_hand",
+  "itemLevel": 1,
+  "description": "A weathered dagger Bridgitte still trusts more than appearances suggest.",
+  "requirements": {
+    "levelRequirement": 1
+  },
+  "damage": {
+    "piercing": {
+      "min": 5,
+      "max": 10
+    },
+    "slashing": {
+      "min": 2,
+      "max": 5
+    }
+  },
+  "combatStats": [
+    {
+      "stat": "dodge_chance",
+      "value": 0.04,
+      "operation": "add"
+    }
+  ],
+  "tooltip": {
+    "statLines": [
+      "Piercing Damage 5-10",
+      "Slashing Damage 2-5",
+      "+4% Dodge Chance"
+    ],
+    "flavorText": "Bridgitte's old loaner blade. It has survived worse hands than yours."
+  },
+  "imageId": "weapon_dagger_rustleaf"
+}

@@ -1,0 +1,77 @@
+<p-dialog
+  [visible]="open()"
+  header="Kairos Edit"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="true"
+  [styleClass]="'gv-kairos-edit-dialog'"
+  [contentStyleClass]="'gv-kairos-edit-dialog__content'"
+  (onHide)="closeDialog()"
+>
+  <section class="gv-kairos-edit" aria-label="Kairos Edit definition editor">
+    <p-tabs [value]="activeTab()" (valueChange)="setActiveTab($event)">
+      <p-tablist>
+        @for (tab of tabs; track tab.id) {
+          <p-tab [value]="tab.id">{{ tab.label }}</p-tab>
+        }
+      </p-tablist>
+
+      <p-tabpanels>
+        @for (tab of tabs; track tab.id) {
+          <p-tabpanel [value]="tab.id">
+            @if (tab.id === 'tags') {
+              <section class="gv-kairos-edit__wip">
+                <span class="gv-kairos-edit__wip-pill">WIP</span>
+                <h2>Tags registry editing is out of scope for this milestone.</h2>
+                <p>Definitions can already select from the centralized tag registry, but editing the registry itself lands later.</p>
+              </section>
+            } @else if (tab.id === activeTab()) {
+              @if (currentEditorState(); as currentEditorState) {
+              <gv-kairos-definition-workspace
+                [view]="currentWorkspaceView()!"
+                [listItems]="currentEditorState.listItems"
+                [selectedId]="currentEditorState.selectedId"
+                [loading]="currentEditorState.loading"
+                [saving]="currentEditorState.saving"
+                [statusMessage]="currentEditorState.statusMessage"
+                [validationErrors]="currentEditorState.validationErrors"
+                [validationWarnings]="currentEditorState.validationWarnings"
+                [hasDefinition]="currentEditorState.definition !== null"
+                [saveDisabled]="currentEditorState.validationErrors.length > 0 || currentEditorState.jsonError !== null"
+                (definitionSelected)="selectDefinition(tab.id, $event)"
+                (createRequested)="createDefinition(tab.id)"
+                (reloadRequested)="reloadDefinitions(tab.id)"
+                (saveRequested)="saveDefinition(tab.id)"
+              >
+                @if (currentEditorState.definition; as definition) {
+                  @switch (tab.id) {
+                    @case ('items') {
+                      <gv-kairos-item-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('items', $event)" (jsonTextChange)="updateJsonText('items', $event)" />
+                    }
+                    @case ('materials') {
+                      <gv-kairos-material-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('materials', $event)" (jsonTextChange)="updateJsonText('materials', $event)" />
+                    }
+                    @case ('locations') {
+                      <gv-kairos-location-editor [definition]="definition" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('locations', $event)" (jsonTextChange)="updateJsonText('locations', $event)" />
+                    }
+                    @case ('activities') {
+                      <gv-kairos-activity-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('activities', $event)" (jsonTextChange)="updateJsonText('activities', $event)" />
+                    }
+                    @case ('actions') {
+                      <gv-kairos-action-editor [definition]="definition" [tagOptions]="currentTagOptions()" [jsonText]="currentEditorState.jsonText" [jsonError]="currentEditorState.jsonError" (fieldChange)="applyChange('actions', $event)" (jsonTextChange)="updateJsonText('actions', $event)" />
+                    }
+                  }
+                } @else {
+                  <p class="gv-kairos-edit__placeholder">Select an existing definition or start a new one from the sidebar.</p>
+                }
+              </gv-kairos-definition-workspace>
+              }
+            }
+          </p-tabpanel>
+        }
+      </p-tabpanels>
+    </p-tabs>
+  </section>
+</p-dialog>

@@ -1,0 +1,44 @@
+{
+  "id": "harvest_flax_t1",
+  "name": "Harvest Flax",
+  "description": "Pull usable flax from the open patches near the village path.",
+  "location": {
+    "locationId": "forest_edge"
+  },
+  "tags": [
+    "forest",
+    "gathering",
+    "fiber",
+    "repeatable",
+    "t1"
+  ],
+  "governingAttributes": [
+    "agility",
+    "strength"
+  ],
+  "difficulty": 4,
+  "rewards": [
+    {
+      "type": "item",
+      "targetId": "mat_flax_t1",
+      "value": {
+        "type": "flat",
+        "amount": 1
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    },
+    {
+      "type": "attribute",
+      "targetId": "strength",
+      "value": {
+        "type": "flat",
+        "amount": 0.15
+      },
+      "distribution": {
+        "type": "deterministic"
+      }
+    }
+  ]
+}

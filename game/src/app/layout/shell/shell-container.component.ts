@@ -4,6 +4,7 @@ import { Router } from "@angular/router";
 import { type Player, type Race } from "@rinner/grayvale-core";
 
 import { CharacterRosterService } from "../../core/services/character-roster.service";
+import { AdminAuthStatusService } from "../../core/services/admin-auth-status.service";
 import { ActivityService } from "../../core/services/activity.service";
 import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
 import { ChangelogService } from "../../features/changelog/changelog.service";
@@ -73,6 +74,8 @@ import {
       [saveSummary]="saveSummary()"
       [topbarActions]="topbarActions()"
       [whatsNewUnreadCount]="whatsNewUnreadCount()"
+      [canOpenKairosEdit]="canOpenKairosEdit()"
+      [isKairosEditOpen]="isKairosEditOpen()"
       [isWhatsNewOpen]="isWhatsNewOpen()"
       [whatsNewReleases]="whatsNewReleases()"
       [isWhatsNewLoading]="whatsNewLoading()"
@@ -143,6 +146,8 @@ import {
       (gameplayLogCloseRequested)="closeGameplayLog()"
       (questLogOpenRequested)="openQuestLog()"
       (questLogCloseRequested)="closeQuestLog()"
+      (kairosEditRequested)="openKairosEdit()"
+      (kairosEditCloseRequested)="closeKairosEdit()"
       (trackedQuestIdsChanged)="setTrackedQuestIds($event)"
       (gegVisualizerOpenRequested)="openGegVisualizer()"
       (gegVisualizerCloseRequested)="closeGegVisualizer()"
@@ -175,6 +180,7 @@ import {
 export class ShellContainerComponent {
   private readonly router = inject(Router);
   private readonly roster = inject(CharacterRosterService);
+  private readonly adminAuthStatus = inject(AdminAuthStatusService);
   private readonly creatorOptionsLoader = inject(CharacterCreatorOptionsLoader);
   protected readonly gameDialog = inject(GameDialogService);
   private readonly activityService = inject(ActivityService);
@@ -195,6 +201,7 @@ export class ShellContainerComponent {
   protected readonly isGameplayLogOpen = signal(false);
   protected readonly isQuestLogOpen = signal(false);
   protected readonly isGegVisualizerOpen = signal(false);
+  protected readonly isKairosEditOpen = signal(false);
   protected readonly isWhatsNewOpen = signal(false);
   protected readonly isServerSelectOpen = signal(
     shouldShowServerSelectOnStartup(),
@@ -229,6 +236,7 @@ export class ShellContainerComponent {
   });
 
   readonly version = "0.0.1";
+  readonly canOpenKairosEdit = this.adminAuthStatus.canOpenKairosEdit;
 
   readonly title = signal("@Gray Vale");
   readonly subtitle = computed(() => {
@@ -317,6 +325,12 @@ export class ShellContainerComponent {
     });
 
     effect(() => {
+      if (!this.canOpenKairosEdit() && this.isKairosEditOpen()) {
+        this.isKairosEditOpen.set(false);
+      }
+    });
+
+    effect(() => {
       const activeSlot = this.roster.activeSlot();
       const healthProfile =
         this.gameSettings.balanceProfileFor(PLAYER_HEALTH_BALANCE_PROFILE_ID) ??
@@ -351,40 +365,34 @@ export class ShellContainerComponent {
       });
     });
 
-    effect(
-      () => {
-        const selectedPlayer = this.selectedModerationPlayer();
+    effect(() => {
+      const selectedPlayer = this.selectedModerationPlayer();
 
-        if (!selectedPlayer) {
-          return;
-        }
+      if (!selectedPlayer) {
+        return;
+      }
 
-        const refreshedPlayer =
-          this.serverChat
-            .players()
-            .find((player) => player.playerUuid === selectedPlayer.playerUuid) ??
-          null;
+      const refreshedPlayer =
+        this.serverChat
+          .players()
+          .find((player) => player.playerUuid === selectedPlayer.playerUuid) ??
+        null;
 
-        if (!refreshedPlayer) {
-          this.selectedModerationPlayer.set(null);
-          return;
-        }
+      if (!refreshedPlayer) {
+        this.selectedModerationPlayer.set(null);
+        return;
+      }
 
-        if (refreshedPlayer !== selectedPlayer) {
-          this.selectedModerationPlayer.set(refreshedPlayer);
-        }
-      },
-      { allowSignalWrites: true },
-    );
+      if (refreshedPlayer !== selectedPlayer) {
+        this.selectedModerationPlayer.set(refreshedPlayer);
+      }
+    });
 
-    effect(
-      () => {
-        this.serverConnection.selectedServerId();
-        this.serverConnection.session();
-        queueMicrotask(() => void this.refreshWhatsNewUnreadCount());
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      this.serverConnection.selectedServerId();
+      this.serverConnection.session();
+      queueMicrotask(() => void this.refreshWhatsNewUnreadCount());
+    });
   }
 
   readonly saveSlots = computed<readonly ShellSaveSlotSummary[]>(() => {
@@ -611,6 +619,24 @@ export class ShellContainerComponent {
   protected closeSaveManager(): void {
     this.logUi("Closing save manager.");
     this.isSaveManagerOpen.set(false);
+  }
+
+  protected openKairosEdit(): void {
+    if (!this.canOpenKairosEdit()) {
+      return;
+    }
+
+    this.logUi("Opening Kairos Edit dialog.");
+    this.isKairosEditOpen.set(true);
+  }
+
+  protected closeKairosEdit(): void {
+    if (!this.isKairosEditOpen()) {
+      return;
+    }
+
+    this.logUi("Closing Kairos Edit dialog.");
+    this.isKairosEditOpen.set(false);
   }
 
   protected openServerSelect(): void {

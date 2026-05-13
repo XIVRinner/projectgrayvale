@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 
 import express, {
   type Express,
@@ -18,16 +19,26 @@ import {
 } from "./changelog/changelog-routes";
 import { ChangelogRepository } from "./changelog/changelog-repository";
 import { ChangelogService } from "./changelog/changelog-service";
+import { createAuthRouter } from "./auth/auth-routes";
 import { ContentRepository } from "./content/content-repository";
 import { createContentRouter } from "./content/content-routes";
 import { seedJsonResources } from "./content/content-seed";
 import { openDatabase } from "./db/database";
 import type { GrayvaleDatabase } from "./db/database";
+import { DefinitionRepository } from "./definitions/definition-repository";
+import { registerAdminDefinitionRoutes } from "./definitions/admin-definition-routes";
+import { registerDefinitionAssetRoutes } from "./definitions/definition-asset-routes";
+import { DefinitionAssetService } from "./definitions/definition-asset-service";
+import { AdminDefinitionService } from "./definitions/admin-definition-service";
+import { registerDefinitionRoutes } from "./definitions/definition-routes";
+import { DefinitionService } from "./definitions/definition-service";
+import { syncDefinitions } from "./definitions/definition-sync";
 import { EntityRepository } from "./entities/entity-repository";
 import { registerEntityRoutes } from "./entities/entity-routes";
 import { seedApiEntities } from "./entities/entity-seed";
 import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
+import { createTagRegistryRouter } from "./tags/tag-registry";
 
 let appPromise: Promise<Express> | null = null;
 let configCache: ServerConfig | null = null;
@@ -39,7 +50,22 @@ export async function createApp(
   const app = express();
   const seededResources = await seedJsonResources(db, config.contentRoot);
   const seededEntities = await seedApiEntities(db, seededResources);
+  const syncedDefinitions = await syncDefinitions(db, config.definitionRoot);
   const repository = new ContentRepository(db);
+  const definitionRepository = new DefinitionRepository(db);
+  const definitionService = new DefinitionService(
+    definitionRepository,
+    config.definitionRoot,
+  );
+  const definitionAssetService = new DefinitionAssetService(
+    resolve(config.definitionRoot, "..", "..", "public", "assets", "definitions"),
+  );
+  const adminDefinitionService = new AdminDefinitionService(
+    definitionRepository,
+    definitionAssetService,
+    config.definitionRoot,
+    resolve(config.definitionRoot, "tag-registry.json"),
+  );
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
   const changelogRepository = new ChangelogRepository(db);
@@ -94,21 +120,33 @@ export async function createApp(
 
   app.get("/api/health", (_request, response) => {
     response.json({
-      name: config.name,
-      status: "ok",
-      seededResourceCount: seededResources.length,
-      seededEntityCount: seededEntities.length,
-    });
+        name: config.name,
+        status: "ok",
+        seededResourceCount: seededResources.length,
+        seededEntityCount: seededEntities.length,
+        syncedDefinitionCount: syncedDefinitions.length,
+      });
   });
 
   app.use("/api/data", createContentRouter(repository));
   app.use("/api/changelog", createChangelogRouter(changelogController));
   app.use("/api/admin", createAdminChangelogRouter(changelogController));
+  app.use("/api/auth", createAuthRouter(multiplayerRepository));
+  app.use(
+    "/api/tags",
+    createTagRegistryRouter(resolve(config.definitionRoot, "tag-registry.json")),
+  );
   app.use(
     "/api/server",
     createMultiplayerRouter(multiplayerRepository, config),
   );
-  registerEntityRoutes(app, "/api/activities", "activity", entityRepository);
+  registerDefinitionAssetRoutes(app, definitionAssetService);
+  registerAdminDefinitionRoutes(
+    app,
+    adminDefinitionService,
+    multiplayerRepository,
+  );
+  registerDefinitionRoutes(app, definitionService);
   registerEntityRoutes(app, "/api/attributes", "attribute", entityRepository);
   registerEntityRoutes(
     app,
@@ -129,32 +167,13 @@ export async function createApp(
     "difficulty-curve",
     entityRepository,
   );
-  registerEntityRoutes(
-    app,
-    "/api/equipment-items",
-    "equipment-item",
-    entityRepository,
-  );
-  registerEntityRoutes(app, "/api/items", "item", entityRepository);
   registerEntityRoutes(app, "/api/quests", "quest", entityRepository);
   registerEntityRoutes(app, "/api/skills", "skill", entityRepository);
   registerEntityRoutes(app, "/api/weapons", "weapon", entityRepository);
   registerEntityRoutes(
     app,
-    "/api/world-default-state",
-    "world-default-state",
-    entityRepository,
-  );
-  registerEntityRoutes(
-    app,
     "/api/world-guards",
     "world-guard",
-    entityRepository,
-  );
-  registerEntityRoutes(
-    app,
-    "/api/world-locations",
-    "world-location",
     entityRepository,
   );
 

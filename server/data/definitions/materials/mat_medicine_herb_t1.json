@@ -1,0 +1,20 @@
+{
+  "id": "mat_medicine_herb_t1",
+  "name": "Medicine Herb (T1)",
+  "category": "material",
+  "rarity": "common",
+  "tags": [
+    "herb",
+    "alchemy",
+    "t1",
+    "crafting"
+  ],
+  "quantity": 0,
+  "qualityStars": 1,
+  "craftingTags": [
+    "alchemy",
+    "medical"
+  ],
+  "source": "Forest Edge",
+  "imageId": "mat_medicine_herb_t1"
+}

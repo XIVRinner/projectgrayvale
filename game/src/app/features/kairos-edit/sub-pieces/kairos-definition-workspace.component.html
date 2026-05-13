@@ -1,0 +1,89 @@
+<section class="gv-kairos-workspace">
+  <aside class="gv-kairos-workspace__sidebar">
+    <header class="gv-kairos-workspace__sidebar-header">
+      <div>
+        <p class="gv-kairos-workspace__eyebrow">Kairos Edit</p>
+        <h2>{{ view().title }}</h2>
+        <p>{{ view().description }}</p>
+      </div>
+
+      <div class="gv-kairos-workspace__toolbar">
+        <button type="button" class="p-button p-component" (click)="createRequested.emit()">
+          New
+        </button>
+        <button type="button" class="p-button p-component" (click)="reloadRequested.emit()">
+          Reload
+        </button>
+      </div>
+    </header>
+
+    <div class="gv-kairos-workspace__list">
+      @if (loading()) {
+        <p class="gv-kairos-workspace__empty">Loading definitions...</p>
+      } @else if (listItems().length === 0) {
+        <p class="gv-kairos-workspace__empty">{{ view().emptyLabel }}</p>
+      } @else {
+        @for (item of listItems(); track item.id) {
+          <button
+            type="button"
+            class="gv-kairos-workspace__list-item"
+            [class.gv-kairos-workspace__list-item--selected]="selectedId() === item.id"
+            (click)="definitionSelected.emit(item.id)"
+          >
+            <span class="gv-kairos-workspace__list-item-header">
+              <span class="gv-kairos-workspace__list-item-title">{{ item.label }}</span>
+              <span class="gv-kairos-workspace__list-item-id">{{ item.id }}</span>
+            </span>
+
+            @if (item.tags.length > 0) {
+              <span class="gv-kairos-workspace__list-item-tags">
+                @for (tag of item.tags; track tag) {
+                  <span class="gv-kairos-workspace__list-chip">{{ tag }}</span>
+                }
+              </span>
+            }
+          </button>
+        }
+      }
+    </div>
+  </aside>
+
+  <div class="gv-kairos-workspace__main">
+    <header class="gv-kairos-workspace__main-header">
+      <div class="gv-kairos-workspace__status-stack">
+        @if (statusMessage(); as statusMessage) {
+          <p class="gv-kairos-workspace__status">{{ statusMessage }}</p>
+        }
+
+        @if (validationErrors().length > 0) {
+          <ul class="gv-kairos-workspace__issues gv-kairos-workspace__issues--error">
+            @for (issue of validationErrors(); track issue) {
+              <li>{{ issue }}</li>
+            }
+          </ul>
+        }
+
+        @if (validationWarnings().length > 0) {
+          <ul class="gv-kairos-workspace__issues gv-kairos-workspace__issues--warning">
+            @for (issue of validationWarnings(); track issue) {
+              <li>{{ issue }}</li>
+            }
+          </ul>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="p-button p-component gv-kairos-workspace__save"
+        [disabled]="saveDisabled() || !hasDefinition() || saving()"
+        (click)="saveRequested.emit()"
+      >
+        {{ saving() ? "Saving..." : "Save" }}
+      </button>
+    </header>
+
+    <div class="gv-kairos-workspace__content">
+      <ng-content />
+    </div>
+  </div>
+</section>

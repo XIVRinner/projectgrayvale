@@ -1,0 +1,21 @@
+{
+  "id": "armor_head_travel_rags",
+  "name": "Travel Rags Hood",
+  "category": "equipment",
+  "rarity": "trash",
+  "tags": [
+    "starter",
+    "junk",
+    "head",
+    "cloth"
+  ],
+  "slot": "head",
+  "itemLevel": 1,
+  "description": "A thin hood that keeps dust off your hair and very little else.",
+  "tooltip": {
+    "statLines": [
+      "No combat stats"
+    ],
+    "flavorText": "Worth almost nothing and protects exactly as much."
+  }
+}
