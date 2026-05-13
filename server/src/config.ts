@@ -21,6 +21,7 @@ const configFileSchema = z.object({
   contentRoot: z.string().trim().optional(),
   definitionRoot: z.string().trim().optional(),
   allowedOrigins: z.string().trim().optional(),
+  motd: z.string().trim().optional(),
 });
 
 type RawConfigValues = Record<string, string>;
@@ -50,6 +51,7 @@ export interface ServerConfig {
    * Set GRAYVALE_ALLOWED_ORIGINS or the allowedOrigins config-file key in production.
    */
   readonly allowedOrigins: readonly string[];
+  readonly motd?: string;
 }
 
 export function readServerConfig(): ServerConfig {
@@ -117,6 +119,7 @@ export function readServerConfig(): ServerConfig {
     allowedOrigins: parseAllowedOrigins(
       process.env["GRAYVALE_ALLOWED_ORIGINS"] ?? configValues.allowedOrigins
     ),
+    motd: readOptionalSetting(process.env["GRAYVALE_MOTD"]) ?? readOptionalSetting(configValues.motd),
   };
 }
 

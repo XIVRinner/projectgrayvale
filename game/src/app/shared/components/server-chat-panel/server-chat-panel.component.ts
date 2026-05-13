@@ -1,6 +1,8 @@
-import { Component, input, output } from "@angular/core";
+import { Component, input, output, signal } from "@angular/core";
 
 import {
+  AdminPlayerListEntryView,
+  AdminProfileDetailView,
   ServerChatChannelView,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
@@ -11,6 +13,7 @@ import {
   ServerPresencePlayerView,
 } from "../../../core/services/server-chat.models";
 import { ServerChatComposerComponent } from "./sub-pieces/server-chat-composer.component";
+import { ServerChatAdminPanelComponent } from "./sub-pieces/server-chat-admin-panel.component";
 import { ServerChatMessageListComponent } from "./sub-pieces/server-chat-message-list.component";
 import { ServerChatModerationBannerComponent } from "./sub-pieces/server-chat-moderation-banner.component";
 import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-list.component";
@@ -20,6 +23,7 @@ import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-l
   standalone: true,
   imports: [
     ServerChatComposerComponent,
+    ServerChatAdminPanelComponent,
     ServerChatMessageListComponent,
     ServerChatModerationBannerComponent,
     ServerChatPlayerListComponent,
@@ -45,6 +49,16 @@ export class ServerChatPanelComponent {
   readonly selectedModerationPlayer = input<ServerPresencePlayerView | null>(null);
   readonly moderationStatusMessage = input<string | null>(null);
   readonly isModerationSubmitting = input(false);
+  readonly canShowAdminPanel = input(false);
+  readonly adminEntries = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly adminTotal = input(0);
+  readonly adminPage = input(1);
+  readonly adminPageSize = input(20);
+  readonly adminSearch = input("");
+  readonly adminLoading = input(false);
+  readonly selectedAdminProfileId = input<string | null>(null);
+  readonly adminProfileDetail = input<AdminProfileDetailView | null>(null);
+  readonly grantablePermissions = input.required<readonly string[]>();
 
   readonly refreshRequested = output<void>();
   readonly openServerSelectRequested = output<void>();
@@ -55,6 +69,27 @@ export class ServerChatPanelComponent {
   readonly playerActionRequested = output<ServerChatPlayerActionRequest>();
   readonly moderationSubmitted = output<ServerModerationRequest>();
   readonly moderationCleared = output<void>();
+  readonly adminSearchChanged = output<string>();
+  readonly adminPageChanged = output<number>();
+  readonly adminProfileSelected = output<string>();
+  readonly adminPermissionGranted = output<{ profileId: string; permissionId: string }>();
+  readonly adminPermissionRevoked = output<{ profileId: string; permissionId: string }>();
+  readonly adminModerationRequested = output<{ profileId: string; action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn" }>();
+  readonly adminNoteAdded = output<{ profileId: string; body: string }>();
+
+  protected readonly activePanel = signal<"chat" | "admin">("chat");
+
+  protected selectPanel(panel: "chat" | "admin"): void {
+    if (panel === "admin" && !this.canShowAdminPanel()) {
+      return;
+    }
+
+    this.activePanel.set(panel);
+  }
+
+  protected isPanelActive(panel: "chat" | "admin"): boolean {
+    return this.activePanel() === panel;
+  }
 
   protected showGrantAdmin(): boolean {
     return (

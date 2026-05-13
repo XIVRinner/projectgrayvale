@@ -160,3 +160,60 @@ export interface ServerChatPlayerActionRequest {
   readonly targetProfileId: string;
   readonly targetCharacterName?: string;
 }
+
+export interface AdminPlayerListEntryView {
+  readonly profileId: string;
+  readonly profileDisplayName?: string;
+  readonly currentCharacterId?: string;
+  readonly currentCharacterName?: string;
+  readonly online: boolean;
+  readonly lastOnlineAt?: string;
+}
+
+export interface AdminProfilePermissionView {
+  readonly permissionId: string;
+  readonly grantedAt: string;
+  readonly grantedByProfileId: string;
+}
+
+export interface AdminProfileCharacterView {
+  readonly characterId: string;
+  readonly name: string;
+  readonly online: boolean;
+  readonly guildId?: string;
+  readonly guildName?: string;
+  readonly role?: string;
+  readonly savedProgressSummary?: unknown;
+}
+
+export interface AdminProfileNoteView {
+  readonly id: string;
+  readonly targetProfileId: string;
+  readonly authorProfileId: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface AdminProfileDetailView {
+  readonly profileId: string;
+  readonly displayName?: string;
+  readonly online: boolean;
+  readonly lastOnlineAt?: string;
+  readonly moderation: {
+    readonly banned: boolean;
+    readonly muted: boolean;
+    readonly warned: boolean;
+  };
+  readonly permissions: readonly AdminProfilePermissionView[];
+  readonly characters: readonly AdminProfileCharacterView[];
+  readonly currentOnlineCharacterId?: string;
+  readonly friendCount: number;
+  readonly guildMemberships: readonly {
+    guildId: string;
+    guildName: string;
+    role: string;
+    characterId: string;
+  }[];
+  readonly adminNotes: readonly AdminProfileNoteView[];
+}

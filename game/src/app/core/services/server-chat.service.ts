@@ -5,11 +5,15 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { firstValueFrom, fromEvent, timer } from "rxjs";
 
 import { ChatEmotesLoader } from "../../data/loaders/chat-emotes.loader";
+import { AdminSocialService } from "./admin-social.service";
+import { ChatApiService } from "./chat-api.service";
+import { DirectMessageService } from "./direct-message.service";
 import { SERVER_CHAT_COMMANDS } from "./server-chat-commands";
 import { ServerConnectionService } from "./server-connection.service";
 import {
+  AdminPlayerListEntryView,
+  AdminProfileDetailView,
   ServerChatChannelView,
-  ServerChatChannelsResponse,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
   ServerChatMessageView,
@@ -41,10 +45,6 @@ interface ServerChatMessageApiView {
   readonly sender: SocialIdentityView;
 }
 
-interface ServerDirectConversationsResponse {
-  readonly conversations: readonly ServerDirectConversationView[];
-}
-
 interface ServerChatHistoryApiResponse {
   readonly count: number;
   readonly entries: readonly ServerChatMessageApiView[];
@@ -56,6 +56,9 @@ export class ServerChatService {
   private readonly document = inject(DOCUMENT);
   private readonly chatEmotesLoader = inject(ChatEmotesLoader);
   private readonly serverConnection = inject(ServerConnectionService);
+  private readonly chatApi = inject(ChatApiService);
+  private readonly directMessageService = inject(DirectMessageService);
+  private readonly adminSocialService = inject(AdminSocialService);
 
   private readonly panelOpenState = signal(false);
   private readonly infoState = signal<ServerInfoView | null>(null);
@@ -75,6 +78,16 @@ export class ServerChatService {
   private readonly statusMessageState = signal<string | null>(null);
   private readonly sendingState = signal(false);
   private readonly documentVisibleState = signal(!this.document.hidden);
+  private readonly adminEntriesState = signal<readonly AdminPlayerListEntryView[]>([]);
+  private readonly adminTotalState = signal(0);
+  private readonly adminPageState = signal(1);
+  private readonly adminPageSizeState = signal(20);
+  private readonly adminSearchState = signal("");
+  private readonly adminLoadingState = signal(false);
+  private readonly selectedAdminProfileIdState = signal<string | null>(null);
+  private readonly adminProfileDetailState = signal<AdminProfileDetailView | null>(null);
+  private readonly grantablePermissionsState = signal<readonly string[]>([]);
+  private readonly adminPanelAccessState = signal(false);
 
   private presenceRefreshInFlight = false;
   private channelsRefreshInFlight = false;
@@ -98,6 +111,10 @@ export class ServerChatService {
     return session !== null && session.chatAccess === "allowed";
   });
   readonly canModerate = this.serverConnection.canModerate;
+  readonly canShowAdminPanel = computed(() => {
+    const session = this.serverConnection.session();
+    return session !== null && (session.rank === "admin" || this.adminPanelAccessState());
+  });
   readonly canBlockServerEntry = this.serverConnection.canBlockServerEntry;
   readonly sendHint = computed(() => {
     const session = this.serverConnection.session();
@@ -164,6 +181,15 @@ export class ServerChatService {
       activeChannelId: this.activeChannelIdState(),
     };
   });
+  readonly adminEntries = this.adminEntriesState.asReadonly();
+  readonly adminTotal = this.adminTotalState.asReadonly();
+  readonly adminPage = this.adminPageState.asReadonly();
+  readonly adminPageSize = this.adminPageSizeState.asReadonly();
+  readonly adminSearch = this.adminSearchState.asReadonly();
+  readonly adminLoading = this.adminLoadingState.asReadonly();
+  readonly selectedAdminProfileId = this.selectedAdminProfileIdState.asReadonly();
+  readonly adminProfileDetail = this.adminProfileDetailState.asReadonly();
+  readonly grantablePermissions = this.grantablePermissionsState.asReadonly();
 
   constructor() {
     this.chatEmotesLoader
@@ -186,6 +212,15 @@ export class ServerChatService {
         this.directConversationsState.set([]);
         this.lastSeenMessageIdState.set({});
         this.statusMessageState.set(null);
+        this.adminEntriesState.set([]);
+        this.adminTotalState.set(0);
+        this.adminPageState.set(1);
+        this.adminSearchState.set("");
+        this.adminLoadingState.set(false);
+        this.selectedAdminProfileIdState.set(null);
+        this.adminProfileDetailState.set(null);
+        this.grantablePermissionsState.set([]);
+        this.adminPanelAccessState.set(false);
         queueMicrotask(() => void this.refreshAll());
       },
       { allowSignalWrites: true },
@@ -273,13 +308,7 @@ export class ServerChatService {
     this.sendingState.set(true);
 
     try {
-      await firstValueFrom(
-        this.http.post(
-          this.serverConnection.serverApiUrl(`/api/chat/channels/${activeChannelId}/messages`),
-          { body: trimmedMessage },
-          { withCredentials: true },
-        ),
-      );
+      await this.chatApi.sendChannelMessage(activeChannelId, trimmedMessage);
       this.statusMessageState.set(null);
       await this.refreshChannelsAndMessages();
     } catch (error) {
@@ -322,6 +351,7 @@ export class ServerChatService {
       this.refreshInfo(),
       this.refreshPresence(),
       this.refreshChannelsAndMessages(),
+      this.refreshAdminPanel(),
     ]);
   }
 
@@ -383,22 +413,8 @@ export class ServerChatService {
     try {
       let directFetchFailed = false;
       const [channelsResponse, directResponse] = await Promise.all([
-        firstValueFrom(
-          this.http.get<ServerChatChannelsResponse>(
-            this.serverConnection.serverApiUrl("/api/chat/channels"),
-            {
-              withCredentials: true,
-            },
-          ),
-        ),
-        firstValueFrom(
-          this.http.get<ServerDirectConversationsResponse>(
-            this.serverConnection.serverApiUrl("/api/chat/direct"),
-            {
-              withCredentials: true,
-            },
-          ),
-        ).catch(() => {
+        this.chatApi.loadChannels().then((channels) => ({ channels })),
+        this.directMessageService.loadDirectConversations().then((conversations) => ({ conversations })).catch(() => {
           directFetchFailed = true;
           return { conversations: [] as readonly ServerDirectConversationView[] };
         }),
@@ -458,7 +474,36 @@ export class ServerChatService {
       const response = await this.fetchChannelEntries(activeChannel, after);
 
       const incoming = response.entries.map((entry) => mapMessage(entry));
-      const merged = dedupeById([...this.messagesState(), ...incoming]).slice(-CHAT_LIMIT);
+      let merged = dedupeById([...this.messagesState(), ...incoming]).slice(-CHAT_LIMIT);
+
+      if (activeChannel.type === "system") {
+        try {
+          const motd = await this.chatApi.loadMotd();
+          const motdEntry: ServerChatMessageView = {
+            id: "motd",
+            channelId: activeChannel.id,
+            channelType: "system",
+            playerUuid: "system",
+            rank: "admin",
+            chatAccess: "allowed",
+            chatAccessLabel: "System",
+            serverBanned: false,
+            message: motd,
+            createdAt: new Date().toISOString(),
+            sender: {
+              profileId: "system",
+              profileDisplayName: "System",
+              characterName: "System",
+              online: true,
+              badges: [{ type: "permission", label: "System" }],
+            },
+          };
+          merged = dedupeById([...merged, motdEntry]).slice(-CHAT_LIMIT);
+        } catch {
+          // ignore motd fetch issues; regular messages remain available
+        }
+      }
+
       this.messagesState.set(merged);
       const last = merged.at(-1);
 
@@ -477,6 +522,109 @@ export class ServerChatService {
     } finally {
       this.messagesRefreshInFlight = false;
     }
+  }
+
+  async refreshAdminPanel(): Promise<void> {
+    const session = this.serverConnection.session();
+
+    if (!session) {
+      return;
+    }
+
+    if (session.rank !== "admin" && !this.adminPanelAccessState()) {
+      try {
+        const permissions = await this.adminSocialService.listGrantablePermissions();
+        this.grantablePermissionsState.set(permissions);
+        this.adminPanelAccessState.set(true);
+      } catch {
+        this.adminPanelAccessState.set(false);
+        return;
+      }
+    }
+
+    if (!this.canShowAdminPanel()) {
+      return;
+    }
+
+    this.adminLoadingState.set(true);
+
+    try {
+      const [players, permissions] = await Promise.all([
+        this.adminSocialService.loadPlayers({
+          page: this.adminPageState(),
+          pageSize: this.adminPageSizeState(),
+          search: this.adminSearchState(),
+        }),
+        this.adminSocialService.listGrantablePermissions(),
+      ]);
+      this.adminEntriesState.set(players.entries);
+      this.adminTotalState.set(players.total);
+      this.grantablePermissionsState.set(permissions);
+
+      const selectedProfileId = this.selectedAdminProfileIdState() ?? players.entries[0]?.profileId;
+
+      if (selectedProfileId) {
+        this.selectedAdminProfileIdState.set(selectedProfileId);
+        this.adminProfileDetailState.set(
+          await this.adminSocialService.loadProfileDetail(selectedProfileId),
+        );
+      } else {
+        this.selectedAdminProfileIdState.set(null);
+        this.adminProfileDetailState.set(null);
+      }
+    } catch (error) {
+      this.adminEntriesState.set([]);
+      this.adminTotalState.set(0);
+      this.adminProfileDetailState.set(null);
+      if (this.panelOpenState()) {
+        this.statusMessageState.set(toErrorMessage(error));
+      }
+    } finally {
+      this.adminLoadingState.set(false);
+    }
+  }
+
+  setAdminSearch(search: string): void {
+    this.adminSearchState.set(search.trim());
+    this.adminPageState.set(1);
+    void this.refreshAdminPanel();
+  }
+
+  setAdminPage(page: number): void {
+    this.adminPageState.set(Math.max(1, page));
+    void this.refreshAdminPanel();
+  }
+
+  selectAdminProfile(profileId: string): void {
+    this.selectedAdminProfileIdState.set(profileId);
+    void this.refreshAdminPanel();
+  }
+
+  async grantProfilePermission(profileId: string, permissionId: string): Promise<void> {
+    await this.adminSocialService.grantPermission(profileId, permissionId);
+    await this.refreshAdminPanel();
+  }
+
+  async revokeProfilePermission(profileId: string, permissionId: string): Promise<void> {
+    await this.adminSocialService.revokePermission(profileId, permissionId);
+    await this.refreshAdminPanel();
+  }
+
+  async moderateProfile(
+    profileId: string,
+    action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn",
+  ): Promise<void> {
+    await this.adminSocialService.moderateProfile(profileId, action, {});
+    await this.refreshAdminPanel();
+  }
+
+  async addAdminNote(profileId: string, body: string): Promise<void> {
+    if (!body.trim()) {
+      return;
+    }
+
+    await this.adminSocialService.addNote(profileId, body);
+    await this.refreshAdminPanel();
   }
 
   private shouldPollPresence(): boolean {
@@ -512,22 +660,14 @@ export class ServerChatService {
     channel: ServerChatChannelView,
     after?: string,
   ): Promise<ServerChatHistoryApiResponse> {
-    const path = channel.type === "direct"
-      ? `/api/chat/direct/${channel.id}/messages`
-      : `/api/chat/channels/${channel.id}/messages`;
+    const entries = channel.type === "direct"
+      ? await this.directMessageService.pollDirectMessages(channel.id, after, CHAT_LIMIT)
+      : await this.chatApi.pollChannelMessages(channel.id, after, CHAT_LIMIT);
 
-    return firstValueFrom(
-      this.http.get<ServerChatHistoryApiResponse>(
-        this.serverConnection.serverApiUrl(path),
-        {
-          params: {
-            limit: String(CHAT_LIMIT),
-            ...(after ? { after } : {}),
-          },
-          withCredentials: true,
-        },
-      ),
-    );
+    return {
+      count: entries.length,
+      entries,
+    };
   }
 }
 

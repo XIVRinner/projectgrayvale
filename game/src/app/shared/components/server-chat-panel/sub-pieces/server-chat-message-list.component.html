@@ -94,6 +94,36 @@
             >
               Block
             </button>
+            <button
+              type="button"
+              class="gv-server-chat-message-list__action"
+              [attr.aria-label]="'Report ' + displayName(message)"
+              [attr.title]="'Report ' + displayName(message)"
+              (click)="
+                playerActionRequested.emit({
+                  action: 'report',
+                  targetProfileId: message.sender.profileId,
+                  targetCharacterName: message.sender.characterName
+                })
+              "
+            >
+              Report
+            </button>
+            <button
+              type="button"
+              class="gv-server-chat-message-list__action"
+              [attr.aria-label]="'Invite ' + displayName(message) + ' to guild'"
+              [attr.title]="'Invite ' + displayName(message) + ' to guild'"
+              (click)="
+                playerActionRequested.emit({
+                  action: 'guild_invite',
+                  targetProfileId: message.sender.profileId,
+                  targetCharacterName: message.sender.characterName
+                })
+              "
+            >
+              Guild Invite
+            </button>
             @if (canUseAdminActions()) {
               <button
                 type="button"
@@ -109,6 +139,21 @@
                 "
               >
                 Ban
+              </button>
+              <button
+                type="button"
+                class="gv-server-chat-message-list__action"
+                [attr.aria-label]="'Open admin profile for ' + displayName(message)"
+                [attr.title]="'Open admin profile for ' + displayName(message)"
+                (click)="
+                  playerActionRequested.emit({
+                    action: 'admin_profile',
+                    targetProfileId: message.sender.profileId,
+                    targetCharacterName: message.sender.characterName
+                  })
+                "
+              >
+                Admin Profile
               </button>
             }
           </div>

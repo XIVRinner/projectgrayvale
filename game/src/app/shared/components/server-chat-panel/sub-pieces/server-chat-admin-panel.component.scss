@@ -1,0 +1,91 @@
+:host {
+  display: block;
+}
+
+.gv-server-chat-admin-panel {
+  display: grid;
+  gap: var(--gv-space-sm);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  padding: var(--gv-space-sm);
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 92%, black 8%);
+}
+
+.gv-server-chat-admin-panel__header,
+.gv-server-chat-admin-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-chat-admin-panel__header h4,
+.gv-server-chat-admin-panel__header p,
+.gv-server-chat-admin-panel__detail h5,
+.gv-server-chat-admin-panel__detail h6,
+.gv-server-chat-admin-panel__detail p {
+  margin: 0;
+}
+
+.gv-server-chat-admin-panel__search input {
+  width: 100%;
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-surface);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xs);
+  padding: 0.4rem 0.55rem;
+}
+
+.gv-server-chat-admin-panel__body {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-chat-admin-panel__list,
+.gv-server-chat-admin-panel__permissions,
+.gv-server-chat-admin-panel__characters,
+.gv-server-chat-admin-panel__notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gv-server-chat-admin-panel__item button {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-surface);
+  color: var(--gv-color-text-primary);
+  width: 100%;
+  display: grid;
+  text-align: left;
+  gap: calc(var(--gv-space-xs) * 1.2);
+  padding: 0.35rem 0.45rem;
+}
+
+.gv-server-chat-admin-panel__item--selected button {
+  border-color: color-mix(in srgb, var(--gv-color-accent) 45%, var(--gv-color-border-subtle));
+}
+
+.gv-server-chat-admin-panel__detail {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-server-chat-admin-panel__actions,
+.gv-server-chat-admin-panel__permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--gv-space-xs) * 1.3);
+}
+
+.gv-server-chat-admin-panel__button {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font-size: var(--gv-font-size-xxs);
+  padding: 0.2rem 0.5rem;
+}

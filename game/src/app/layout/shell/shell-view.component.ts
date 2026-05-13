@@ -8,6 +8,8 @@ import type { GameplayGraphDebugSnapshot } from "../../core/execution-graph/game
 import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
 import type {
+  AdminPlayerListEntryView,
+  AdminProfileDetailView,
   ServerChatPlayerActionRequest,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
@@ -140,6 +142,16 @@ export class ShellViewComponent {
   readonly isServerChatSending = input.required<boolean>();
   readonly isServerAdminSubmitting = input.required<boolean>();
   readonly isServerModerationSubmitting = input.required<boolean>();
+  readonly canShowAdminPanel = input(false);
+  readonly adminEntries = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly adminTotal = input(0);
+  readonly adminPage = input(1);
+  readonly adminPageSize = input(20);
+  readonly adminSearch = input("");
+  readonly adminLoading = input(false);
+  readonly selectedAdminProfileId = input<string | null>(null);
+  readonly adminProfileDetail = input<AdminProfileDetailView | null>(null);
+  readonly grantablePermissions = input.required<readonly string[]>();
   readonly gameDialogSession = input<GameDialogSessionView | null>(null);
   readonly version = input.required<string>();
 
@@ -189,6 +201,13 @@ export class ShellViewComponent {
   readonly serverChatSendRequested = output<string>();
   readonly serverChatChannelSelected = output<string>();
   readonly serverChatPlayerActionRequested = output<ServerChatPlayerActionRequest>();
+  readonly adminSearchChanged = output<string>();
+  readonly adminPageChanged = output<number>();
+  readonly adminProfileSelected = output<string>();
+  readonly adminPermissionGranted = output<{ profileId: string; permissionId: string }>();
+  readonly adminPermissionRevoked = output<{ profileId: string; permissionId: string }>();
+  readonly adminModerationRequested = output<{ profileId: string; action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn" }>();
+  readonly adminNoteAdded = output<{ profileId: string; body: string }>();
   readonly serverChatServerSelectRequested = output<void>();
   readonly actionSelected = output<string>();
   readonly characterPanelActionSelected = output<string>();

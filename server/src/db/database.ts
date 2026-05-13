@@ -430,6 +430,216 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
 
     CREATE INDEX IF NOT EXISTS idx_direct_messages_conversation_created
       ON direct_messages (conversation_id, created_at ASC);
+
+    CREATE TABLE IF NOT EXISTS moderation_actions (
+      id TEXT PRIMARY KEY,
+      target_profile_id TEXT NOT NULL,
+      actor_profile_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      reason TEXT,
+      starts_at TEXT NOT NULL,
+      expires_at TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (actor_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_moderation_actions_target_active
+      ON moderation_actions (target_profile_id, type, active, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id TEXT PRIMARY KEY,
+      actor_profile_id TEXT NOT NULL,
+      target_profile_id TEXT,
+      action_type TEXT NOT NULL,
+      payload_json TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (actor_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created
+      ON admin_audit_log (created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS admin_profile_notes (
+      id TEXT PRIMARY KEY,
+      target_profile_id TEXT NOT NULL,
+      author_profile_id TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (author_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_admin_profile_notes_target
+      ON admin_profile_notes (target_profile_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS profile_permissions (
+      profile_id TEXT NOT NULL,
+      permission_id TEXT NOT NULL,
+      granted_by_profile_id TEXT NOT NULL,
+      granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (profile_id, permission_id),
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (granted_by_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS friendships (
+      id TEXT PRIMARY KEY,
+      requester_profile_id TEXT NOT NULL,
+      requester_character_id TEXT,
+      target_profile_id TEXT NOT NULL,
+      target_character_id TEXT,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (requester_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_friendships_profile
+      ON friendships (requester_profile_id, target_profile_id, status, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS social_privacy_settings (
+      profile_id TEXT PRIMARY KEY,
+      show_online_to_friends INTEGER NOT NULL DEFAULT 1,
+      allow_friend_requests INTEGER NOT NULL DEFAULT 1,
+      allow_whispers_from TEXT NOT NULL DEFAULT 'everyone',
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS blocked_profiles (
+      blocker_profile_id TEXT NOT NULL,
+      blocked_profile_id TEXT NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (blocker_profile_id, blocked_profile_id),
+      FOREIGN KEY (blocker_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (blocked_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS guilds (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      created_by_profile_id TEXT NOT NULL,
+      created_by_character_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (created_by_character_id)
+        REFERENCES player_characters (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS guild_members (
+      guild_id TEXT NOT NULL,
+      profile_id TEXT NOT NULL,
+      character_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (guild_id, character_id),
+      FOREIGN KEY (guild_id)
+        REFERENCES guilds (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (character_id)
+        REFERENCES player_characters (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guild_members_profile
+      ON guild_members (profile_id, joined_at DESC);
+
+    CREATE TABLE IF NOT EXISTS guild_invitations (
+      id TEXT PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      inviter_profile_id TEXT NOT NULL,
+      inviter_character_id TEXT,
+      target_profile_id TEXT NOT NULL,
+      target_character_id TEXT,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (guild_id)
+        REFERENCES guilds (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (inviter_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guild_invitations_target
+      ON guild_invitations (target_profile_id, status, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS system_messages (
+      id TEXT PRIMARY KEY,
+      target_type TEXT NOT NULL,
+      target_id TEXT,
+      channel_id TEXT,
+      body TEXT NOT NULL,
+      message_type TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_system_messages_target
+      ON system_messages (target_type, target_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS player_reports (
+      id TEXT PRIMARY KEY,
+      reporter_profile_id TEXT NOT NULL,
+      target_profile_id TEXT,
+      target_message_id TEXT,
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (reporter_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (target_profile_id)
+        REFERENCES player_profiles (id)
+        ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_player_reports_status
+      ON player_reports (status, created_at DESC);
   `;
 }
 

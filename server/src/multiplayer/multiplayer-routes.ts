@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 
 import type { ServerConfig } from "../config";
+import type { SocialRepository } from "../social/social-repository";
 import { MultiplayerRepository } from "./multiplayer-repository";
 import { type AllowedPlayerRecord, type PlayerRank } from "./multiplayer-types";
 import { buildServerProfile } from "../server-profile/server-profile-service";
@@ -65,6 +66,7 @@ const SESSION_COOKIE_NAME = "grayvale_session";
 export function createMultiplayerRouter(
   repository: MultiplayerRepository,
   config: ServerConfig,
+  socialRepository?: SocialRepository,
 ): Router {
   const router = Router();
 
@@ -182,6 +184,20 @@ export function createMultiplayerRouter(
         return;
       }
 
+      if (socialRepository) {
+        const profileId = await socialRepository.getProfileIdByCharacterId(session.playerUuid);
+
+        if (profileId && (await socialRepository.isProfileBanned(profileId))) {
+          await repository.deleteSessionsForPlayer(session.playerUuid);
+          clearSessionCookie(response, request);
+          response.status(403).json({
+            error: "server_banned",
+            message: "This profile is banned from entering the server.",
+          });
+          return;
+        }
+      }
+
       await repository.markSessionSeen(sessionId);
       await repository.markPlayerSeen(session.playerUuid);
 
@@ -223,6 +239,20 @@ export function createMultiplayerRouter(
               : "This player is banned from entering the server.",
           });
           return;
+        }
+
+        if (socialRepository) {
+          const profileId = await socialRepository.getProfileIdByCharacterId(session.playerUuid);
+
+          if (profileId && (await socialRepository.isProfileBanned(profileId))) {
+            await repository.deleteSessionsForPlayer(session.playerUuid);
+            clearSessionCookie(response, request);
+            response.status(403).json({
+              error: "server_banned",
+              message: "This profile is banned from entering the server.",
+            });
+            return;
+          }
         }
 
         await repository.markSessionSeen(sessionId);
@@ -317,6 +347,18 @@ export function createMultiplayerRouter(
               : "This player is banned from entering the server.",
           });
           return;
+        }
+
+        if (socialRepository) {
+          const profileId = await socialRepository.getProfileIdByCharacterId(payload.playerUuid);
+
+          if (profileId && (await socialRepository.isProfileBanned(profileId))) {
+            response.status(403).json({
+              error: "server_banned",
+              message: "This profile is banned from entering the server.",
+            });
+            return;
+          }
         }
 
         const session = await repository.createSession(
@@ -423,6 +465,18 @@ export function createMultiplayerRouter(
           message: chatBlockedMessage,
         });
         return;
+      }
+
+      if (socialRepository) {
+        const profileId = await socialRepository.getProfileIdByCharacterId(session.playerUuid);
+
+        if (profileId && (await socialRepository.isProfileMuted(profileId))) {
+          response.status(403).json({
+            error: "chat_muted",
+            message: "This profile is muted and cannot send chat messages.",
+          });
+          return;
+        }
       }
 
       const entry = await repository.appendChatMessage(

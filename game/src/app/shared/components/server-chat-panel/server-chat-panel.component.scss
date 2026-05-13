@@ -135,6 +135,12 @@
   grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
+.gv-server-chat-panel__mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
 .gv-server-chat-panel__tabs {
   display: flex;
   flex-wrap: wrap;

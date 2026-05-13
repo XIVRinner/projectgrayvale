@@ -58,6 +58,28 @@
     <section
       class="gv-server-chat-panel__column gv-server-chat-panel__column--chat"
     >
+      <div class="gv-server-chat-panel__mode-tabs">
+        <button
+          type="button"
+          class="gv-server-chat-panel__tab"
+          [class.gv-server-chat-panel__tab--active]="isPanelActive('chat')"
+          (click)="selectPanel('chat')"
+        >
+          Chat
+        </button>
+        @if (canShowAdminPanel()) {
+          <button
+            type="button"
+            class="gv-server-chat-panel__tab"
+            [class.gv-server-chat-panel__tab--active]="isPanelActive('admin')"
+            (click)="selectPanel('admin')"
+          >
+            Admin
+          </button>
+        }
+      </div>
+
+      @if (isPanelActive("chat")) {
       <div class="gv-server-chat-panel__section-header">
         <h4>Social Chat</h4>
         @if (!canSend()) {
@@ -122,6 +144,27 @@
         [hint]="sendHint()"
         (sendRequested)="sendRequested.emit($event)"
       />
+      } @else {
+        <gv-server-chat-admin-panel
+          [entries]="adminEntries()"
+          [total]="adminTotal()"
+          [page]="adminPage()"
+          [pageSize]="adminPageSize()"
+          [search]="adminSearch()"
+          [loading]="adminLoading()"
+          [selectedProfileId]="selectedAdminProfileId()"
+          [detail]="adminProfileDetail()"
+          [grantablePermissions]="grantablePermissions()"
+          (refreshRequested)="refreshRequested.emit()"
+          (searchChanged)="adminSearchChanged.emit($event)"
+          (pageChanged)="adminPageChanged.emit($event)"
+          (profileSelected)="adminProfileSelected.emit($event)"
+          (grantPermissionRequested)="adminPermissionGranted.emit($event)"
+          (revokePermissionRequested)="adminPermissionRevoked.emit($event)"
+          (moderateRequested)="adminModerationRequested.emit($event)"
+          (noteAdded)="adminNoteAdded.emit($event)"
+        />
+      }
     </section>
   </div>
 </section>

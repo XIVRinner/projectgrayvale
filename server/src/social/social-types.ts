@@ -59,6 +59,54 @@ export interface PlayerPresenceDto {
   readonly lastOnlineAt?: string;
 }
 
+export interface AdminPermissionDto {
+  readonly permissionId: string;
+  readonly grantedAt: string;
+  readonly grantedByProfileId: string;
+}
+
+export interface AdminCharacterSummaryDto {
+  readonly characterId: string;
+  readonly name: string;
+  readonly online: boolean;
+  readonly guildId?: string;
+  readonly guildName?: string;
+  readonly role?: string;
+  readonly savedProgressSummary?: unknown;
+}
+
+export interface AdminProfileNoteDto {
+  readonly id: string;
+  readonly targetProfileId: string;
+  readonly authorProfileId: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface AdminProfileDetailDto {
+  readonly profileId: string;
+  readonly displayName?: string;
+  readonly online: boolean;
+  readonly lastOnlineAt?: string;
+  readonly moderation: {
+    readonly banned: boolean;
+    readonly muted: boolean;
+    readonly warned: boolean;
+  };
+  readonly permissions: readonly AdminPermissionDto[];
+  readonly characters: readonly AdminCharacterSummaryDto[];
+  readonly currentOnlineCharacterId?: string;
+  readonly friendCount: number;
+  readonly guildMemberships: readonly {
+    guildId: string;
+    guildName: string;
+    role: string;
+    characterId: string;
+  }[];
+  readonly adminNotes: readonly AdminProfileNoteDto[];
+}
+
 export interface SocialActorContext {
   readonly sessionId: string;
   readonly characterId: string;

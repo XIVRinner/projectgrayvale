@@ -1,0 +1,110 @@
+<section class="gv-server-chat-admin-panel">
+  <header class="gv-server-chat-admin-panel__header">
+    <div>
+      <h4>Admin Panel</h4>
+      <p>{{ total() }} profiles</p>
+    </div>
+    <button type="button" class="gv-server-chat-admin-panel__button" (click)="refreshRequested.emit()">
+      Refresh
+    </button>
+  </header>
+
+  <div class="gv-server-chat-admin-panel__search">
+    <input
+      type="search"
+      [value]="search()"
+      placeholder="Search profiles or current character..."
+      (input)="searchChanged.emit(($any($event.target).value ?? '').trim())"
+    />
+  </div>
+
+  <div class="gv-server-chat-admin-panel__body">
+    <ul class="gv-server-chat-admin-panel__list">
+      @for (entry of entries(); track entry.profileId) {
+        <li
+          [class.gv-server-chat-admin-panel__item--selected]="entry.profileId === selectedProfileId()"
+          class="gv-server-chat-admin-panel__item"
+        >
+          <button type="button" (click)="profileSelected.emit(entry.profileId)">
+            <span>{{ entry.profileDisplayName ?? entry.profileId }}</span>
+            <small>{{ entry.currentCharacterName ?? "No active character" }}</small>
+            <small>{{ entry.online ? "Online" : "Offline" }} · last {{ entry.lastOnlineAt | date: "short" }}</small>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <section class="gv-server-chat-admin-panel__detail">
+      @if (loading()) {
+        <p>Loading profile details...</p>
+      } @else if (detail(); as detail) {
+        <h5>{{ detail.displayName ?? detail.profileId }}</h5>
+        <p>ID: {{ detail.profileId }}</p>
+        <p>Status: {{ detail.online ? "Online" : "Offline" }}</p>
+        <p>Last online: {{ detail.lastOnlineAt | date: "short" }}</p>
+        <p>Friends: {{ detail.friendCount }}</p>
+        <p>Moderation: ban={{ detail.moderation.banned }} mute={{ detail.moderation.muted }} warn={{ detail.moderation.warned }}</p>
+
+        <div class="gv-server-chat-admin-panel__actions">
+          <button type="button" class="gv-server-chat-admin-panel__button" (click)="moderateRequested.emit({ profileId: detail.profileId, action: 'warn' })">Warn</button>
+          <button type="button" class="gv-server-chat-admin-panel__button" (click)="moderateRequested.emit({ profileId: detail.profileId, action: 'mute' })">Mute</button>
+          <button type="button" class="gv-server-chat-admin-panel__button" (click)="moderateRequested.emit({ profileId: detail.profileId, action: 'unmute' })">Unmute</button>
+          <button type="button" class="gv-server-chat-admin-panel__button" (click)="moderateRequested.emit({ profileId: detail.profileId, action: 'ban' })">Ban</button>
+          <button type="button" class="gv-server-chat-admin-panel__button" (click)="moderateRequested.emit({ profileId: detail.profileId, action: 'unban' })">Unban</button>
+          <button type="button" class="gv-server-chat-admin-panel__button" (click)="moderateRequested.emit({ profileId: detail.profileId, action: 'kick' })">Kick</button>
+        </div>
+
+        <h6>Permissions</h6>
+        <ul class="gv-server-chat-admin-panel__permissions">
+          @for (permission of detail.permissions; track permission.permissionId) {
+            <li>
+              <span>{{ permission.permissionId }}</span>
+              <button type="button" class="gv-server-chat-admin-panel__button" (click)="revokePermissionRequested.emit({ profileId: detail.profileId, permissionId: permission.permissionId })">Revoke</button>
+            </li>
+          }
+        </ul>
+        <div class="gv-server-chat-admin-panel__permissions">
+          @for (permissionId of grantablePermissions(); track permissionId) {
+            <button type="button" class="gv-server-chat-admin-panel__button" (click)="grantPermissionRequested.emit({ profileId: detail.profileId, permissionId })">
+              Grant {{ permissionId }}
+            </button>
+          }
+        </div>
+
+        <h6>Characters</h6>
+        <ul class="gv-server-chat-admin-panel__characters">
+          @for (character of detail.characters; track character.characterId) {
+            <li>
+              {{ character.name }} · {{ character.online ? "Online" : "Offline" }} · {{ character.guildName ?? "No guild" }}
+            </li>
+          }
+        </ul>
+
+        <h6>Admin notes</h6>
+        <ul class="gv-server-chat-admin-panel__notes">
+          @for (note of detail.adminNotes; track note.id) {
+            <li>{{ note.body }}</li>
+          }
+        </ul>
+        <div>
+          <input #newNote type="text" placeholder="Add admin note..." />
+          <button
+            type="button"
+            class="gv-server-chat-admin-panel__button"
+            (click)="noteAdded.emit({ profileId: detail.profileId, body: newNote.value }); newNote.value = ''"
+          >
+            Add Note
+          </button>
+        </div>
+      } @else {
+        <p>Select a profile to inspect details.</p>
+      }
+    </section>
+  </div>
+
+  <footer class="gv-server-chat-admin-panel__footer">
+    <button type="button" class="gv-server-chat-admin-panel__button" [disabled]="!canPrev()" (click)="prevPage()">Prev</button>
+    <span>Page {{ page() }} / {{ totalPages() }}</span>
+    <button type="button" class="gv-server-chat-admin-panel__button" [disabled]="!canNext()" (click)="nextPage()">Next</button>
+  </footer>
+</section>

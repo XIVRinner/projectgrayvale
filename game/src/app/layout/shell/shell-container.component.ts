@@ -21,7 +21,8 @@ import {
 } from "../../core/services/server-chat-commands";
 import { ServerChatService } from "../../core/services/server-chat.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
-import { SocialApiService } from "../../core/services/social-api.service";
+import { GuildService } from "../../core/services/guild.service";
+import { SocialService } from "../../core/services/social.service";
 import type {
   ServerChatPlayerActionRequest,
   ServerModerationRequest,
@@ -127,6 +128,16 @@ import {
       [isServerChatSending]="serverChat.isSending()"
       [isServerAdminSubmitting]="isServerAdminSubmitting()"
       [isServerModerationSubmitting]="isServerModerationSubmitting()"
+      [canShowAdminPanel]="serverChat.canShowAdminPanel()"
+      [adminEntries]="serverChat.adminEntries()"
+      [adminTotal]="serverChat.adminTotal()"
+      [adminPage]="serverChat.adminPage()"
+      [adminPageSize]="serverChat.adminPageSize()"
+      [adminSearch]="serverChat.adminSearch()"
+      [adminLoading]="serverChat.adminLoading()"
+      [selectedAdminProfileId]="serverChat.selectedAdminProfileId()"
+      [adminProfileDetail]="serverChat.adminProfileDetail()"
+      [grantablePermissions]="serverChat.grantablePermissions()"
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
@@ -174,6 +185,13 @@ import {
       (serverChatModeratePlayerRequested)="openServerModerationDialog($event)"
       (serverChatChannelSelected)="selectServerChatChannel($event)"
       (serverChatPlayerActionRequested)="handleServerChatPlayerAction($event)"
+      (adminSearchChanged)="setAdminSearch($event)"
+      (adminPageChanged)="setAdminPage($event)"
+      (adminProfileSelected)="selectAdminProfile($event)"
+      (adminPermissionGranted)="grantAdminPermission($event)"
+      (adminPermissionRevoked)="revokeAdminPermission($event)"
+      (adminModerationRequested)="handleAdminModerationRequest($event)"
+      (adminNoteAdded)="addAdminNote($event)"
       (serverAdminSubmitted)="submitServerAdminDialog($event)"
       (serverModerationSubmitted)="submitServerModeration($event)"
       (serverModerationCleared)="closeServerModerationDialog()"
@@ -198,7 +216,8 @@ export class ShellContainerComponent {
   private readonly worldState = inject(WorldStateService);
   private readonly gameplayRuntime = inject(GameplayGraphRuntime);
   private readonly serverConnection = inject(ServerConnectionService);
-  private readonly socialApi = inject(SocialApiService);
+  private readonly guildService = inject(GuildService);
+  private readonly socialService = inject(SocialService);
   protected readonly serverChat = inject(ServerChatService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
@@ -694,6 +713,63 @@ export class ShellContainerComponent {
     this.serverChat.selectChannel(channelId);
   }
 
+  protected setAdminSearch(search: string): void {
+    this.serverChat.setAdminSearch(search);
+  }
+
+  protected setAdminPage(page: number): void {
+    this.serverChat.setAdminPage(page);
+  }
+
+  protected selectAdminProfile(profileId: string): void {
+    this.serverChat.selectAdminProfile(profileId);
+  }
+
+  protected async grantAdminPermission(input: {
+    profileId: string;
+    permissionId: string;
+  }): Promise<void> {
+    try {
+      await this.serverChat.grantProfilePermission(input.profileId, input.permissionId);
+      this.serverChat.showStatusMessage(`Granted ${input.permissionId}.`);
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async revokeAdminPermission(input: {
+    profileId: string;
+    permissionId: string;
+  }): Promise<void> {
+    try {
+      await this.serverChat.revokeProfilePermission(input.profileId, input.permissionId);
+      this.serverChat.showStatusMessage(`Revoked ${input.permissionId}.`);
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async handleAdminModerationRequest(input: {
+    profileId: string;
+    action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn";
+  }): Promise<void> {
+    try {
+      await this.serverChat.moderateProfile(input.profileId, input.action);
+      this.serverChat.showStatusMessage(`Applied ${input.action} on profile.`);
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async addAdminNote(input: { profileId: string; body: string }): Promise<void> {
+    try {
+      await this.serverChat.addAdminNote(input.profileId, input.body);
+      this.serverChat.showStatusMessage("Admin note added.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
   protected async handleServerChatPlayerAction(
     request: ServerChatPlayerActionRequest,
   ): Promise<void> {
@@ -709,7 +785,7 @@ export class ShellContainerComponent {
       const target = request.targetCharacterName ?? request.targetProfileId;
 
       try {
-        await this.socialApi.addFriend(target);
+        await this.socialService.addFriendByName(target);
         this.serverChat.showStatusMessage(`Added ${target} as a friend.`);
       } catch (error) {
         this.serverChat.showStatusMessage(errorToMessage(error));
@@ -719,7 +795,7 @@ export class ShellContainerComponent {
 
     if (request.action === "block") {
       try {
-        await this.socialApi.blockProfile(request.targetProfileId);
+        await this.socialService.blockProfile(request.targetProfileId);
         this.serverChat.showStatusMessage("Player blocked.");
       } catch (error) {
         this.serverChat.showStatusMessage(errorToMessage(error));
@@ -745,19 +821,43 @@ export class ShellContainerComponent {
       return;
     }
 
+    if (request.action === "report") {
+      try {
+        await this.socialService.reportPlayer({
+          targetProfileId: request.targetProfileId,
+          reason: "Reported from shell chat context action.",
+        });
+        this.serverChat.showStatusMessage("Report submitted.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "guild_invite" && request.targetProfileId) {
+      try {
+        const guildResponse = await this.guildService.loadCurrentGuild() as { guild?: { guildId: string } };
+
+        if (!guildResponse.guild?.guildId) {
+          this.serverChat.showStatusMessage("Join or create a guild before inviting.");
+          return;
+        }
+
+        await this.guildService.inviteToGuild(guildResponse.guild.guildId, {
+          targetProfileId: request.targetProfileId,
+        });
+        this.serverChat.showStatusMessage("Guild invitation sent.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
     if (request.action === "admin_profile" && this.serverChat.canModerate()) {
       try {
-        const overview = await this.socialApi.getAdminProfileOverview(
-          request.targetProfileId,
-        ) as {
-          profileId: string;
-          displayName?: string | null;
-          friendCount?: number;
-          blockedCount?: number;
-        };
-        this.serverChat.showStatusMessage(
-          `Admin profile: ${overview.displayName ?? overview.profileId} | friends: ${overview.friendCount ?? 0} | blocked: ${overview.blockedCount ?? 0}`,
-        );
+        this.serverChat.selectAdminProfile(request.targetProfileId);
+        await this.serverChat.refreshAdminPanel();
+        this.serverChat.showStatusMessage("Loaded admin profile detail.");
       } catch (error) {
         this.serverChat.showStatusMessage(errorToMessage(error));
       }

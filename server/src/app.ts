@@ -149,7 +149,7 @@ export async function createApp(
   );
   app.use(
     "/api/server",
-    createMultiplayerRouter(multiplayerRepository, config),
+    createMultiplayerRouter(multiplayerRepository, config, socialRepository),
   );
   app.use(
     "/api/player",
@@ -162,7 +162,7 @@ export async function createApp(
   );
   app.use(
     "/api",
-    createSocialRouter(socialRepository, multiplayerRepository),
+    createSocialRouter(socialRepository, multiplayerRepository, config),
   );
   registerDefinitionAssetRoutes(app, definitionAssetService);
   registerAdminDefinitionRoutes(

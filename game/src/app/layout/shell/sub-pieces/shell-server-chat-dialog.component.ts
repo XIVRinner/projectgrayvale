@@ -1,6 +1,8 @@
 import { Component, input, output } from "@angular/core";
 
 import {
+  type AdminPlayerListEntryView,
+  type AdminProfileDetailView,
   type ServerChatChannelView,
   type ServerChatCommandView,
   type ServerChatCustomEmojiView,
@@ -39,6 +41,16 @@ export class ShellServerChatDialogComponent {
   readonly selectedModerationPlayer = input<ServerPresencePlayerView | null>(null);
   readonly moderationStatusMessage = input<string | null>(null);
   readonly isModerationSubmitting = input(false);
+  readonly canShowAdminPanel = input(false);
+  readonly adminEntries = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly adminTotal = input(0);
+  readonly adminPage = input(1);
+  readonly adminPageSize = input(20);
+  readonly adminSearch = input("");
+  readonly adminLoading = input(false);
+  readonly selectedAdminProfileId = input<string | null>(null);
+  readonly adminProfileDetail = input<AdminProfileDetailView | null>(null);
+  readonly grantablePermissions = input.required<readonly string[]>();
 
   readonly closed = output<void>();
   readonly refreshRequested = output<void>();
@@ -50,4 +62,11 @@ export class ShellServerChatDialogComponent {
   readonly moderationSubmitted = output<ServerModerationRequest>();
   readonly moderationCleared = output<void>();
   readonly sendRequested = output<string>();
+  readonly adminSearchChanged = output<string>();
+  readonly adminPageChanged = output<number>();
+  readonly adminProfileSelected = output<string>();
+  readonly adminPermissionGranted = output<{ profileId: string; permissionId: string }>();
+  readonly adminPermissionRevoked = output<{ profileId: string; permissionId: string }>();
+  readonly adminModerationRequested = output<{ profileId: string; action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn" }>();
+  readonly adminNoteAdded = output<{ profileId: string; body: string }>();
 }
