@@ -3,6 +3,12 @@ clientId=grayvale-local-client
 clientSecret=replace-me-client-secret
 adminPassword=replace-me-admin-password
 
+# Whether this server uses custom/modded content.
+# Set to true if you run custom mods or non-official content.
+# When false (default), clients can connect without signature validation.
+# When true, clients must validate the server compatibility token.
+# customContent=false
+
 # Optional overrides if you want them in the file instead of env vars.
 # port=3000
 # dbFilePath=../data/grayvale.sqlite

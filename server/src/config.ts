@@ -15,6 +15,7 @@ const configFileSchema = z.object({
   clientId: z.string().trim().min(1, 'Config field "clientId" is required.'),
   clientSecret: z.string().trim().min(1, 'Config field "clientSecret" is required.'),
   adminPassword: z.string().trim().min(1, 'Config field "adminPassword" is required.'),
+  customContent: z.string().trim().optional(),
   port: z.string().trim().optional(),
   dbFilePath: z.string().trim().optional(),
   contentRoot: z.string().trim().optional(),
@@ -29,6 +30,12 @@ export interface ServerConfig {
   readonly clientId: string;
   readonly clientSecret: string;
   readonly adminPassword: string;
+  /**
+   * Whether this server uses custom/modded content.
+   * When true, clients must validate the server compatibility token before connecting.
+   * Defaults to false (official/unmodded content).
+   */
+  readonly customContent: boolean;
   readonly port: number;
   readonly databaseProvider: "sqlite" | "turso";
   readonly tursoDatabaseUrl?: string;
@@ -83,6 +90,9 @@ export function readServerConfig(): ServerConfig {
       "GRAYVALE_ADMIN_PASSWORD",
       process.env["GRAYVALE_ADMIN_PASSWORD"],
       configValues.adminPassword
+    ),
+    customContent: parseCustomContent(
+      process.env["GRAYVALE_CUSTOM_CONTENT"] ?? configValues.customContent
     ),
     port: readPort(process.env["PORT"] ?? configValues.port),
     databaseProvider: useTurso ? "turso" : "sqlite",
@@ -388,4 +398,14 @@ function parseAllowedOrigins(raw: string | undefined): readonly string[] {
     .split(",")
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
+}
+
+function parseCustomContent(raw: string | undefined): boolean {
+  if (!raw) {
+    return false;
+  }
+
+  const normalized = raw.trim().toLowerCase();
+
+  return normalized === "1" || normalized === "true" || normalized === "yes";
 }

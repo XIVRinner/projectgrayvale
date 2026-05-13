@@ -48,6 +48,13 @@ export const routes: Routes = [
       {
         path: "home",
         redirectTo: ""
+      },
+      {
+        path: "profile",
+        loadChildren: () =>
+          import("./features/player-profile/player-profile.routes").then(
+            (m) => m.PLAYER_PROFILE_ROUTES
+          )
       }
     ]
   }

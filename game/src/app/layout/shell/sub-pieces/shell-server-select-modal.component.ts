@@ -5,6 +5,7 @@ import {
   DEFAULT_SERVER_CLIENT_ID,
   type ServerDirectoryEntry
 } from "../../../core/services/server-connection.service";
+import type { ServerProfile } from "../../../core/services/server-profile.service";
 
 @Component({
   selector: "gv-shell-server-select-modal",
@@ -19,6 +20,7 @@ export class ShellServerSelectModalComponent {
   readonly selectedServerId = input.required<string>();
   readonly activePlayerUuid = input<string | null>(null);
   readonly statusMessage = input<string | null>(null);
+  readonly serverProfile = input<ServerProfile | null>(null);
 
   readonly closed = output<void>();
   readonly selectedServerChanged = output<string>();

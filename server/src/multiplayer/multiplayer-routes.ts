@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { ServerConfig } from "../config";
 import { MultiplayerRepository } from "./multiplayer-repository";
 import { type AllowedPlayerRecord, type PlayerRank } from "./multiplayer-types";
+import { buildServerProfile } from "../server-profile/server-profile-service";
 
 const playerUuidSchema = z.string().trim().uuid();
 const clientIdSchema = z.string().trim().min(1).max(120);
@@ -123,6 +124,16 @@ export function createMultiplayerRouter(
       ranks: rankSchema.options,
       passwordLockSupported: true,
     });
+  });
+
+  /**
+   * GET /api/server/profile
+   * Returns limited public server information and a signed compatibility token.
+   * This endpoint is public — no authentication required.
+   * The clientSecret is used to sign the token but is never returned.
+   */
+  router.get("/profile", (_request, response) => {
+    response.json(buildServerProfile(config));
   });
 
   router.get("/session", enforceReadRateLimit, async (request, response, next) => {

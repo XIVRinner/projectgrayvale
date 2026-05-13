@@ -25,6 +25,17 @@
           }
         </select>
       </label>
+
+      @if (serverProfile(); as sp) {
+        <div class="gv-server-select__profile">
+          <span class="gv-server-select__profile-name">{{ sp.serverName }}</span>
+          <span
+            class="gv-server-select__profile-tag"
+            [class.gv-server-select__profile-tag--custom]="sp.customContent"
+            [title]="sp.customContent ? 'Custom content server — character compatibility is enforced on select.' : 'Official server — standard characters are compatible.'"
+          >{{ sp.customContent ? 'Custom Content' : 'Official' }}</span>
+        </div>
+      }
     </section>
 
     <section class="gv-server-select__panel">

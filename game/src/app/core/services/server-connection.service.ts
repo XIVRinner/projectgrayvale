@@ -5,6 +5,8 @@ import { firstValueFrom } from "rxjs";
 import { setApiOriginOverride } from "../../data/api-paths";
 import { type ServerChatAccessState } from "./server-chat.models";
 import { generatePlayerUuid } from "../utils/player-uuid";
+import { ServerProfileService } from "./server-profile.service";
+import type { ServerProfile } from "./server-profile.service";
 
 export type ServerPlayerRank = "player" | "vip" | "moderator" | "admin";
 
@@ -66,6 +68,7 @@ const INITIAL_SERVER_ID = resolveInitialSelectedServerId(CLOUD_SERVER);
 @Injectable({ providedIn: "root" })
 export class ServerConnectionService {
   private readonly http = inject(HttpClient);
+  private readonly serverProfileService = inject(ServerProfileService);
 
   private readonly customServersState = signal<readonly ServerDirectoryEntry[]>(
     [],
@@ -95,6 +98,9 @@ export class ServerConnectionService {
   readonly canBlockServerEntry = computed(
     () => this.sessionState()?.rank === "admin",
   );
+
+  /** The current server's public profile (fetched during connect). */
+  readonly serverProfile = this.serverProfileService.currentProfile;
 
   constructor() {
     this.hydrate();
@@ -157,6 +163,17 @@ export class ServerConnectionService {
     avatarPath?: string,
   ): Promise<ServerSessionState> {
     const selected = this.selectedServer();
+
+    // Pre-connect server profile compatibility check.
+    const serverBaseUrl = this.serverBaseUrl(selected);
+    const profileCheck = await this.serverProfileService.checkServerProfile(serverBaseUrl);
+
+    if (!profileCheck.allowed) {
+      const message = profileCheck.error ??
+        "Server compatibility check failed. Cannot connect to this server.";
+      throw new ServerProfileCompatibilityError(message, profileCheck.profile);
+    }
+
     const clientId = await this.resolveClientId(selected);
     const payload = {
       playerUuid,
@@ -509,6 +526,20 @@ function isNotRegisteredError(error: unknown): boolean {
   const message = (error as { error?: { error?: unknown } }).error?.error;
 
   return message === "player_not_registered";
+}
+
+/**
+ * Thrown when the pre-connect server profile compatibility check fails.
+ * Callers should display the message to the user and block the connection.
+ */
+export class ServerProfileCompatibilityError extends Error {
+  constructor(
+    message: string,
+    readonly profile: ServerProfile | null,
+  ) {
+    super(message);
+    this.name = "ServerProfileCompatibilityError";
+  }
 }
 
 function rankColorFor(rank: ServerPlayerRank): string {

@@ -47,6 +47,7 @@ import {
   ShellTopbarSaveSummary,
 } from "./shell.types";
 import type { ServerDirectoryEntry } from "../../core/services/server-connection.service";
+import type { ServerProfile } from "../../core/services/server-profile.service";
 
 @Component({
   selector: "gv-shell-view",
@@ -112,6 +113,7 @@ export class ShellViewComponent {
   readonly selectedServerId = input.required<string>();
   readonly activePlayerUuid = input<string | null>(null);
   readonly serverStatusMessage = input<string | null>(null);
+  readonly serverProfile = input<ServerProfile | null>(null);
   readonly isServerSelectOpen = input.required<boolean>();
   readonly isServerChatOpen = input.required<boolean>();
   readonly isServerAdminOpen = input.required<boolean>();
