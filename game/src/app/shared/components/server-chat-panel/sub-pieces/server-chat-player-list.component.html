@@ -11,6 +11,7 @@
           player.playerUuid === currentPlayerUuid()
         "
         [class.gv-server-chat-player-list__item--selected]="isSelected(player)"
+        (contextmenu)="openContextActions($event, player)"
       >
         <div class="gv-server-chat-player-list__identity">
           <div
@@ -55,6 +56,19 @@
               Focus
             </button>
           }
+          <button
+            type="button"
+            class="gv-server-chat-player-list__action"
+            (click)="
+              playerActionRequested.emit({
+                action: 'whisper',
+                targetProfileId: player.playerUuid,
+                targetCharacterName: player.displayName
+              })
+            "
+          >
+            Whisper
+          </button>
         </div>
       </li>
     }

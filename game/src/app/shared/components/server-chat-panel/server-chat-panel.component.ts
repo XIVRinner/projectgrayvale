@@ -1,9 +1,11 @@
 import { Component, input, output } from "@angular/core";
 
 import {
+  ServerChatChannelView,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
   ServerChatMessageView,
+  ServerChatPlayerActionRequest,
   ServerModerationRequest,
   ServerChatPanelView,
   ServerPresencePlayerView,
@@ -31,6 +33,8 @@ export class ServerChatPanelComponent {
   readonly messages = input.required<readonly ServerChatMessageView[]>();
   readonly customEmojis = input.required<readonly ServerChatCustomEmojiView[]>();
   readonly commands = input.required<readonly ServerChatCommandView[]>();
+  readonly channels = input.required<readonly ServerChatChannelView[]>();
+  readonly activeChannelId = input<string | null>(null);
   readonly currentPlayerUuid = input<string | null>(null);
   readonly statusMessage = input<string | null>(null);
   readonly canSend = input.required<boolean>();
@@ -47,6 +51,8 @@ export class ServerChatPanelComponent {
   readonly grantAdminRequested = output<void>();
   readonly sendRequested = output<string>();
   readonly moderatePlayerRequested = output<ServerPresencePlayerView>();
+  readonly channelSelected = output<string>();
+  readonly playerActionRequested = output<ServerChatPlayerActionRequest>();
   readonly moderationSubmitted = output<ServerModerationRequest>();
   readonly moderationCleared = output<void>();
 

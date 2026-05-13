@@ -160,7 +160,10 @@ export function createSocialRouter(
           return;
         }
 
-        await socialRepository.leaveCustomChannel(actor, request.params["channelId"] ?? "");
+        await socialRepository.leaveCustomChannel(
+          actor,
+          routeParam(request.params["channelId"]),
+        );
         response.status(204).send();
       } catch (error) {
         if (
@@ -243,7 +246,7 @@ export function createSocialRouter(
         const payload = profileTargetBodySchema.parse(request.body);
         await socialRepository.unbanMember(
           actor,
-          request.params["channelId"] ?? "",
+          routeParam(request.params["channelId"]),
           payload.targetProfileId,
         );
         response.status(204).send();
@@ -295,7 +298,7 @@ export function createSocialRouter(
         const payload = ownerTransferBodySchema.parse(request.body);
         await socialRepository.transferOwner(
           actor,
-          request.params["channelId"] ?? "",
+          routeParam(request.params["channelId"]),
           payload.targetProfileId,
         );
         response.status(204).send();
@@ -349,7 +352,7 @@ export function createSocialRouter(
           typeof request.query["after"] === "string" ? request.query["after"] : undefined;
         const entries = await socialRepository.listChannelMessages(
           actor,
-          request.params["channelId"] ?? "",
+          routeParam(request.params["channelId"]),
           after,
           limit,
         );
@@ -417,7 +420,7 @@ export function createSocialRouter(
 
         const entry = await socialRepository.appendChannelMessage(
           actor,
-          request.params["channelId"] ?? "",
+          routeParam(request.params["channelId"]),
           payload.body,
         );
         response.status(201).json({ entry });
@@ -573,7 +576,7 @@ export function createSocialRouter(
           typeof request.query["after"] === "string" ? request.query["after"] : undefined;
         const entries = await socialRepository.listDirectMessages(
           actor,
-          request.params["conversationId"] ?? "",
+          routeParam(request.params["conversationId"]),
           after,
           limit,
         );
@@ -769,6 +772,55 @@ export function createSocialRouter(
     }
   });
 
+  router.get(
+    "/social/admin/profile/:profileId",
+    enforceReadRateLimit,
+    async (request, response, next) => {
+      try {
+        const actor = await requireActor(request, socialRepository, multiplayerRepository);
+
+        if (!actor) {
+          response.status(401).json({
+            error: "unauthenticated",
+            message: "Authentication required.",
+          });
+          return;
+        }
+
+        if (actor.rank !== "admin" && actor.rank !== "moderator") {
+          response.status(403).json({
+            error: "forbidden",
+            message: "Moderator or admin rank is required.",
+          });
+          return;
+        }
+
+        const profileId = z.string().uuid().parse(request.params["profileId"]);
+        const overview = await socialRepository.getAdminProfileOverview(profileId);
+
+        if (!overview) {
+          response.status(404).json({
+            error: "profile_not_found",
+            message: "Profile not found.",
+          });
+          return;
+        }
+
+        response.json(overview);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          response.status(400).json({
+            error: "invalid_request",
+            message: error.issues.map((issue) => issue.message).join("; "),
+          });
+          return;
+        }
+
+        next(error);
+      }
+    },
+  );
+
   return router;
 }
 
@@ -794,7 +846,7 @@ async function withChannelModerationAction(
     const payload = profileTargetBodySchema.parse(request.body);
     await socialRepository.kickMember(
       actor,
-      request.params["channelId"] ?? "",
+      routeParam(request.params["channelId"]),
       payload.targetProfileId,
       ban,
     );
@@ -858,6 +910,14 @@ async function requireActor(
 
 function isErrorCode(error: unknown, code: string): boolean {
   return error instanceof Error && error.message === code;
+}
+
+function routeParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value[0] ?? "";
+  }
+
+  return value ?? "";
 }
 
 async function tryHandleSlashCommand(

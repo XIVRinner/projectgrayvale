@@ -1,6 +1,9 @@
 import { Component, input, output } from "@angular/core";
 
-import { ServerPresencePlayerView } from "../../../../core/services/server-chat.models";
+import {
+  ServerChatPlayerActionRequest,
+  ServerPresencePlayerView,
+} from "../../../../core/services/server-chat.models";
 
 @Component({
   selector: "gv-server-chat-player-list",
@@ -15,6 +18,7 @@ export class ServerChatPlayerListComponent {
   readonly selectedPlayerUuid = input<string | null>(null);
 
   readonly playerSelected = output<ServerPresencePlayerView>();
+  readonly playerActionRequested = output<ServerChatPlayerActionRequest>();
 
   protected trackByPlayerUuid(
     _index: number,
@@ -44,6 +48,15 @@ export class ServerChatPlayerListComponent {
 
   protected isSelected(player: ServerPresencePlayerView): boolean {
     return player.playerUuid === this.selectedPlayerUuid();
+  }
+
+  protected openContextActions(event: MouseEvent, player: ServerPresencePlayerView): void {
+    event.preventDefault();
+    this.playerActionRequested.emit({
+      action: "whisper",
+      targetProfileId: player.playerUuid,
+      targetCharacterName: player.displayName,
+    });
   }
 }
 

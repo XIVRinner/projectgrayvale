@@ -13,6 +13,7 @@
         [class.gv-server-chat-message-list__entry--focused]="
           message.playerUuid === selectedPlayerUuid()
         "
+        (contextmenu)="openContextActions($event, message)"
       >
         <div
           class="gv-server-chat-message-list__portrait-box"
@@ -47,6 +48,62 @@
               {{ formatTime(message.createdAt) }}
             </p>
           </header>
+          <div class="gv-server-chat-message-list__actions">
+            <button
+              type="button"
+              class="gv-server-chat-message-list__action"
+              (click)="
+                playerActionRequested.emit({
+                  action: 'whisper',
+                  targetProfileId: message.sender.profileId,
+                  targetCharacterName: message.sender.characterName
+                })
+              "
+            >
+              Whisper
+            </button>
+            <button
+              type="button"
+              class="gv-server-chat-message-list__action"
+              (click)="
+                playerActionRequested.emit({
+                  action: 'friend_profile',
+                  targetProfileId: message.sender.profileId,
+                  targetCharacterName: message.sender.characterName
+                })
+              "
+            >
+              Add Friend
+            </button>
+            <button
+              type="button"
+              class="gv-server-chat-message-list__action"
+              (click)="
+                playerActionRequested.emit({
+                  action: 'block',
+                  targetProfileId: message.sender.profileId,
+                  targetCharacterName: message.sender.characterName
+                })
+              "
+            >
+              Block
+            </button>
+            @if (canUseAdminActions()) {
+              <button
+                type="button"
+                class="gv-server-chat-message-list__action"
+                (click)="
+                  playerActionRequested.emit({
+                    action: 'ban',
+                    targetProfileId: message.sender.profileId,
+                    targetCharacterName: message.sender.characterName
+                  })
+                "
+              >
+                Ban
+              </button>
+            }
+          </div>
           <p class="gv-server-chat-message-list__body">
             <gv-server-chat-rich-text
               [text]="message.message"

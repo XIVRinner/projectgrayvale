@@ -135,6 +135,41 @@
   grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
+.gv-server-chat-panel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+.gv-server-chat-panel__tab {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 92%, black 8%);
+  color: var(--gv-color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--gv-space-xs) * 1.2);
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-xs);
+  padding: calc(var(--gv-space-xs) * 1.15) var(--gv-space-sm);
+}
+
+.gv-server-chat-panel__tab--active {
+  color: var(--gv-color-text-primary);
+  border-color: color-mix(in srgb, var(--gv-color-accent) 45%, var(--gv-color-border-subtle));
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 12%, var(--gv-color-bg-raised));
+}
+
+.gv-server-chat-panel__tab-unread {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-danger) 26%, transparent);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xxs);
+  line-height: 1;
+  padding: 0.2rem 0.38rem;
+}
+
 .gv-server-chat-panel__action {
   border: 1px solid color-mix(in srgb, var(--gv-color-accent) 46%, transparent);
   background: color-mix(in srgb, var(--gv-color-accent) 18%, transparent);

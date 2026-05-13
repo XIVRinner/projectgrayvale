@@ -1104,7 +1104,7 @@ export class SocialRepository {
   async getProfileSummary(profileId: string): Promise<{
     profileId: string;
     displayName: string | null;
-    characters: readonly Array<{ id: string; name: string }>;
+    characters: readonly { id: string; name: string }[];
     currentCharacterId?: string;
     currentCharacterName?: string;
     badges: readonly SocialBadgeDto[];
@@ -1196,6 +1196,113 @@ export class SocialRepository {
             role: guild.role,
           }
         : undefined,
+    };
+  }
+
+  async getAdminProfileOverview(profileId: string): Promise<{
+    profileId: string;
+    displayName: string | null;
+    characters: readonly {
+      id: string;
+      name: string;
+      rank: string;
+      chatAccess: "allowed" | "timed_out" | "banned";
+      chatReason?: string;
+      chatTimeoutUntil?: string;
+      serverBanned: boolean;
+    }[];
+    friendCount: number;
+    blockedCount: number;
+    lastOnlineAt?: string;
+  } | null> {
+    const profile = await this.db.get<{ id: string; display_name: string | null }>(
+      `
+        SELECT id, display_name
+        FROM player_profiles
+        WHERE id = ?
+      `,
+      profileId,
+    );
+
+    if (!profile) {
+      return null;
+    }
+
+    const characters = await this.db.all<
+      Array<{
+        id: string;
+        name: string;
+        rank: string | null;
+        chat_timeout_until: string | null;
+        chat_timeout_reason: string | null;
+        chat_banned_at: string | null;
+        chat_ban_reason: string | null;
+        server_banned_at: string | null;
+      }>
+    >(
+      `
+        SELECT
+          player_characters.id,
+          player_characters.name,
+          allowed_players.rank,
+          allowed_players.chat_timeout_until,
+          allowed_players.chat_timeout_reason,
+          allowed_players.chat_banned_at,
+          allowed_players.chat_ban_reason,
+          allowed_players.server_banned_at
+        FROM player_characters
+        LEFT JOIN allowed_players
+          ON allowed_players.player_uuid = player_characters.id
+        WHERE player_characters.profile_id = ?
+        ORDER BY player_characters.created_at ASC
+      `,
+      profileId,
+    );
+
+    const friendCountRow = await this.db.get<{ count: number }>(
+      `
+        SELECT COUNT(1) AS count
+        FROM social_friend_links
+        WHERE profile_id = ?
+      `,
+      profileId,
+    );
+    const blockedCountRow = await this.db.get<{ count: number }>(
+      `
+        SELECT COUNT(1) AS count
+        FROM social_blocks
+        WHERE profile_id = ?
+      `,
+      profileId,
+    );
+    const presence = await this.db.get<{ last_online_at: string | null }>(
+      `
+        SELECT last_online_at
+        FROM player_presence
+        WHERE profile_id = ?
+      `,
+      profileId,
+    );
+
+    return {
+      profileId: profile.id,
+      displayName: profile.display_name,
+      characters: characters.map((character) => ({
+        id: character.id,
+        name: character.name,
+        rank: character.rank ?? "player",
+        chatAccess: character.chat_banned_at
+          ? "banned"
+          : resolveActiveTimeout(character.chat_timeout_until)
+            ? "timed_out"
+            : "allowed",
+        chatReason: character.chat_ban_reason ?? character.chat_timeout_reason ?? undefined,
+        chatTimeoutUntil: resolveActiveTimeout(character.chat_timeout_until) ?? undefined,
+        serverBanned: Boolean(character.server_banned_at),
+      })),
+      friendCount: friendCountRow?.count ?? 0,
+      blockedCount: blockedCountRow?.count ?? 0,
+      lastOnlineAt: presence?.last_online_at ?? undefined,
     };
   }
 

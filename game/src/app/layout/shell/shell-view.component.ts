@@ -8,6 +8,7 @@ import type { GameplayGraphDebugSnapshot } from "../../core/execution-graph/game
 import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
 import type {
+  ServerChatPlayerActionRequest,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
   ServerChatMessageView,
@@ -186,6 +187,8 @@ export class ShellViewComponent {
   readonly serverModerationSubmitted = output<ServerModerationRequest>();
   readonly serverModerationCleared = output<void>();
   readonly serverChatSendRequested = output<string>();
+  readonly serverChatChannelSelected = output<string>();
+  readonly serverChatPlayerActionRequested = output<ServerChatPlayerActionRequest>();
   readonly serverChatServerSelectRequested = output<void>();
   readonly actionSelected = output<string>();
   readonly characterPanelActionSelected = output<string>();

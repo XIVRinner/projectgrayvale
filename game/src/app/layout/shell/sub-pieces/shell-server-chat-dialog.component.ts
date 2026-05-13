@@ -1,9 +1,11 @@
 import { Component, input, output } from "@angular/core";
 
 import {
+  type ServerChatChannelView,
   type ServerChatCommandView,
   type ServerChatCustomEmojiView,
   type ServerChatMessageView,
+  type ServerChatPlayerActionRequest,
   type ServerModerationRequest,
   type ServerChatPanelView,
   type ServerPresencePlayerView,
@@ -25,6 +27,8 @@ export class ShellServerChatDialogComponent {
   readonly messages = input.required<readonly ServerChatMessageView[]>();
   readonly customEmojis = input.required<readonly ServerChatCustomEmojiView[]>();
   readonly commands = input.required<readonly ServerChatCommandView[]>();
+  readonly channels = input.required<readonly ServerChatChannelView[]>();
+  readonly activeChannelId = input<string | null>(null);
   readonly currentPlayerUuid = input<string | null>(null);
   readonly statusMessage = input<string | null>(null);
   readonly canSend = input.required<boolean>();
@@ -41,6 +45,8 @@ export class ShellServerChatDialogComponent {
   readonly openServerSelectRequested = output<void>();
   readonly grantAdminRequested = output<void>();
   readonly moderatePlayerRequested = output<ServerPresencePlayerView>();
+  readonly channelSelected = output<string>();
+  readonly playerActionRequested = output<ServerChatPlayerActionRequest>();
   readonly moderationSubmitted = output<ServerModerationRequest>();
   readonly moderationCleared = output<void>();
   readonly sendRequested = output<string>();

@@ -51,6 +51,7 @@
         [currentPlayerUuid]="currentPlayerUuid()"
         [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
         (playerSelected)="moderatePlayerRequested.emit($event)"
+        (playerActionRequested)="playerActionRequested.emit($event)"
       />
     </section>
 
@@ -58,7 +59,7 @@
       class="gv-server-chat-panel__column gv-server-chat-panel__column--chat"
     >
       <div class="gv-server-chat-panel__section-header">
-        <h4>World Chat</h4>
+        <h4>Social Chat</h4>
         @if (!canSend()) {
           <button
             type="button"
@@ -66,6 +67,22 @@
             (click)="openServerSelectRequested.emit()"
           >
             Server Select
+          </button>
+        }
+      </div>
+
+      <div class="gv-server-chat-panel__tabs">
+        @for (channel of channels(); track channel.id) {
+          <button
+            type="button"
+            class="gv-server-chat-panel__tab"
+            [class.gv-server-chat-panel__tab--active]="channel.id === activeChannelId()"
+            (click)="channelSelected.emit(channel.id)"
+          >
+            <span>{{ channel.name }}</span>
+            @if (channel.unreadCount > 0) {
+              <span class="gv-server-chat-panel__tab-unread">{{ channel.unreadCount }}</span>
+            }
           </button>
         }
       </div>
@@ -92,7 +109,9 @@
         [currentPlayerUuid]="currentPlayerUuid()"
         [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
         [canSelectPlayers]="canModerate()"
+        [canModerate]="canModerate()"
         (playerSelected)="focusMessageAuthor($event)"
+        (playerActionRequested)="playerActionRequested.emit($event)"
       />
 
       <gv-server-chat-composer

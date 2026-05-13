@@ -8,6 +8,7 @@ import {
 } from "@angular/core";
 
 import {
+  ServerChatPlayerActionRequest,
   ServerChatCustomEmojiView,
   ServerChatMessageView,
 } from "../../../../core/services/server-chat.models";
@@ -26,8 +27,10 @@ export class ServerChatMessageListComponent {
   readonly currentPlayerUuid = input<string | null>(null);
   readonly selectedPlayerUuid = input<string | null>(null);
   readonly canSelectPlayers = input(false);
+  readonly canModerate = input(false);
 
   readonly playerSelected = output<ServerChatMessageView>();
+  readonly playerActionRequested = output<ServerChatPlayerActionRequest>();
 
   protected readonly viewport =
     viewChild<ElementRef<HTMLDivElement>>("viewport");
@@ -51,7 +54,7 @@ export class ServerChatMessageListComponent {
   protected trackByMessageId(
     _index: number,
     message: ServerChatMessageView,
-  ): number {
+  ): string {
     return message.id;
   }
 
@@ -76,6 +79,22 @@ export class ServerChatMessageListComponent {
     }
 
     this.playerSelected.emit(message);
+  }
+
+  protected openContextActions(event: MouseEvent, message: ServerChatMessageView): void {
+    event.preventDefault();
+    const targetProfileId = message.sender.profileId;
+    const targetCharacterName = message.sender.characterName;
+
+    this.playerActionRequested.emit({
+      action: "whisper",
+      targetProfileId,
+      targetCharacterName,
+    });
+  }
+
+  protected canUseAdminActions(): boolean {
+    return this.canModerate();
   }
 }
 

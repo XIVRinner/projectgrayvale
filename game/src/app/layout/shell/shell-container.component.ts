@@ -21,7 +21,9 @@ import {
 } from "../../core/services/server-chat-commands";
 import { ServerChatService } from "../../core/services/server-chat.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
+import { SocialApiService } from "../../core/services/social-api.service";
 import type {
+  ServerChatPlayerActionRequest,
   ServerModerationRequest,
   ServerPresencePlayerView,
 } from "../../core/services/server-chat.models";
@@ -170,6 +172,8 @@ import {
       (serverChatRefreshRequested)="refreshServerChat()"
       (serverChatGrantAdminRequested)="openServerAdminDialog()"
       (serverChatModeratePlayerRequested)="openServerModerationDialog($event)"
+      (serverChatChannelSelected)="selectServerChatChannel($event)"
+      (serverChatPlayerActionRequested)="handleServerChatPlayerAction($event)"
       (serverAdminSubmitted)="submitServerAdminDialog($event)"
       (serverModerationSubmitted)="submitServerModeration($event)"
       (serverModerationCleared)="closeServerModerationDialog()"
@@ -194,6 +198,7 @@ export class ShellContainerComponent {
   private readonly worldState = inject(WorldStateService);
   private readonly gameplayRuntime = inject(GameplayGraphRuntime);
   private readonly serverConnection = inject(ServerConnectionService);
+  private readonly socialApi = inject(SocialApiService);
   protected readonly serverChat = inject(ServerChatService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
@@ -683,6 +688,75 @@ export class ShellContainerComponent {
   protected refreshServerChat(): void {
     this.logUi("Refreshing server relay data.");
     void this.serverChat.refreshAll();
+  }
+
+  protected selectServerChatChannel(channelId: string): void {
+    this.serverChat.selectChannel(channelId);
+  }
+
+  protected async handleServerChatPlayerAction(
+    request: ServerChatPlayerActionRequest,
+  ): Promise<void> {
+    if (request.action === "whisper" && request.targetCharacterName) {
+      await this.sendServerChatMessage(`/whisper "${request.targetCharacterName}" `);
+      this.serverChat.showStatusMessage(
+        `Whisper target selected: ${request.targetCharacterName}`,
+      );
+      return;
+    }
+
+    if (request.action === "friend_profile" || request.action === "friend_character") {
+      const target = request.targetCharacterName ?? request.targetProfileId;
+
+      try {
+        await this.socialApi.addFriend(target);
+        this.serverChat.showStatusMessage(`Added ${target} as a friend.`);
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "block") {
+      try {
+        await this.socialApi.blockProfile(request.targetProfileId);
+        this.serverChat.showStatusMessage("Player blocked.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "ban" && this.serverChat.canModerate()) {
+      const player = this.serverChat
+        .players()
+        .find((entry) => entry.playerUuid === request.targetProfileId);
+
+      if (player) {
+        this.openServerModerationDialog(player);
+      }
+      return;
+    }
+
+    if ((request.action === "kick" || request.action === "mute") && this.serverChat.canModerate()) {
+      this.serverChat.showStatusMessage(
+        "Kick and mute actions are routed through the moderation panel right now.",
+      );
+      return;
+    }
+
+    if (request.action === "admin_profile" && this.serverChat.canModerate()) {
+      try {
+        const overview = await this.socialApi.getAdminProfileOverview(
+          request.targetProfileId,
+        );
+        this.serverChat.showStatusMessage(
+          `Admin profile loaded: ${JSON.stringify(overview)}`,
+        );
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+    }
   }
 
   protected async sendServerChatMessage(message: string): Promise<void> {

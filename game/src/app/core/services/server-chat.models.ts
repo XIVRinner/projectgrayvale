@@ -1,5 +1,27 @@
 import type { ServerPlayerRank } from "./server-connection.service";
 export type ServerChatAccessState = "allowed" | "timed_out" | "banned";
+export type ServerChatChannelType =
+  | "official"
+  | "custom"
+  | "guild"
+  | "direct"
+  | "admin"
+  | "system";
+
+export interface SocialBadgeView {
+  readonly type: "friend" | "guild_role" | "admin" | "moderation" | "permission";
+  readonly label: string;
+}
+
+export interface SocialIdentityView {
+  readonly profileId: string;
+  readonly characterId?: string;
+  readonly characterName?: string;
+  readonly profileDisplayName?: string;
+  readonly online: boolean;
+  readonly lastOnlineAt?: string;
+  readonly badges: readonly SocialBadgeView[];
+}
 
 export interface ServerInfoView {
   readonly name: string;
@@ -27,7 +49,9 @@ export interface ServerPresencePlayerView {
 }
 
 export interface ServerChatMessageView {
-  readonly id: number;
+  readonly id: string;
+  readonly channelId: string;
+  readonly channelType: ServerChatChannelType;
   readonly playerUuid: string;
   readonly displayName?: string;
   readonly avatarPath?: string;
@@ -42,6 +66,7 @@ export interface ServerChatMessageView {
   readonly moderatedByPlayerUuid?: string;
   readonly message: string;
   readonly createdAt: string;
+  readonly sender: SocialIdentityView;
 }
 
 export interface ServerChatCustomEmojiView {
@@ -77,6 +102,16 @@ export interface ServerChatPanelView {
   readonly isConnected: boolean;
   readonly sessionRankLabel: string | null;
   readonly sessionChatAccessLabel: string | null;
+  readonly channels: readonly ServerChatChannelView[];
+  readonly activeChannelId: string | null;
+}
+
+export interface ServerChatChannelView {
+  readonly id: string;
+  readonly name: string;
+  readonly type: ServerChatChannelType;
+  readonly unreadCount: number;
+  readonly role?: string;
 }
 
 export interface ServerModerationRequest {
@@ -96,4 +131,32 @@ export interface ServerPresenceResponse {
 export interface ServerChatHistoryResponse {
   readonly count: number;
   readonly entries: readonly ServerChatMessageView[];
+}
+
+export interface ServerChatChannelsResponse {
+  readonly channels: readonly ServerChatChannelView[];
+}
+
+export interface ServerDirectConversationView {
+  readonly id: string;
+  readonly profileAId: string;
+  readonly profileBId: string;
+  readonly updatedAt: string;
+  readonly counterpart: SocialIdentityView;
+}
+
+export interface ServerChatPlayerActionRequest {
+  readonly action:
+    | "whisper"
+    | "friend_character"
+    | "friend_profile"
+    | "guild_invite"
+    | "block"
+    | "report"
+    | "kick"
+    | "ban"
+    | "mute"
+    | "admin_profile";
+  readonly targetProfileId: string;
+  readonly targetCharacterName?: string;
 }

@@ -175,3 +175,20 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.gv-server-chat-message-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--gv-space-xs) * 1.4);
+}
+
+.gv-server-chat-message-list__action {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font-family: var(--gv-font-ui);
+  font-size: var(--gv-font-size-xxs);
+  padding: 0.18rem 0.48rem;
+}

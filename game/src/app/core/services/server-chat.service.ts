@@ -8,22 +8,47 @@ import { ChatEmotesLoader } from "../../data/loaders/chat-emotes.loader";
 import { SERVER_CHAT_COMMANDS } from "./server-chat-commands";
 import { ServerConnectionService } from "./server-connection.service";
 import {
+  ServerChatChannelView,
+  ServerChatChannelsResponse,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
-  ServerChatHistoryResponse,
   ServerChatMessageView,
+  ServerDirectConversationView,
   ServerModerationRequest,
   ServerChatPanelView,
   ServerFooterSummaryView,
   ServerInfoView,
   ServerPresencePlayerView,
   ServerPresenceResponse,
+  SocialIdentityView,
 } from "./server-chat.models";
 
 const CHAT_LIMIT = 60;
 const PLAYER_LIMIT = 24;
 const PRESENCE_POLL_MS = 15_000;
 const CHAT_POLL_MS = 4_000;
+
+interface ServerChatMessageApiView {
+  readonly id: string;
+  readonly channelId: string;
+  readonly channelType: ServerChatChannelView["type"];
+  readonly senderProfileId?: string;
+  readonly senderCharacterId?: string;
+  readonly senderCharacterName?: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly messageType: "user" | "system" | "motd" | "moderation";
+  readonly sender: SocialIdentityView;
+}
+
+interface ServerDirectConversationsResponse {
+  readonly conversations: readonly ServerDirectConversationView[];
+}
+
+interface ServerChatHistoryApiResponse {
+  readonly count: number;
+  readonly entries: readonly ServerChatMessageApiView[];
+}
 
 @Injectable({ providedIn: "root" })
 export class ServerChatService {
@@ -40,19 +65,29 @@ export class ServerChatService {
   private readonly playersState = signal<readonly ServerPresencePlayerView[]>(
     [],
   );
+  private readonly channelsState = signal<readonly ServerChatChannelView[]>([]);
+  private readonly activeChannelIdState = signal<string | null>(null);
   private readonly messagesState = signal<readonly ServerChatMessageView[]>([]);
+  private readonly directConversationsState = signal<readonly ServerDirectConversationView[]>(
+    [],
+  );
+  private readonly lastSeenMessageIdState = signal<Record<string, string>>({});
   private readonly statusMessageState = signal<string | null>(null);
   private readonly sendingState = signal(false);
   private readonly documentVisibleState = signal(!this.document.hidden);
 
   private presenceRefreshInFlight = false;
+  private channelsRefreshInFlight = false;
   private messagesRefreshInFlight = false;
 
   readonly panelOpen = this.panelOpenState.asReadonly();
   readonly info = this.infoState.asReadonly();
   readonly customEmojis = this.customEmojisState.asReadonly();
   readonly players = this.playersState.asReadonly();
+  readonly channels = this.channelsState.asReadonly();
+  readonly activeChannelId = this.activeChannelIdState.asReadonly();
   readonly messages = this.messagesState.asReadonly();
+  readonly directConversations = this.directConversationsState.asReadonly();
   readonly statusMessage = this.statusMessageState.asReadonly();
   readonly isSending = this.sendingState.asReadonly();
   readonly commands = computed<readonly ServerChatCommandView[]>(
@@ -92,7 +127,7 @@ export class ServerChatService {
         : `Timed out until ${untilLabel}.`;
     }
 
-    return "Enter sends. Shift+Enter makes a new line. Use : for emotes and / for relay commands.";
+    return "Enter sends. Shift+Enter makes a new line. Slash commands work in all tabs.";
   });
   readonly currentPlayerUuid = computed(
     () => this.serverConnection.session()?.playerUuid ?? null,
@@ -125,6 +160,8 @@ export class ServerChatService {
       isConnected: session !== null,
       sessionRankLabel: session?.rank.toUpperCase() ?? null,
       sessionChatAccessLabel: session?.chatAccessLabel ?? null,
+      channels: this.channelsState(),
+      activeChannelId: this.activeChannelIdState(),
     };
   });
 
@@ -143,7 +180,11 @@ export class ServerChatService {
         this.serverConnection.session();
         this.infoState.set(null);
         this.playersState.set([]);
+        this.channelsState.set([]);
+        this.activeChannelIdState.set(null);
         this.messagesState.set([]);
+        this.directConversationsState.set([]);
+        this.lastSeenMessageIdState.set({});
         this.statusMessageState.set(null);
         queueMicrotask(() => void this.refreshAll());
       },
@@ -177,7 +218,7 @@ export class ServerChatService {
           return;
         }
 
-        void this.refreshMessages();
+        void this.refreshChannelsAndMessages();
       });
   }
 
@@ -201,9 +242,19 @@ export class ServerChatService {
     this.statusMessageState.set(message);
   }
 
+  selectChannel(channelId: string): void {
+    if (!this.channelsState().some((channel) => channel.id === channelId)) {
+      return;
+    }
+
+    this.activeChannelIdState.set(channelId);
+    void this.refreshMessages();
+  }
+
   async sendMessage(message: string): Promise<void> {
     const trimmedMessage = message.trim();
     const session = this.serverConnection.session();
+    const activeChannelId = this.activeChannelIdState();
 
     if (!trimmedMessage) {
       return;
@@ -214,23 +265,23 @@ export class ServerChatService {
       return;
     }
 
+    if (!activeChannelId) {
+      this.statusMessageState.set("Select a channel first.");
+      return;
+    }
+
     this.sendingState.set(true);
 
     try {
       await firstValueFrom(
         this.http.post(
-          this.serverConnection.serverApiUrl("/api/server/chat"),
-          {
-            message: trimmedMessage,
-            sessionId: session.sessionId,
-          },
-          {
-            withCredentials: true,
-          },
+          this.serverConnection.serverApiUrl(`/api/chat/channels/${activeChannelId}/messages`),
+          { body: trimmedMessage },
+          { withCredentials: true },
         ),
       );
       this.statusMessageState.set(null);
-      await Promise.all([this.refreshPresence(), this.refreshMessages()]);
+      await this.refreshChannelsAndMessages();
     } catch (error) {
       this.statusMessageState.set(toErrorMessage(error));
     } finally {
@@ -270,7 +321,7 @@ export class ServerChatService {
     await Promise.allSettled([
       this.refreshInfo(),
       this.refreshPresence(),
-      this.refreshMessages(),
+      this.refreshChannelsAndMessages(),
     ]);
   }
 
@@ -317,25 +368,125 @@ export class ServerChatService {
     }
   }
 
+  async refreshChannelsAndMessages(): Promise<void> {
+    await this.refreshChannels();
+    await this.refreshMessages();
+  }
+
+  async refreshChannels(): Promise<void> {
+    if (this.channelsRefreshInFlight) {
+      return;
+    }
+
+    this.channelsRefreshInFlight = true;
+
+    try {
+      const [channelsResponse, directResponse] = await Promise.all([
+        firstValueFrom(
+          this.http.get<ServerChatChannelsResponse>(
+            this.serverConnection.serverApiUrl("/api/chat/channels"),
+            {
+              withCredentials: true,
+            },
+          ),
+        ),
+        firstValueFrom(
+          this.http.get<ServerDirectConversationsResponse>(
+            this.serverConnection.serverApiUrl("/api/chat/direct"),
+            {
+              withCredentials: true,
+            },
+          ),
+        ).catch(() => ({ conversations: [] as readonly ServerDirectConversationView[] })),
+      ]);
+
+      const directIds = new Set(directResponse.conversations.map((row) => row.id));
+      const normalizedChannels = channelsResponse.channels.filter(
+        (channel) => channel.type !== "direct" || directIds.has(channel.id),
+      );
+      this.directConversationsState.set(directResponse.conversations);
+      this.channelsState.set(normalizedChannels);
+
+      if (
+        !this.activeChannelIdState() ||
+        !normalizedChannels.some((channel) => channel.id === this.activeChannelIdState())
+      ) {
+        const preferred =
+          normalizedChannels.find((channel) => channel.name.toLowerCase() === "world") ??
+          normalizedChannels[0];
+        this.activeChannelIdState.set(preferred?.id ?? null);
+      }
+    } catch (error) {
+      this.channelsState.set([]);
+      this.directConversationsState.set([]);
+
+      if (this.panelOpenState()) {
+        this.statusMessageState.set(toErrorMessage(error));
+      }
+    } finally {
+      this.channelsRefreshInFlight = false;
+    }
+  }
+
   async refreshMessages(): Promise<void> {
     if (this.messagesRefreshInFlight) {
+      return;
+    }
+
+    const activeChannel = this.channelsState().find(
+      (channel) => channel.id === this.activeChannelIdState(),
+    );
+
+    if (!activeChannel) {
+      this.messagesState.set([]);
       return;
     }
 
     this.messagesRefreshInFlight = true;
 
     try {
-      const response = await firstValueFrom(
-        this.http.get<ServerChatHistoryResponse>(
-          this.serverConnection.serverApiUrl("/api/server/chat"),
-          {
-            params: { limit: String(CHAT_LIMIT) },
-            withCredentials: true,
-          },
-        ),
-      );
+      const after = this.lastSeenMessageIdState()[activeChannel.id];
+      const response = activeChannel.type === "direct"
+        ? await firstValueFrom(
+            this.http.get<ServerChatHistoryApiResponse>(
+              this.serverConnection.serverApiUrl(
+                `/api/chat/direct/${activeChannel.id}/messages`,
+              ),
+              {
+                params: {
+                  limit: String(CHAT_LIMIT),
+                  ...(after ? { after } : {}),
+                },
+                withCredentials: true,
+              },
+            ),
+          )
+        : await firstValueFrom(
+            this.http.get<ServerChatHistoryApiResponse>(
+              this.serverConnection.serverApiUrl(
+                `/api/chat/channels/${activeChannel.id}/messages`,
+              ),
+              {
+                params: {
+                  limit: String(CHAT_LIMIT),
+                  ...(after ? { after } : {}),
+                },
+                withCredentials: true,
+              },
+            ),
+          );
 
-      this.messagesState.set(response.entries);
+      const incoming = response.entries.map((entry) => mapMessage(entry));
+      const merged = dedupeById([...this.messagesState(), ...incoming]).slice(-CHAT_LIMIT);
+      this.messagesState.set(merged);
+      const last = merged.at(-1);
+
+      if (last) {
+        this.lastSeenMessageIdState.update((value) => ({
+          ...value,
+          [activeChannel.id]: last.id,
+        }));
+      }
     } catch (error) {
       this.messagesState.set([]);
 
@@ -375,6 +526,61 @@ export class ServerChatService {
   private presenceParams(): Record<string, string> {
     return { limit: String(PLAYER_LIMIT) };
   }
+}
+
+function mapMessage(entry: ServerChatMessageApiView): ServerChatMessageView {
+  return {
+    id: entry.id,
+    channelId: entry.channelId,
+    channelType: entry.channelType,
+    playerUuid: entry.senderCharacterId ?? entry.senderProfileId ?? "system",
+    displayName:
+      entry.sender.characterName ??
+      entry.sender.profileDisplayName ??
+      entry.senderCharacterName ??
+      "Unknown Adventurer",
+    avatarPath: undefined,
+    rank: mapRank(entry.sender.badges),
+    chatAccess: "allowed",
+    chatAccessLabel: "Chat Open",
+    serverBanned: false,
+    message: entry.body,
+    createdAt: entry.createdAt,
+    sender: entry.sender,
+  };
+}
+
+function mapRank(badges: readonly { label: string }[]): "player" | "vip" | "moderator" | "admin" {
+  const labels = new Set(badges.map((badge) => badge.label.toLowerCase()));
+
+  if (labels.has("admin")) {
+    return "admin";
+  }
+
+  if (labels.has("moderator")) {
+    return "moderator";
+  }
+
+  if (labels.has("vip")) {
+    return "vip";
+  }
+
+  return "player";
+}
+
+function dedupeById(entries: readonly ServerChatMessageView[]): ServerChatMessageView[] {
+  const seen = new Set<string>();
+  const deduped: ServerChatMessageView[] = [];
+
+  for (const entry of entries) {
+    if (seen.has(entry.id)) {
+      continue;
+    }
+    seen.add(entry.id);
+    deduped.push(entry);
+  }
+
+  return deduped;
 }
 
 function toErrorMessage(error: unknown): string {
