@@ -74,6 +74,37 @@ describe("KairosEditService", () => {
     ]);
   });
 
+  it("loads and saves tag registry through centralized endpoints", async () => {
+    const http = {
+      get: jest.fn(() =>
+        of({
+          categories: [
+            {
+              id: "world_context",
+              label: "World Context",
+              description: "",
+              allowedFor: ["locations", "sublocations"],
+              tags: [{ id: "camp", label: "Camp", description: "Camp context" }],
+            },
+          ],
+        }),
+      ),
+      put: jest.fn((_url: string, body: unknown) => of(body)),
+    } satisfies Pick<HttpClient, "get" | "put">;
+
+    const service = createService(http);
+    const registry = await service.getTagRegistry();
+
+    expect(registry.categories[0]?.id).toBe("world_context");
+
+    await expect(service.saveTagRegistry(registry)).resolves.toEqual(registry);
+    expect(http.put).toHaveBeenCalledWith(
+      "/api/admin/tags",
+      registry,
+      { withCredentials: true },
+    );
+  });
+
   it("saves a definition through the admin endpoint and invalidates caches", async () => {
     const http = {
       get: jest.fn(),

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 
 import {
   actionDefinitionSchema,
@@ -49,6 +49,7 @@ type LocationDefinitionInput = {
   id: string;
   label: string;
   subtitle: string;
+  tags?: string[];
   availableNpcIds: string[];
   sublocations?: LocationDefinitionInput[];
   isReturnable?: boolean;
@@ -66,6 +67,7 @@ const locationDefinitionSchema: z.ZodType<LocationDefinitionInput> = z.lazy(() =
       id: definitionIdSchema,
       label: z.string().trim().min(1),
       subtitle: z.string().trim().min(1),
+      tags: z.array(tagSchema).optional(),
       availableNpcIds: z.array(definitionIdSchema),
       sublocations: z.array(locationDefinitionSchema).optional(),
       isReturnable: z.boolean().optional(),
@@ -87,7 +89,8 @@ export class DefinitionValidationError extends Error {
 }
 
 export class AdminDefinitionValidationService {
-  private tagRegistryPromise: Promise<TagRegistry> | null = null;
+  private cachedTagRegistry: TagRegistry | null = null;
+  private cachedTagRegistryMtimeMs: number | null = null;
 
   constructor(
     private readonly assetService: DefinitionAssetService,
@@ -134,18 +137,20 @@ export class AdminDefinitionValidationService {
     type: DefinitionType,
     definition: Record<string, unknown>,
   ): Promise<void> {
-    const tagValues = definition["tags"];
-
-    if (!Array.isArray(tagValues)) {
-      return;
-    }
+    const tagValues = collectTagValues(definition);
 
     const registry = await this.getTagRegistry();
-    const allowedTags = new Set(
-      registry.categories
-        .filter((category) => category.allowedFor.includes(type))
-        .flatMap((category) => category.tags.map((tag) => tag.id)),
-    );
+    const canonicalTagByLowercase = new Map<string, string>();
+
+    for (const category of registry.categories) {
+      if (!category.allowedFor.includes(type)) {
+        continue;
+      }
+
+      for (const tag of category.tags) {
+        canonicalTagByLowercase.set(tag.id.toLowerCase(), tag.id);
+      }
+    }
 
     const invalidTags = tagValues.flatMap((tag) => {
       const parsed = tagSchema.safeParse(tag);
@@ -158,26 +163,73 @@ export class AdminDefinitionValidationService {
       throw new DefinitionValidationError(invalidTags);
     }
 
-    const unknownTags = tagValues.filter(
-      (tag): tag is string => typeof tag === "string" && !allowedTags.has(tag),
-    );
+    const unknownTags: string[] = [];
+    const caseMismatchTags: string[] = [];
+
+    for (const rawTag of tagValues) {
+      if (typeof rawTag !== "string") {
+        continue;
+      }
+
+      const canonicalTag = canonicalTagByLowercase.get(rawTag.toLowerCase());
+
+      if (!canonicalTag) {
+        unknownTags.push(rawTag);
+        continue;
+      }
+
+      if (canonicalTag !== rawTag) {
+        caseMismatchTags.push(`${rawTag} (canonical: ${canonicalTag})`);
+      }
+    }
 
     if (unknownTags.length > 0) {
       throw new DefinitionValidationError([
         `Unknown ${type} tags: ${unknownTags.join(", ")}. Use values from /api/tags only.`,
       ]);
     }
+
+    if (caseMismatchTags.length > 0) {
+      throw new DefinitionValidationError([
+        `Tag casing conflicts for ${type}: ${caseMismatchTags.join(", ")}.`,
+      ]);
+    }
   }
 
   private async getTagRegistry(): Promise<TagRegistry> {
-    if (!this.tagRegistryPromise) {
-      this.tagRegistryPromise = readFile(this.tagRegistryPath, "utf8").then((raw) =>
-        tagRegistrySchema.parse(JSON.parse(raw) as unknown),
-      );
+    const fileStats = await stat(this.tagRegistryPath);
+    if (
+      this.cachedTagRegistry &&
+      this.cachedTagRegistryMtimeMs !== null &&
+      this.cachedTagRegistryMtimeMs === fileStats.mtimeMs
+    ) {
+      return this.cachedTagRegistry;
     }
 
-    return this.tagRegistryPromise;
+    const raw = await readFile(this.tagRegistryPath, "utf8");
+    const parsed = tagRegistrySchema.parse(JSON.parse(raw) as unknown);
+    this.cachedTagRegistry = parsed;
+    this.cachedTagRegistryMtimeMs = fileStats.mtimeMs;
+    return parsed;
   }
+}
+
+function collectTagValues(value: unknown): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => collectTagValues(entry));
+  }
+
+  const record = value as Record<string, unknown>;
+  const ownTags = Array.isArray(record["tags"])
+    ? record["tags"].filter((tag): tag is string => typeof tag === "string")
+    : [];
+
+  const nestedTags = Object.values(record).flatMap((entry) => collectTagValues(entry));
+  return [...ownTags, ...nestedTags];
 }
 
 async function validateByType(

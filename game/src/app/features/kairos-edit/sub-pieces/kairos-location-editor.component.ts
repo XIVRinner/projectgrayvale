@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from "@angular/core
 import { FormsModule } from "@angular/forms";
 import { InputTextModule } from "primeng/inputtext";
 
-import type { KairosFieldChange } from "../kairos-edit.types";
+import type { KairosFieldChange, KairosTagOption } from "../kairos-edit.types";
 import {
   cloneDefinition,
   readBooleanValue,
@@ -12,17 +12,25 @@ import {
 } from "../kairos-edit.utils";
 import { KairosRawJsonEditorComponent } from "./kairos-raw-json-editor.component";
 import { KairosStringArrayFieldComponent } from "./kairos-string-array-field.component";
+import { KairosTagMultiselectComponent } from "./kairos-tag-multiselect.component";
 
 @Component({
   selector: "gv-kairos-location-editor",
   standalone: true,
-  imports: [FormsModule, InputTextModule, KairosRawJsonEditorComponent, KairosStringArrayFieldComponent],
+  imports: [
+    FormsModule,
+    InputTextModule,
+    KairosRawJsonEditorComponent,
+    KairosStringArrayFieldComponent,
+    KairosTagMultiselectComponent,
+  ],
   templateUrl: "./kairos-location-editor.component.html",
   styleUrl: "./kairos-item-editor.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KairosLocationEditorComponent {
   readonly definition = input.required<Record<string, unknown>>();
+  readonly tagOptions = input<readonly KairosTagOption[]>([]);
   readonly jsonText = input.required<string>();
   readonly jsonError = input<string | null>(null);
 
@@ -58,6 +66,7 @@ export class KairosLocationEditorComponent {
       id: "",
       label: "",
       subtitle: "",
+      tags: [],
       availableNpcIds: [],
       isReturnable: true,
     });

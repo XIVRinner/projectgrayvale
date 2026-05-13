@@ -18,6 +18,11 @@
     </label>
   </div>
 
+  <gv-kairos-tag-multiselect
+    [options]="tagOptions()"
+    [value]="readStringArray(['tags'])"
+    (valueChange)="update(['tags'], $event)"
+  />
   <gv-kairos-string-array-field label="Available NPC IDs" placeholder="Add NPC id" [values]="readStringArray(['availableNpcIds'])" (valuesChange)="update(['availableNpcIds'], $event)" />
 
   <section class="gv-kairos-form__nested-list">
@@ -68,6 +73,11 @@
           </label>
         </div>
 
+        <gv-kairos-tag-multiselect
+          [options]="tagOptions()"
+          [value]="readStringArray(['sublocations', $index, 'tags'])"
+          (valueChange)="update(['sublocations', $index, 'tags'], $event)"
+        />
         <gv-kairos-string-array-field label="Available NPC IDs" placeholder="Add NPC id" [values]="readStringArray(['sublocations', $index, 'availableNpcIds'])" (valuesChange)="update(['sublocations', $index, 'availableNpcIds'], $event)" />
       </article>
     }

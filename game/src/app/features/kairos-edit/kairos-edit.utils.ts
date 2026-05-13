@@ -1,6 +1,22 @@
-import type { KairosDefinitionType, KairosEditorState, KairosFieldChange, KairosPathSegment, KairosTagOption } from "./kairos-edit.types";
+import type {
+  KairosDefinitionType,
+  KairosEditorState,
+  KairosFieldChange,
+  KairosPathSegment,
+  KairosTagOption,
+  KairosTagRegistry,
+  KairosTagTarget,
+} from "./kairos-edit.types";
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
+const TAG_TARGETS = new Set<KairosTagTarget>([
+  "items",
+  "materials",
+  "locations",
+  "sublocations",
+  "activities",
+  "actions",
+]);
 
 export function createEditorState(): KairosEditorState {
   return {
@@ -143,6 +159,7 @@ export function createDefaultDefinition(type: KairosDefinitionType): Record<stri
         id: "",
         label: "",
         subtitle: "",
+        tags: [],
         availableNpcIds: [],
         sublocations: [],
       };
@@ -207,12 +224,24 @@ export function validateDefinitionDraft(
     warnings.push(`Saving will overwrite the existing ${type} definition "${id}".`);
   }
 
-  const tags = readStringArrayValue(definition, ["tags"]);
-  const allowedTags = new Set(tagOptions.map((option) => option.id));
-  const invalidTags = tags.filter((tag) => !allowedTags.has(tag));
+  const tags = collectTagValuesForDefinition(type, definition);
+  const allowedTagByLower = new Map(tagOptions.map((option) => [option.id.toLowerCase(), option.id]));
+  const invalidTags = tags.filter((tag) => !allowedTagByLower.has(tag.toLowerCase()));
+  const caseConflicts = tags.reduce<Array<{ tag: string; canonical: string }>>((accumulator, tag) => {
+    const canonical = allowedTagByLower.get(tag.toLowerCase());
+    if (canonical && canonical !== tag) {
+      accumulator.push({ tag, canonical });
+    }
+    return accumulator;
+  }, []);
 
   if (invalidTags.length > 0) {
     errors.push(`Unknown tags selected: ${invalidTags.join(", ")}.`);
+  }
+  if (caseConflicts.length > 0) {
+    errors.push(
+      `Tag casing conflicts: ${caseConflicts.map((entry) => `${entry.tag} (canonical: ${entry.canonical})`).join(", ")}.`,
+    );
   }
 
   switch (type) {
@@ -273,6 +302,83 @@ export function validateDefinitionDraft(
     errors,
     warnings,
   };
+}
+
+export function validateTagRegistryDraft(
+  registry: KairosTagRegistry | null,
+): { readonly errors: readonly string[]; readonly warnings: readonly string[] } {
+  if (!registry) {
+    return {
+      errors: ["Tag registry is not loaded."],
+      warnings: [],
+    };
+  }
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const categoryIds = new Map<string, string>();
+  const tagIds = new Map<string, string>();
+
+  for (const category of registry.categories) {
+    const trimmedCategoryId = category.id.trim();
+
+    if (!trimmedCategoryId) {
+      errors.push("Category id is required.");
+    } else if (!ID_PATTERN.test(trimmedCategoryId)) {
+      errors.push(`Category id "${category.id}" must use lowercase letters, numbers, underscores, or hyphens.`);
+    }
+
+    if (!category.label.trim()) {
+      errors.push(`Category "${category.id || "<new>"}" label is required.`);
+    }
+
+    if (category.allowedFor.length === 0) {
+      errors.push(`Category "${category.id || "<new>"}" must define at least one allowed target.`);
+    }
+    if (category.tags.length === 0) {
+      errors.push(`Category "${category.id || "<new>"}" must include at least one tag.`);
+    }
+
+    for (const target of category.allowedFor) {
+      if (!TAG_TARGETS.has(target)) {
+        errors.push(`Category "${category.id || "<new>"}" has invalid allowedFor value "${String(target)}".`);
+      }
+    }
+
+    const normalizedCategoryId = trimmedCategoryId.toLowerCase();
+    const existingCategory = categoryIds.get(normalizedCategoryId);
+    if (existingCategory) {
+      errors.push(`Duplicate category id (case-insensitive): ${existingCategory} / ${category.id}`);
+    } else {
+      categoryIds.set(normalizedCategoryId, category.id);
+    }
+
+    for (const tag of category.tags) {
+      if (!tag.id.trim()) {
+        errors.push(`Category "${category.id || "<new>"}" contains a tag with an empty id.`);
+      } else if (!ID_PATTERN.test(tag.id.trim())) {
+        errors.push(`Tag id "${tag.id}" must use lowercase letters, numbers, underscores, or hyphens.`);
+      }
+
+      if (!tag.label.trim()) {
+        errors.push(`Tag "${tag.id || "<new>"}" must have a label.`);
+      }
+
+      const normalizedTagId = tag.id.toLowerCase();
+      const existingTag = tagIds.get(normalizedTagId);
+      if (existingTag) {
+        errors.push(`Duplicate tag id (case-insensitive): ${existingTag} / ${tag.id}`);
+      } else {
+        tagIds.set(normalizedTagId, tag.id);
+      }
+    }
+  }
+
+  if (registry.categories.length === 0) {
+    warnings.push("Registry has no categories.");
+  }
+
+  return { errors, warnings };
 }
 
 function normalizeFieldValue(value: unknown): unknown {
@@ -365,4 +471,44 @@ function shouldDeleteValue(value: unknown): boolean {
     value === "" ||
     (Array.isArray(value) && value.length === 0)
   );
+}
+
+function collectTagValuesForDefinition(
+  type: KairosDefinitionType,
+  definition: Record<string, unknown>,
+): readonly string[] {
+  if (type !== "locations") {
+    return readStringArrayValue(definition, ["tags"]);
+  }
+
+  const tags: string[] = [];
+  collectLocationTags(definition, tags);
+  return tags;
+}
+
+function collectLocationTags(value: unknown, output: string[]): void {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      collectLocationTags(entry, output);
+    }
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  const ownTags = record["tags"];
+  if (Array.isArray(ownTags)) {
+    for (const tag of ownTags) {
+      if (typeof tag === "string") {
+        output.push(tag);
+      }
+    }
+  }
+
+  for (const nested of Object.values(record)) {
+    collectLocationTags(nested, output);
+  }
 }

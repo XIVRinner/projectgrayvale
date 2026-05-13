@@ -1,14 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { ButtonModule } from "primeng/button";
 import { DialogModule } from "primeng/dialog";
+import { InputTextModule } from "primeng/inputtext";
+import { MultiSelectModule } from "primeng/multiselect";
 import { TabsModule } from "primeng/tabs";
 
 import { KairosEditService } from "./kairos-edit.service";
 import {
   KAIROS_TABS,
+  TAG_TARGET_OPTIONS,
   type KairosDefinitionType,
   type KairosEditorState,
   type KairosFieldChange,
+  type KairosTagRegistry,
+  type KairosTagRegistryCategory,
+  type KairosTagRegistryTag,
+  type KairosTagTarget,
   type KairosTagOption,
 } from "./kairos-edit.types";
 import {
@@ -18,6 +26,7 @@ import {
   formatDefinitionJson,
   parseDefinitionJson,
   validateDefinitionDraft,
+  validateTagRegistryDraft,
 } from "./kairos-edit.utils";
 import { KairosDefinitionWorkspaceComponent } from "./sub-pieces/kairos-definition-workspace.component";
 import { KairosItemEditorComponent } from "./sub-pieces/kairos-item-editor.component";
@@ -38,8 +47,11 @@ const EDITABLE_TYPES = [
   selector: "gv-kairos-edit-dialog",
   standalone: true,
   imports: [
+    FormsModule,
     ButtonModule,
     DialogModule,
+    InputTextModule,
+    MultiSelectModule,
     TabsModule,
     KairosDefinitionWorkspaceComponent,
     KairosItemEditorComponent,
@@ -75,8 +87,27 @@ export class KairosEditDialogComponent {
     activities: [],
     actions: [],
   });
+  protected readonly tagTargetOptions = [...TAG_TARGET_OPTIONS];
+  protected readonly tagRegistry = signal<KairosTagRegistry | null>(null);
+  protected readonly tagRegistryLoading = signal(false);
+  protected readonly tagRegistrySaving = signal(false);
+  protected readonly tagRegistryStatusMessage = signal<string | null>(null);
+  protected readonly selectedTagCategoryId = signal<string | null>(null);
+  protected readonly tagRegistryValidation = computed(() =>
+    validateTagRegistryDraft(this.tagRegistry()),
+  );
+  protected readonly selectedTagCategory = computed<KairosTagRegistryCategory | null>(() => {
+    const categoryId = this.selectedTagCategoryId();
+    const registry = this.tagRegistry();
+    if (!categoryId || !registry) {
+      return null;
+    }
+
+    return registry.categories.find((category) => category.id === categoryId) ?? null;
+  });
   private readonly initializedTypes = new Set<KairosDefinitionType>();
   private readonly loadedTagTypes = new Set<KairosDefinitionType>();
+  private tagRegistryLoaded = false;
   private readonly ensureEditorReadyInFlight = new Set<KairosDefinitionType>();
   private readonly queuedEditorReadyTypes = new Set<KairosDefinitionType>();
 
@@ -119,6 +150,14 @@ export class KairosEditDialogComponent {
       if (type) {
         this.queueEnsureEditorReady(type);
       }
+    });
+
+    effect(() => {
+      if (!this.open() || this.activeTab() !== "tags" || this.tagRegistryLoaded) {
+        return;
+      }
+
+      void this.loadTagRegistry();
     });
   }
 
@@ -198,6 +237,183 @@ export class KairosEditDialogComponent {
 
   protected saveDefinition(type: KairosDefinitionType): void {
     void this.persistDefinition(type);
+  }
+
+  protected reloadTagRegistry(): void {
+    void this.loadTagRegistry(true);
+  }
+
+  protected selectTagCategory(categoryId: string): void {
+    this.selectedTagCategoryId.set(categoryId);
+  }
+
+  protected addTagCategory(): void {
+    const registry = this.tagRegistry();
+    if (!registry) {
+      return;
+    }
+
+    const nextCategory: KairosTagRegistryCategory = {
+      id: "",
+      label: "",
+      description: "",
+      allowedFor: ["items"],
+      tags: [],
+    };
+    const nextRegistry: KairosTagRegistry = {
+      categories: [...registry.categories, nextCategory],
+    };
+    this.tagRegistry.set(nextRegistry);
+    this.selectedTagCategoryId.set(nextCategory.id);
+    this.tagRegistryStatusMessage.set(null);
+  }
+
+  protected updateSelectedCategoryField(
+    field: "id" | "label" | "description",
+    value: string,
+  ): void {
+    const category = this.selectedTagCategory();
+    const registry = this.tagRegistry();
+    if (!category || !registry) {
+      return;
+    }
+
+    const updatedCategory = { ...category, [field]: value };
+    this.replaceCategory(updatedCategory);
+  }
+
+  protected updateSelectedCategoryAllowedFor(values: readonly string[]): void {
+    const category = this.selectedTagCategory();
+    const registry = this.tagRegistry();
+    if (!category || !registry) {
+      return;
+    }
+
+    const allowedFor = values.filter(
+      (value): value is KairosTagTarget =>
+        this.tagTargetOptions.some((option) => option.value === value),
+    );
+    this.replaceCategory({ ...category, allowedFor });
+  }
+
+  protected addTagToSelectedCategory(): void {
+    const category = this.selectedTagCategory();
+    if (!category) {
+      return;
+    }
+
+    const updatedCategory: KairosTagRegistryCategory = {
+      ...category,
+      tags: [...category.tags, { id: "", label: "", description: "" }],
+    };
+    this.replaceCategory(updatedCategory);
+  }
+
+  protected updateTagField(
+    tagIndex: number,
+    field: "id" | "label" | "description",
+    value: string,
+  ): void {
+    const category = this.selectedTagCategory();
+    if (!category) {
+      return;
+    }
+
+    const nextTags = category.tags.map((tag, index) =>
+      index === tagIndex ? ({ ...tag, [field]: value } satisfies KairosTagRegistryTag) : tag,
+    );
+    this.replaceCategory({ ...category, tags: nextTags });
+  }
+
+  protected removeTag(tagIndex: number): void {
+    const category = this.selectedTagCategory();
+    if (!category) {
+      return;
+    }
+
+    this.replaceCategory({
+      ...category,
+      tags: category.tags.filter((_, index) => index !== tagIndex),
+    });
+  }
+
+  protected saveTagRegistry(): void {
+    void this.persistTagRegistry();
+  }
+
+  private replaceCategory(updatedCategory: KairosTagRegistryCategory): void {
+    const registry = this.tagRegistry();
+    const selectedCategory = this.selectedTagCategory();
+    const selectedCategoryId = this.selectedTagCategoryId();
+    if (!registry) {
+      return;
+    }
+
+    const previousCategoryId = selectedCategoryId ?? "";
+    const nextRegistry: KairosTagRegistry = {
+      categories: registry.categories.map((category) =>
+        category === selectedCategory ? updatedCategory : category,
+      ),
+    };
+    this.tagRegistry.set(nextRegistry);
+    this.selectedTagCategoryId.set(updatedCategory.id || previousCategoryId);
+    this.tagRegistryStatusMessage.set(null);
+  }
+
+  private async loadTagRegistry(force = false): Promise<void> {
+    if (this.tagRegistryLoading() || (!force && this.tagRegistryLoaded)) {
+      return;
+    }
+
+    this.tagRegistryLoading.set(true);
+    this.tagRegistryStatusMessage.set(null);
+
+    try {
+      const registry = await this.kairosEdit.getTagRegistry();
+      this.tagRegistry.set(registry);
+      this.tagRegistryLoaded = true;
+      if (registry.categories.length > 0) {
+        this.selectedTagCategoryId.set(registry.categories[0]?.id ?? null);
+      } else {
+        this.selectedTagCategoryId.set(null);
+      }
+      this.tagRegistryStatusMessage.set("Tag registry loaded.");
+    } catch (error) {
+      this.tagRegistryStatusMessage.set(
+        error instanceof Error ? error.message : "Failed to load tag registry.",
+      );
+    } finally {
+      this.tagRegistryLoading.set(false);
+    }
+  }
+
+  private async persistTagRegistry(): Promise<void> {
+    const registry = this.tagRegistry();
+    if (!registry) {
+      return;
+    }
+
+    const validation = validateTagRegistryDraft(registry);
+    if (validation.errors.length > 0) {
+      this.tagRegistryStatusMessage.set("Fix tag registry validation errors before saving.");
+      return;
+    }
+
+    this.tagRegistrySaving.set(true);
+    this.tagRegistryStatusMessage.set(null);
+
+    try {
+      const saved = await this.kairosEdit.saveTagRegistry(registry);
+      this.tagRegistry.set(saved);
+      this.loadedTagTypes.clear();
+      this.tagRegistryStatusMessage.set("Tag registry saved.");
+    } catch (error) {
+      this.tagRegistryStatusMessage.set(
+        error instanceof Error ? error.message : "Failed to save tag registry.",
+      );
+    } finally {
+      this.tagRegistrySaving.set(false);
+    }
   }
 
   private async ensureEditorReady(type: KairosDefinitionType): Promise<void> {
