@@ -251,10 +251,12 @@ export class KairosEditDialogComponent {
     this.setState(type, { ...state, loading: true, statusMessage: null });
 
     try {
-      const ids = await this.kairosEdit.listIds(type);
+      const listItems = await this.kairosEdit.listDefinitionListItems(type);
+      const ids = listItems.map((item) => item.id);
       const nextState: KairosEditorState = {
         ...this.editorStates()[type],
         ids,
+        listItems,
         loading: false,
         statusMessage: null,
       };
@@ -320,10 +322,12 @@ export class KairosEditDialogComponent {
         state.definition,
         state.selectedId,
       );
-      const ids = await this.kairosEdit.listIds(type);
+      const listItems = await this.kairosEdit.listDefinitionListItems(type);
+      const ids = listItems.map((item) => item.id);
       this.setState(type, {
         ...this.editorStates()[type],
         ids,
+        listItems,
         selectedId: typeof definition["id"] === "string" ? definition["id"] : state.selectedId,
         definition,
         jsonText: formatDefinitionJson(definition),

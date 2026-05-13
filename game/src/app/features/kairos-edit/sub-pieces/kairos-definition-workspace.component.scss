@@ -1,13 +1,15 @@
 :host {
   display: block;
-  min-block-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
 }
 
 .gv-kairos-workspace {
   display: grid;
   grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
   gap: var(--gv-space-lg);
-  min-block-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
 }
 
 .gv-kairos-workspace__sidebar,
@@ -67,10 +69,14 @@
 .gv-kairos-workspace__content {
   min-block-size: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: color-mix(in srgb, var(--gv-color-accent) 30%, transparent) transparent;
+  scrollbar-width: thin;
 }
 
 .gv-kairos-workspace__list {
   display: grid;
+  align-content: start;
   gap: var(--gv-space-xs);
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-lg);
@@ -81,19 +87,59 @@
 }
 
 .gv-kairos-workspace__list-item {
+  display: grid;
+  gap: var(--gv-space-xs);
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-md);
   background: transparent;
   color: var(--gv-color-text-primary);
   cursor: pointer;
   font-size: var(--gv-font-size-sm);
-  padding: var(--gv-space-sm);
+  padding: 0.4rem 0.55rem;
   text-align: left;
 }
 
 .gv-kairos-workspace__list-item--selected {
   border-color: color-mix(in srgb, var(--gv-color-accent) 52%, var(--gv-color-border-subtle));
   background: color-mix(in srgb, var(--gv-color-accent) 16%, transparent);
+}
+
+.gv-kairos-workspace__list-item-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-kairos-workspace__list-item-title {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-sm);
+  font-weight: 600;
+  min-inline-size: 0;
+}
+
+.gv-kairos-workspace__list-item-id {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+  white-space: nowrap;
+}
+
+.gv-kairos-workspace__list-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-xs);
+}
+
+.gv-kairos-workspace__list-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--gv-color-accent-cool) 48%, var(--gv-color-border-subtle));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-xs);
+  line-height: 1.2;
+  padding: 0.15rem 0.45rem;
 }
 
 .gv-kairos-workspace__main {
@@ -129,7 +175,24 @@
 }
 
 .gv-kairos-workspace__content {
+  display: block;
   padding-inline-end: var(--gv-space-xs);
+}
+
+.gv-kairos-workspace__list::-webkit-scrollbar,
+.gv-kairos-workspace__content::-webkit-scrollbar {
+  inline-size: 0.55rem;
+}
+
+.gv-kairos-workspace__list::-webkit-scrollbar-track,
+.gv-kairos-workspace__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gv-kairos-workspace__list::-webkit-scrollbar-thumb,
+.gv-kairos-workspace__content::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent) 30%, transparent);
 }
 
 @media (max-width: 70rem) {

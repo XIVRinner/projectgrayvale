@@ -7,6 +7,35 @@ import { ServerConnectionService } from "../../core/services/server-connection.s
 import { KairosEditService } from "./kairos-edit.service";
 
 describe("KairosEditService", () => {
+  it("loads definition list items with display labels and tags", async () => {
+    const http = {
+      get: jest.fn((url: string) => {
+        if (url === "/api/definitions/items/summaries") {
+          return of([
+            {
+              id: "weapon_dagger_rustleaf",
+              label: "Old Dagger",
+              tags: ["starter", "weapon"],
+            },
+          ]);
+        }
+
+        return of({ categories: [] });
+      }),
+      put: jest.fn(),
+    } satisfies Pick<HttpClient, "get" | "put">;
+
+    const service = createService(http);
+
+    await expect(service.listDefinitionListItems("items")).resolves.toEqual([
+      {
+        id: "weapon_dagger_rustleaf",
+        label: "Old Dagger",
+        tags: ["starter", "weapon"],
+      },
+    ]);
+  });
+
   it("filters tag options to the requested definition type", async () => {
     const http = {
       get: jest.fn(() =>

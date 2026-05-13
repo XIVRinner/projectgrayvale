@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from "@angular/core";
 
-import type { KairosDefinitionWorkspaceView } from "../kairos-edit.types";
+import type {
+  KairosDefinitionListItem,
+  KairosDefinitionWorkspaceView,
+} from "../kairos-edit.types";
 
 @Component({
   selector: "gv-kairos-definition-workspace",
@@ -11,7 +14,7 @@ import type { KairosDefinitionWorkspaceView } from "../kairos-edit.types";
 })
 export class KairosDefinitionWorkspaceComponent {
   readonly view = input.required<KairosDefinitionWorkspaceView>();
-  readonly ids = input.required<readonly string[]>();
+  readonly listItems = input.required<readonly KairosDefinitionListItem[]>();
   readonly selectedId = input<string | null>(null);
   readonly loading = input(false);
   readonly saving = input(false);

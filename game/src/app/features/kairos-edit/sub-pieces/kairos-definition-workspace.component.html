@@ -19,18 +19,29 @@
 
     <div class="gv-kairos-workspace__list">
       @if (loading()) {
-        <p class="gv-kairos-workspace__empty">Loading definitions…</p>
-      } @else if (ids().length === 0) {
+        <p class="gv-kairos-workspace__empty">Loading definitions...</p>
+      } @else if (listItems().length === 0) {
         <p class="gv-kairos-workspace__empty">{{ view().emptyLabel }}</p>
       } @else {
-        @for (id of ids(); track id) {
+        @for (item of listItems(); track item.id) {
           <button
             type="button"
             class="gv-kairos-workspace__list-item"
-            [class.gv-kairos-workspace__list-item--selected]="selectedId() === id"
-            (click)="definitionSelected.emit(id)"
+            [class.gv-kairos-workspace__list-item--selected]="selectedId() === item.id"
+            (click)="definitionSelected.emit(item.id)"
           >
-            {{ id }}
+            <span class="gv-kairos-workspace__list-item-header">
+              <span class="gv-kairos-workspace__list-item-title">{{ item.label }}</span>
+              <span class="gv-kairos-workspace__list-item-id">{{ item.id }}</span>
+            </span>
+
+            @if (item.tags.length > 0) {
+              <span class="gv-kairos-workspace__list-item-tags">
+                @for (tag of item.tags; track tag) {
+                  <span class="gv-kairos-workspace__list-chip">{{ tag }}</span>
+                }
+              </span>
+            }
           </button>
         }
       }
@@ -67,7 +78,7 @@
         [disabled]="saveDisabled() || !hasDefinition() || saving()"
         (click)="saveRequested.emit()"
       >
-        {{ saving() ? "Saving…" : "Save" }}
+        {{ saving() ? "Saving..." : "Save" }}
       </button>
     </header>
 

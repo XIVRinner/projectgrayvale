@@ -3,7 +3,9 @@
 }
 
 .gv-kairos-edit {
-  min-block-size: 100%;
+  display: grid;
+  block-size: 100%;
+  min-block-size: 0;
 }
 
 .gv-kairos-edit__placeholder,
@@ -82,13 +84,29 @@
   overflow: hidden;
 }
 
+:host ::ng-deep .gv-kairos-edit-dialog__content,
 :host ::ng-deep .gv-kairos-edit-dialog__content .p-tabs,
 :host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanels,
-:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabs-panel {
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanel {
+  min-block-size: 0;
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabs {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  block-size: 100%;
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanels,
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanel {
   block-size: 100%;
 }
 
 :host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanels {
   overflow: hidden;
   padding-block-start: var(--gv-space-md);
+}
+
+:host ::ng-deep .gv-kairos-edit-dialog__content .p-tabpanel {
+  padding: 0;
 }

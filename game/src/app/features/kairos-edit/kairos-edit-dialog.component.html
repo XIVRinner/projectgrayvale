@@ -31,7 +31,7 @@
               @if (currentEditorState(); as currentEditorState) {
               <gv-kairos-definition-workspace
                 [view]="currentWorkspaceView()!"
-                [ids]="currentEditorState.ids"
+                [listItems]="currentEditorState.listItems"
                 [selectedId]="currentEditorState.selectedId"
                 [loading]="currentEditorState.loading"
                 [saving]="currentEditorState.saving"

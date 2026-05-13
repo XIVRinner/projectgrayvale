@@ -14,6 +14,7 @@ export interface KairosTagOption {
 
 export interface KairosEditorState {
   readonly ids: readonly string[];
+  readonly listItems: readonly KairosDefinitionListItem[];
   readonly selectedId: string | null;
   readonly definition: Record<string, unknown> | null;
   readonly jsonText: string;
@@ -28,6 +29,12 @@ export interface KairosEditorState {
 export interface KairosFieldChange {
   readonly path: KairosFieldPath;
   readonly value: unknown;
+}
+
+export interface KairosDefinitionListItem {
+  readonly id: string;
+  readonly label: string;
+  readonly tags: readonly string[];
 }
 
 export interface KairosDefinitionWorkspaceView {

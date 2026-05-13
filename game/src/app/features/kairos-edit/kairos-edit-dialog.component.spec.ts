@@ -28,7 +28,13 @@ describe("KairosEditDialogComponent", () => {
   it("loads the active editor only once when opening the dialog", async () => {
     const kairosEdit = {
       getTagOptions: jest.fn(async () => []),
-      listIds: jest.fn(async () => ["armor_boots_travel_rags"]),
+      listDefinitionListItems: jest.fn(async () => [
+        {
+          id: "armor_boots_travel_rags",
+          label: "Travel Rags",
+          tags: [],
+        },
+      ]),
       loadDefinition: jest.fn(async () => ({
         id: "armor_boots_travel_rags",
         name: "Travel Rags",
@@ -53,7 +59,7 @@ describe("KairosEditDialogComponent", () => {
     await flushComponentEffects(fixture);
 
     expect(kairosEdit.getTagOptions).toHaveBeenCalledTimes(1);
-    expect(kairosEdit.listIds).toHaveBeenCalledTimes(1);
+    expect(kairosEdit.listDefinitionListItems).toHaveBeenCalledTimes(1);
     expect(kairosEdit.loadDefinition).toHaveBeenCalledTimes(1);
     expect(kairosEdit.loadDefinition).toHaveBeenCalledWith(
       "items",

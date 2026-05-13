@@ -8,6 +8,12 @@ import type {
   HydratedDefinition,
 } from "./definition-types";
 
+interface DefinitionSummary {
+  readonly id: string;
+  readonly label: string;
+  readonly tags: readonly string[];
+}
+
 export class DefinitionService {
   private locationDefaultsPromise: Promise<unknown> | null = null;
 
@@ -49,6 +55,21 @@ export class DefinitionService {
       hash,
       updatedAt,
     }));
+  }
+
+  async listSummaries(type: DefinitionType): Promise<readonly DefinitionSummary[]> {
+    const definitions = await this.listDefinitions(type);
+
+    return definitions
+      .map(({ id, definition }) => ({
+        id,
+        label: extractSummaryLabel(definition, id),
+        tags: extractSummaryTags(definition),
+      }))
+      .sort((left, right) => {
+        const byLabel = left.label.localeCompare(right.label);
+        return byLabel !== 0 ? byLabel : left.id.localeCompare(right.id);
+      });
   }
 
   async listInventoryDefinitions(): Promise<readonly unknown[]> {
@@ -193,4 +214,37 @@ function toLegacyDefinitionPayload(definition: unknown, type: DefinitionType): u
 
 function toDefinitionAssetPath(type: DefinitionType, assetId: unknown): string {
   return `/api/assets/${type}/${encodeURIComponent(String(assetId))}`;
+}
+
+function extractSummaryLabel(definition: unknown, fallbackId: string): string {
+  if (typeof definition !== "object" || definition === null || Array.isArray(definition)) {
+    return fallbackId;
+  }
+
+  const record = definition as Record<string, unknown>;
+  const labelKeys = ["name", "label", "title"] as const;
+
+  for (const key of labelKeys) {
+    const value = record[key];
+
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return fallbackId;
+}
+
+function extractSummaryTags(definition: unknown): readonly string[] {
+  if (typeof definition !== "object" || definition === null || Array.isArray(definition)) {
+    return [];
+  }
+
+  const rawTags = (definition as Record<string, unknown>)["tags"];
+
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+
+  return rawTags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0);
 }

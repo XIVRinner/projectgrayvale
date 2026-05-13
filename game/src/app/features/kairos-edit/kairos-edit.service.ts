@@ -5,7 +5,11 @@ import { firstValueFrom } from "rxjs";
 import type { DefinitionApiType } from "../../data/api-paths";
 import { DefinitionRepositoryService } from "../../data/definition-repository.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
-import type { KairosDefinitionType, KairosTagOption } from "./kairos-edit.types";
+import type {
+  KairosDefinitionListItem,
+  KairosDefinitionType,
+  KairosTagOption,
+} from "./kairos-edit.types";
 
 interface TagRegistryResponse {
   readonly categories: readonly {
@@ -26,6 +30,12 @@ interface SaveDefinitionResponse {
   readonly version: string;
   readonly updatedAt: string;
   readonly definition: Record<string, unknown>;
+}
+
+interface DefinitionSummaryResponse {
+  readonly id: string;
+  readonly label: string;
+  readonly tags: readonly string[];
 }
 
 @Injectable({ providedIn: "root" })
@@ -50,6 +60,19 @@ export class KairosEditService {
     return firstValueFrom(
       this.http.get<Record<string, unknown>>(
         this.serverConnection.serverApiUrl(`/api/definitions/${type}/${encodeURIComponent(id)}`),
+        {
+          withCredentials: true,
+        },
+      ),
+    );
+  }
+
+  async listDefinitionListItems(
+    type: KairosDefinitionType,
+  ): Promise<readonly KairosDefinitionListItem[]> {
+    return firstValueFrom(
+      this.http.get<readonly DefinitionSummaryResponse[]>(
+        this.serverConnection.serverApiUrl(`/api/definitions/${type}/summaries`),
         {
           withCredentials: true,
         },

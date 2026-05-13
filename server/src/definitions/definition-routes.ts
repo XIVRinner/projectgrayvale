@@ -32,6 +32,18 @@ export function registerDefinitionRoutes(
     });
 
     app.get(
+      `/api/definitions/${routeDefinition.type}/summaries`,
+      async (_request, response, next) => {
+        try {
+          const definitions = await service.listSummaries(routeDefinition.type);
+          response.setHeader("Cache-Control", "no-cache").json(definitions);
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    app.get(
       `/api/definitions/${routeDefinition.type}/:id`,
       async (request, response, next) => {
         try {

@@ -5,6 +5,7 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 export function createEditorState(): KairosEditorState {
   return {
     ids: [],
+    listItems: [],
     selectedId: null,
     definition: null,
     jsonText: "",
