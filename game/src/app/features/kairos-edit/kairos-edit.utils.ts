@@ -99,6 +99,10 @@ export function readStringArrayValue(
     return [];
   }
 
+  if (value.every((entry) => typeof entry === "string")) {
+    return value as string[];
+  }
+
   return value.filter((entry): entry is string => typeof entry === "string");
 }
 

@@ -30,6 +30,7 @@ export class AdminAuthStatusService {
   private readonly serverConnection = inject(ServerConnectionService);
   private readonly statusState = signal<AdminAuthStatusView>(DEFAULT_STATUS);
   private requestGeneration = 0;
+  private refreshQueued = false;
 
   readonly status = this.statusState.asReadonly();
   readonly canOpenKairosEdit = computed(
@@ -40,13 +41,19 @@ export class AdminAuthStatusService {
     effect(() => {
       this.serverConnection.selectedServerId();
       this.serverConnection.session();
-      void this.refresh();
+      this.queueRefresh();
     });
   }
 
   async refresh(): Promise<void> {
     const generation = ++this.requestGeneration;
-    this.statusState.set(DEFAULT_STATUS);
+
+    // Only reset to unchecked on the very first check so that
+    // subsequent session refreshes never briefly close dialogs that
+    // require admin auth (canOpenKairosEdit flickering to false).
+    if (!this.statusState().checked) {
+      this.statusState.set(DEFAULT_STATUS);
+    }
 
     try {
       const response = await firstValueFrom(
@@ -73,7 +80,19 @@ export class AdminAuthStatusService {
         return;
       }
 
-      this.statusState.set(DEFAULT_STATUS);
+      this.statusState.set({ ...DEFAULT_STATUS, checked: true });
     }
+  }
+
+  private queueRefresh(): void {
+    if (this.refreshQueued) {
+      return;
+    }
+
+    this.refreshQueued = true;
+    queueMicrotask(() => {
+      this.refreshQueued = false;
+      void this.refresh();
+    });
   }
 }

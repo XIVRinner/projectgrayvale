@@ -1,4 +1,9 @@
-import { createEditorState, createDefaultDefinition, validateDefinitionDraft } from "./kairos-edit.utils";
+import {
+  createEditorState,
+  createDefaultDefinition,
+  readStringArrayValue,
+  validateDefinitionDraft,
+} from "./kairos-edit.utils";
 
 describe("validateDefinitionDraft", () => {
   it("warns before overwriting an existing id and rejects unknown tags", () => {
@@ -29,5 +34,17 @@ describe("validateDefinitionDraft", () => {
         'Saving will overwrite the existing items definition "weapon_dagger_rustleaf".',
       ],
     });
+  });
+});
+
+describe("readStringArrayValue", () => {
+  it("preserves the original array reference when every entry is already a string", () => {
+    const tags = ["starter", "quest"] as string[];
+    const definition = {
+      ...createDefaultDefinition("items"),
+      tags,
+    };
+
+    expect(readStringArrayValue(definition, ["tags"])).toBe(tags);
   });
 });

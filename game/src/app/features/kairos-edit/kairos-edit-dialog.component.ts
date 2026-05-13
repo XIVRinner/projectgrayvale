@@ -77,6 +77,8 @@ export class KairosEditDialogComponent {
   });
   private readonly initializedTypes = new Set<KairosDefinitionType>();
   private readonly loadedTagTypes = new Set<KairosDefinitionType>();
+  private readonly ensureEditorReadyInFlight = new Set<KairosDefinitionType>();
+  private readonly queuedEditorReadyTypes = new Set<KairosDefinitionType>();
 
   protected readonly currentEditorType = computed<KairosDefinitionType | null>(() => {
     const activeTab = this.activeTab();
@@ -115,7 +117,7 @@ export class KairosEditDialogComponent {
       const type = this.currentEditorType();
 
       if (type) {
-        void this.ensureEditorReady(type);
+        this.queueEnsureEditorReady(type);
       }
     });
   }
@@ -199,8 +201,35 @@ export class KairosEditDialogComponent {
   }
 
   private async ensureEditorReady(type: KairosDefinitionType): Promise<void> {
-    await Promise.all([this.ensureTagOptions(type), this.refreshIds(type, !this.initializedTypes.has(type))]);
-    this.initializedTypes.add(type);
+    if (this.ensureEditorReadyInFlight.has(type)) {
+      return;
+    }
+
+    this.ensureEditorReadyInFlight.add(type);
+
+    try {
+      await Promise.all([this.ensureTagOptions(type), this.refreshIds(type, !this.initializedTypes.has(type))]);
+      this.initializedTypes.add(type);
+    } finally {
+      this.ensureEditorReadyInFlight.delete(type);
+    }
+  }
+
+  private queueEnsureEditorReady(type: KairosDefinitionType): void {
+    if (this.queuedEditorReadyTypes.has(type)) {
+      return;
+    }
+
+    this.queuedEditorReadyTypes.add(type);
+    queueMicrotask(() => {
+      this.queuedEditorReadyTypes.delete(type);
+
+      if (!this.open()) {
+        return;
+      }
+
+      void this.ensureEditorReady(type);
+    });
   }
 
   private async ensureTagOptions(type: KairosDefinitionType): Promise<void> {

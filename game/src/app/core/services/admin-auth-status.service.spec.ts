@@ -32,11 +32,12 @@ describe("AdminAuthStatusService", () => {
 
     const service = TestBed.inject(AdminAuthStatusService);
 
-    await service.refresh();
+    await flushEffects();
 
     expect(http.get).toHaveBeenCalledWith("/api/auth/me", {
       withCredentials: true
     });
+    expect(http.get).toHaveBeenCalledTimes(1);
     expect(service.status()).toEqual({
       checked: true,
       authenticated: true,
@@ -45,4 +46,41 @@ describe("AdminAuthStatusService", () => {
     });
     expect(service.canOpenKairosEdit()).toBe(true);
   });
+
+  it("does not loop refreshes when auth status changes", async () => {
+    const http = {
+      get: jest.fn(() =>
+        of({
+          authenticated: true,
+          admin: false,
+          username: "mark"
+        })
+      )
+    } satisfies Pick<HttpClient, "get">;
+    const serverConnection = {
+      selectedServerId: signal("dev-local"),
+      session: signal(null),
+      serverApiUrl: jest.fn((path: `/api/${string}`) => path)
+    } as unknown as Pick<ServerConnectionService, "selectedServerId" | "session" | "serverApiUrl">;
+
+    await TestBed.configureTestingModule({
+      providers: [
+        { provide: HttpClient, useValue: http },
+        { provide: ServerConnectionService, useValue: serverConnection }
+      ]
+    });
+
+    TestBed.inject(AdminAuthStatusService);
+
+    await flushEffects();
+    await flushEffects();
+
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
 });
+
+async function flushEffects(): Promise<void> {
+  TestBed.flushEffects();
+  await Promise.resolve();
+  await Promise.resolve();
+}

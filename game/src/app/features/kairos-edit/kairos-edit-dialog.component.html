@@ -27,7 +27,8 @@
                 <h2>Tags registry editing is out of scope for this milestone.</h2>
                 <p>Definitions can already select from the centralized tag registry, but editing the registry itself lands later.</p>
               </section>
-            } @else if (currentEditorState(); as currentEditorState) {
+            } @else if (tab.id === activeTab()) {
+              @if (currentEditorState(); as currentEditorState) {
               <gv-kairos-definition-workspace
                 [view]="currentWorkspaceView()!"
                 [ids]="currentEditorState.ids"
@@ -66,6 +67,7 @@
                   <p class="gv-kairos-edit__placeholder">Select an existing definition or start a new one from the sidebar.</p>
                 }
               </gv-kairos-definition-workspace>
+              }
             }
           </p-tabpanel>
         }
