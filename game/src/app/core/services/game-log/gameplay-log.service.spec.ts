@@ -32,7 +32,7 @@ describe("GameplayLogService", () => {
       type: "add",
       target: "player",
       path: ["attributes", "vitality"],
-      value: 2
+      value: 2,
     });
 
     expect(latestLog).toEqual([{ type: "system", text: "Vitality +2" }]);
@@ -64,13 +64,13 @@ describe("GameplayLogService", () => {
       type: "add",
       target: "player",
       path: ["interactionState", "totalButtonPresses"],
-      value: 0
+      value: 0,
     });
     gameplayLog.processDelta({
       type: "add",
       target: "player",
       path: ["inventory", "items", "ore_chunk"],
-      value: 0
+      value: 0,
     });
     gameplayLog.processDelta({
       type: "set",
@@ -78,8 +78,8 @@ describe("GameplayLogService", () => {
       path: ["questLog", "quests", "quest_recovery"],
       value: {
         currentStep: "runtime_objectives",
-        status: "active"
-      }
+        status: "active",
+      },
     });
     gameplayLog.processDelta({
       type: "set",
@@ -87,11 +87,13 @@ describe("GameplayLogService", () => {
       path: ["questLog", "quests", "quest_recovery"],
       value: {
         currentStep: "runtime_objectives",
-        status: "active"
-      }
+        status: "active",
+      },
     });
 
-    expect(latestLog).toEqual([{ type: "quest", text: "Quest started: Recovery" }]);
+    expect(latestLog).toEqual([
+      { type: "quest", text: "Quest started: Recovery" },
+    ]);
   });
 
   it("maps quest, item, and combat deltas through the roster pipeline", () => {
@@ -106,13 +108,13 @@ describe("GameplayLogService", () => {
     roster.applyActiveCharacterDeltas([
       createQuestDelta("quest_recovery", "active"),
       createItemDelta("monster_hide", 2),
-      createKillDelta("goblin", 1)
+      createKillDelta("goblin", 1),
     ]);
 
     expect(latestLog).toEqual([
       { type: "quest", text: "Quest started: Recovery" },
       { type: "loot", text: "Received Monster Hide x2" },
-      { type: "combat", text: "Defeated Goblin x1" }
+      { type: "combat", text: "Defeated Goblin x1" },
     ]);
   });
 
@@ -128,26 +130,26 @@ describe("GameplayLogService", () => {
       type: "add",
       target: "player",
       path: ["skills", "blacksmithing"],
-      value: 1
+      value: 1,
     });
     gameplayLog.processDelta({
       type: "set",
       target: "player",
       path: ["equippedItems", "mainHand"],
-      value: "steel_sword"
+      value: "steel_sword",
     });
     gameplayLog.processDelta({
       type: "add",
       target: "npc",
       targetId: "village_chief",
       path: ["trust"],
-      value: 5
+      value: 5,
     });
 
     expect(latestLog).toEqual([
       { type: "system", text: "Blacksmithing +1" },
       { type: "loot", text: "Equipped Steel Sword in Main Hand" },
-      { type: "system", text: "Village Chief Trust +5" }
+      { type: "system", text: "Village Chief Trust +5" },
     ]);
   });
 
@@ -162,16 +164,16 @@ describe("GameplayLogService", () => {
     roster.createCharacter(clone(samplePlayer));
     roster.updateActiveWorld({
       currentLocation: "village-arkama",
-      sublocations: []
+      sublocations: [],
     });
     roster.updateActiveWorld({
       currentLocation: "camp",
-      sublocations: []
+      sublocations: [],
     });
 
     expect(latestLog).toEqual([
       { type: "system", text: "Left Chief House" },
-      { type: "system", text: "Traveled from Village Arkama to Camp" }
+      { type: "system", text: "Traveled from Village Arkama to Camp" },
     ]);
   });
 
@@ -191,27 +193,34 @@ describe("GameplayLogService", () => {
 
   it("stores runtime trace messages in the debug log service", () => {
     const { debugLog } = createFixture();
-    let latestEntries: Array<{ scope: string; message: string; details?: string }> = [];
+    let latestEntries: Array<{
+      scope: string;
+      message: string;
+      details?: string;
+    }> = [];
 
     debugLog.entries$.subscribe((entries) => {
       latestEntries = entries;
     });
 
     debugLog.logMessage("shell", "Gameplay action selected.", {
-      actionId: "story:wake-up"
+      actionId: "story:wake-up",
     });
 
     expect(latestEntries.at(-1)).toMatchObject({
       scope: "shell",
       message: "Gameplay action selected.",
-      details: expect.stringContaining("story:wake-up")
+      details: expect.stringContaining("story:wake-up"),
     });
   });
 
   it("exposes a concrete currency mapper for documented ids", () => {
-    expect(mapDeltaToGameplayLogEntry(createCurrencyDelta("currency_crown", 4))?.entry).toEqual({
+    expect(
+      mapDeltaToGameplayLogEntry(createCurrencyDelta("currency_crown", 4))
+        ?.entry,
+    ).toEqual({
       type: "loot",
-      text: "Received Crown x4"
+      text: "Received Crown x4",
     });
   });
 
@@ -221,11 +230,11 @@ describe("GameplayLogService", () => {
         type: "set",
         target: "player",
         path: ["equippedItems", "mainHand"],
-        value: "steel_sword"
-      })?.entry
+        value: "steel_sword",
+      })?.entry,
     ).toEqual({
       type: "loot",
-      text: "Equipped Steel Sword in Main Hand"
+      text: "Equipped Steel Sword in Main Hand",
     });
   });
 
@@ -244,10 +253,10 @@ describe("GameplayLogService", () => {
         kind: "say",
         actor: {
           id: "village-chief",
-          name: "Village Chief"
+          name: "Village Chief",
         },
-        text: "Easy now."
-      }
+        text: "Easy now.",
+      },
     });
     gameplayLog.processDialogEvent({
       type: "choices-presented",
@@ -255,22 +264,22 @@ describe("GameplayLogService", () => {
         {
           index: 0,
           label: "What happened to me?",
-          seen: false
+          seen: false,
         },
         {
           index: 1,
           label: "Get up",
-          seen: true
-        }
-      ]
+          seen: true,
+        },
+      ],
     });
     gameplayLog.processDialogEvent({
       type: "choice-selected",
       choice: {
         index: 1,
         label: "Get up",
-        seen: true
-      }
+        seen: true,
+      },
     });
 
     expect(latestLog).toEqual([
@@ -281,16 +290,16 @@ describe("GameplayLogService", () => {
           {
             index: 0,
             label: "What happened to me?",
-            seen: false
+            seen: false,
           },
           {
             index: 1,
             label: "Get up",
-            seen: true
-          }
-        ]
+            seen: true,
+          },
+        ],
       },
-      { type: "dialogue", text: "Chose: Get up" }
+      { type: "dialogue", text: "Chose: Get up" },
     ]);
   });
 
@@ -304,11 +313,11 @@ describe("GameplayLogService", () => {
 
     gameplayLog.processDialogEvent({
       type: "log-event",
-      text: "Classes are still WIP"
+      text: "Classes are still WIP",
     });
 
     expect(latestLog).toEqual([
-      { type: "system", text: "Classes are still WIP" }
+      { type: "system", text: "Classes are still WIP" },
     ]);
   });
 
@@ -323,12 +332,12 @@ describe("GameplayLogService", () => {
     gameplayLog.processQuestEvent({
       type: "quest-start-queued",
       questId: "quest_recovery",
-      message: "Queued quest start: Recovery."
+      message: "Queued quest start: Recovery.",
     });
     gameplayLog.processQuestEvent({
       type: "quest-started",
       questId: "quest_recovery",
-      message: "Quest received: reach 10.0 Vitality."
+      message: "Quest received: reach 10.0 Vitality.",
     });
     gameplayLog.processDelta({
       type: "set",
@@ -336,21 +345,42 @@ describe("GameplayLogService", () => {
       path: ["questLog", "quests", "quest_recovery"],
       value: {
         currentStep: "runtime_objectives",
-        status: "active"
+        status: "active",
       },
       meta: {
-        gameplayLogHandledBy: "quest-event"
-      }
+        gameplayLogHandledBy: "quest-event",
+      },
     });
     gameplayLog.processQuestEvent({
       type: "quest-completed",
       questId: "quest_recovery",
-      message: "Quest complete: reach 10.0 Vitality. Recover is now hidden."
+      message: "Quest complete: reach 10.0 Vitality. Recover is now hidden.",
     });
 
     expect(latestLog).toEqual([
       { type: "quest", text: "Quest received: reach 10.0 Vitality." },
-      { type: "quest", text: "Quest complete: reach 10.0 Vitality. Recover is now hidden." }
+      {
+        type: "quest",
+        text: "Quest complete: reach 10.0 Vitality. Recover is now hidden.",
+      },
+    ]);
+  });
+
+  it("appends manual combat entries for persistent summaries like defeat penalties", () => {
+    const { gameplayLog } = createFixture();
+    let latestLog: unknown[] = [];
+
+    gameplayLog.log$.subscribe((entries) => {
+      latestLog = entries;
+    });
+
+    gameplayLog.appendEntry({
+      type: "combat",
+      text: "Defeat penalty: 30s attack lockout",
+    });
+
+    expect(latestLog).toEqual([
+      { type: "combat", text: "Defeat penalty: 30s attack lockout" },
     ]);
   });
 });
@@ -369,22 +399,22 @@ function createFixture(): {
       {
         provide: GameDialogService,
         useValue: {
-          events$: dialogEvents.asObservable()
-        }
+          events$: dialogEvents.asObservable(),
+        },
       },
       {
         provide: GameQuestService,
         useValue: {
-          events$: questEvents.asObservable()
-        }
-      }
-    ]
+          events$: questEvents.asObservable(),
+        },
+      },
+    ],
   });
 
   return runInInjectionContext(injector, () => ({
     roster,
     gameplayLog: new GameplayLogService(),
-    debugLog: new DebugLogService()
+    debugLog: new DebugLogService(),
   }));
 }
 
@@ -393,7 +423,7 @@ function createCurrencyDelta(currencyId: string, amount: number): Delta {
     type: "add",
     target: "player",
     path: ["inventory", "items", currencyId],
-    value: amount
+    value: amount,
   };
 }
 
@@ -402,19 +432,22 @@ function createItemDelta(itemId: string, amount: number): Delta {
     type: "add",
     target: "player",
     path: ["inventory", "items", itemId],
-    value: amount
+    value: amount,
   };
 }
 
-function createQuestDelta(questId: string, status: "active" | "completed"): Delta {
+function createQuestDelta(
+  questId: string,
+  status: "active" | "completed",
+): Delta {
   return {
     type: "set",
     target: "player",
     path: ["questLog", "quests", questId],
     value: {
       currentStep: "runtime_objectives",
-      status
-    }
+      status,
+    },
   };
 }
 
@@ -428,9 +461,9 @@ function createKillDelta(target: string, count: number): Delta {
       questSignal: {
         type: "kill",
         target,
-        count
-      }
-    }
+        count,
+      },
+    },
   };
 }
 

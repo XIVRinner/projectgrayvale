@@ -14,7 +14,7 @@ export interface ActionCostResult {
 
 /**
  * Calculates action costs based on player level, health, and other factors.
- * 
+ *
  * Cost formula: base + (level * 2) + (hp_missing * 0.5)
  */
 @Injectable({ providedIn: "root" })
@@ -31,7 +31,7 @@ export class ActionCostService {
     },
     player: Player,
     currentHp: number,
-    maxHp: number
+    maxHp: number,
   ): ActionCostResult {
     const baseCost = action.cost?.base ?? 0;
     const factors = action.cost?.factors ?? [];
@@ -53,7 +53,7 @@ export class ActionCostService {
           breakdown.push({
             source: "player_level",
             factor: factor.multiplier,
-            contribution: factorValue
+            contribution: factorValue,
           });
           break;
 
@@ -63,7 +63,7 @@ export class ActionCostService {
           breakdown.push({
             source: "hp_missing",
             factor: factor.multiplier,
-            contribution: factorValue
+            contribution: factorValue,
           });
           break;
         }
@@ -73,7 +73,7 @@ export class ActionCostService {
           breakdown.push({
             source: "hp_max",
             factor: factor.multiplier,
-            contribution: factorValue
+            contribution: factorValue,
           });
           break;
       }
@@ -81,15 +81,13 @@ export class ActionCostService {
       total += factorValue;
     }
 
-    // Check if player can afford (assuming currency in inventory["currency"] or similar)
-    const playerCurrency = (player.inventory?.items?.["currency"] as number) ?? 0;
-    const affordable = playerCurrency >= total;
+    const affordable = player.money >= total;
 
     return {
       baseCost,
       calculatedCost: Math.round(total),
       affordable,
-      breakdown
+      breakdown,
     };
   }
 }

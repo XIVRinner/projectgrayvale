@@ -15,7 +15,7 @@ import {
   mapWorldUpdateToGameplayLogEntry,
   toGameplayLogEntries,
   type GameLogEntry,
-  type StoredGameplayLogEntry
+  type StoredGameplayLogEntry,
 } from "./log-mapper";
 import type { GameDialogEvent } from "../../../shared/components/game-dialog/game-dialog.types";
 import type { GameQuestEvent } from "../game-quest.types";
@@ -29,7 +29,8 @@ export class GameplayLogService {
 
   private storedEntries: readonly StoredGameplayLogEntry[] = [];
 
-  readonly log$: Observable<GameLogEntry[]> = this.logEntriesSubject.asObservable();
+  readonly log$: Observable<GameLogEntry[]> =
+    this.logEntriesSubject.asObservable();
 
   constructor() {
     this.roster.deltaApplied$.subscribe((delta) => {
