@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 
 import type { ServerConfig } from "../config";
@@ -27,14 +28,38 @@ export function createPlayerProfileRouter(
 ): Router {
   const router = Router();
 
+  // 30 profile reads per minute — profile page, character list
+  const enforceReadRateLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: "rate_limited",
+      message: "Too many profile requests. Try again in a minute.",
+    },
+  });
+
+  // 10 write operations per minute — character creation, selection
+  const enforceWriteRateLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: "rate_limited",
+      message: "Too many write requests. Try again in a minute.",
+    },
+  });
+
   /**
    * GET /api/player/profile
    * Returns the authenticated player's profile and characters.
    * Requires a valid session.
    */
-  router.get("/profile", async (request, response, next) => {
+  router.get("/profile", enforceReadRateLimit, async (request, response, next) => {
     try {
-      const playerUuid = await resolveAuthenticatedPlayer(request, multiplayerRepository);
+      const playerUuid = await resolveAuthenticatedPlayerUuid(request, multiplayerRepository);
 
       if (!playerUuid) {
         response.status(401).json({
@@ -67,9 +92,9 @@ export function createPlayerProfileRouter(
    * Create a new character under the authenticated player's profile.
    * Validates the submitted content binding against the current server profile.
    */
-  router.post("/characters", async (request, response, next) => {
+  router.post("/characters", enforceWriteRateLimit, async (request, response, next) => {
     try {
-      const playerUuid = await resolveAuthenticatedPlayer(request, multiplayerRepository);
+      const playerUuid = await resolveAuthenticatedPlayerUuid(request, multiplayerRepository);
 
       if (!playerUuid) {
         response.status(401).json({
@@ -146,9 +171,9 @@ export function createPlayerProfileRouter(
    * The character must belong to the authenticated player's profile.
    * Custom-content characters must have a token matching the current server profile.
    */
-  router.post("/characters/:characterId/select", async (request, response, next) => {
+  router.post("/characters/:characterId/select", enforceWriteRateLimit, async (request, response, next) => {
     try {
-      const playerUuid = await resolveAuthenticatedPlayer(request, multiplayerRepository);
+      const playerUuid = await resolveAuthenticatedPlayerUuid(request, multiplayerRepository);
 
       if (!playerUuid) {
         response.status(401).json({
@@ -159,8 +184,9 @@ export function createPlayerProfileRouter(
       }
 
       const { characterId } = request.params;
+      const characterIdStr = Array.isArray(characterId) ? characterId[0] : characterId;
 
-      if (!characterId) {
+      if (!characterIdStr) {
         response.status(400).json({
           error: "invalid_request",
           message: "Character ID is required.",
@@ -168,7 +194,7 @@ export function createPlayerProfileRouter(
         return;
       }
 
-      const character = await repository.getCharacter(characterId);
+      const character = await repository.getCharacter(characterIdStr);
 
       if (!character) {
         response.status(404).json({
@@ -207,7 +233,7 @@ export function createPlayerProfileRouter(
 
       // If the character has no binding, bind it to the current server on first connect.
       if (!character.contentBinding) {
-        await repository.updateCharacterBinding(characterId, {
+        await repository.updateCharacterBinding(characterIdStr, {
           serverName: currentProfile.serverName,
           customContent: currentProfile.customContent,
           profileToken: currentProfile.profileToken,
@@ -215,7 +241,7 @@ export function createPlayerProfileRouter(
         });
       }
 
-      const updatedCharacter = await repository.getCharacter(characterId);
+      const updatedCharacter = await repository.getCharacter(characterIdStr);
 
       response.json({
         selected: true,
@@ -293,7 +319,7 @@ function checkCharacterCompatibility(
   return { compatible: true, reason: "Token match; character is compatible." };
 }
 
-async function resolveAuthenticatedPlayer(
+async function resolveAuthenticatedPlayerUuid(
   request: import("express").Request,
   multiplayerRepository: MultiplayerRepository,
 ): Promise<string | null> {
