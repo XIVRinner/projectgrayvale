@@ -32,9 +32,9 @@
               <button
                 type="button"
                 class="gv-server-chat-guild-shell__button"
-                (click)="roleChangeRequested.emit({ guildId: guild.guildId, characterId: member.characterId, role: member.role === 'officer' ? 'member' : 'officer' })"
+                (click)="roleChangeRequested.emit({ guildId: guild.guildId, characterId: member.characterId, role: nextRole(member.role) })"
               >
-                {{ member.role === "officer" ? "Demote" : "Promote" }}
+                {{ member.role === "officer" ? "Demote to Member" : "Promote to Officer" }}
               </button>
             </div>
           }

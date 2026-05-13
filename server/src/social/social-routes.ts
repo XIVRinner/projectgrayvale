@@ -1806,6 +1806,14 @@ export function createSocialRouter(
       const guildId = z.string().uuid().parse(request.params["guildId"]);
       const characterId = z.string().uuid().parse(request.params["characterId"]);
       const payload = guildRoleBodySchema.parse(request.body);
+      const actorGuild = await socialRepository.getCurrentGuild(actor.characterId);
+      if (!actorGuild || actorGuild.guildId !== guildId) {
+        response.status(403).json({
+          error: "guild_role_forbidden",
+          message: "Only guild master can change guild member roles.",
+        });
+        return;
+      }
       await socialRepository.setGuildMemberRole({
         guildId,
         actorCharacterId: actor.characterId,
@@ -1844,6 +1852,14 @@ export function createSocialRouter(
       }
       const guildId = z.string().uuid().parse(request.params["guildId"]);
       const characterId = z.string().uuid().parse(request.params["characterId"]);
+      const actorGuild = await socialRepository.getCurrentGuild(actor.characterId);
+      if (!actorGuild || actorGuild.guildId !== guildId) {
+        response.status(403).json({
+          error: "guild_kick_forbidden",
+          message: "Guild master or officer role is required to kick.",
+        });
+        return;
+      }
       await socialRepository.kickGuildMember({
         guildId,
         actorCharacterId: actor.characterId,
@@ -2136,10 +2152,6 @@ async function requireAdminActor(
   }
 
   if (await socialRepository.hasProfilePermission(actor.profileId, "admin_panel")) {
-    return actor;
-  }
-
-  if (await socialRepository.hasProfilePermission(actor.profileId, "can_moderate_chat")) {
     return actor;
   }
 

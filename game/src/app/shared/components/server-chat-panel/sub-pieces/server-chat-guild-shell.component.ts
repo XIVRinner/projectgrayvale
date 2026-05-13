@@ -36,4 +36,18 @@ export class ServerChatGuildShellComponent {
     const role = this.guild()?.role;
     return role === "guild_master" || role === "officer";
   }
+
+  protected nextRole(
+    currentRole: string,
+  ): "guild_master" | "officer" | "member" | "recruit" {
+    if (currentRole === "officer") {
+      return "member";
+    }
+
+    if (currentRole === "member" || currentRole === "recruit") {
+      return "officer";
+    }
+
+    return "guild_master";
+  }
 }
