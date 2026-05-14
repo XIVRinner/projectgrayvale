@@ -9,7 +9,40 @@ permissions:
   contents: read
 
 jobs:
+  # 1. Setup job: Install and Build everything once
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install all dependencies
+        run: npm ci
+
+      - name: Build all workspace packages
+        # Building everything at the root ensures all internal dependencies are ready
+        run: npm run build --workspaces --if-present
+
+      - name: Cache build outputs
+        # This caches the build folders (dist, lib, etc.) so the matrix jobs can grab them
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            **/dist
+            **/lib
+            **/build
+            node_modules
+          key: ${{ github.sha }}-build-artifacts
+
+  # 2. Matrix job: Runs tests for specific packages
   validate-package:
+    needs: setup
     name: Validate ${{ matrix.package_name }}
     runs-on: ubuntu-latest
     strategy:
@@ -41,10 +74,6 @@ jobs:
             workspace_name: game
             package_mode: workspace
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,33 +82,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install workspace dependencies
-        if: matrix.package_mode == 'workspace'
-        run: npm ci
-
-      - name: Install standalone package dependencies
-        if: matrix.package_mode == 'standalone'
-        working-directory: ${{ matrix.package_path }}
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+      - name: Restore build artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            **/dist
+            **/lib
+            **/build
+            node_modules
+          key: ${{ github.sha }}-build-artifacts
+          fail-on-cache-miss: true
 
       - name: Run workspace validation scripts
         if: matrix.package_mode == 'workspace'
         run: |
           npm run check --workspace=${{ matrix.workspace_name }} --if-present
           npm run test --workspace=${{ matrix.workspace_name }} --if-present
-          npm run build --workspace=${{ matrix.workspace_name }} --if-present
 
       - name: Run standalone package validation scripts
         if: matrix.package_mode == 'standalone'
         working-directory: ${{ matrix.package_path }}
         run: |
+          # Standalone packages might need their own unique install if they aren't part of the root workspace
+          if [ ! -d "node_modules" ]; then
+            npm ci
+          fi
           npm run check --if-present
           npm run test --if-present
-          npm run build --if-present
