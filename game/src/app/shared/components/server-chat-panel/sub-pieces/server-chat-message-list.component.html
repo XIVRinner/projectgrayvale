@@ -1,4 +1,16 @@
-<div class="gv-server-chat-message-list" #viewport>
+<p-contextmenu
+  #contextMenu
+  [model]="contextMenuItems()"
+  appendTo="body"
+  (onHide)="activeContextTargetId.set(null)"
+/>
+
+<div
+  class="gv-server-chat-message-list"
+  #viewport
+  (click)="closeContextMenu()"
+  (scroll)="closeContextMenu()"
+>
   @if (messages().length === 0) {
     <p class="gv-server-chat-message-list__empty">
       No chat traffic yet. Be the first to speak.
@@ -8,43 +20,65 @@
       <article
         class="gv-server-chat-message-list__entry"
         [class.gv-server-chat-message-list__entry--self]="
-          message.playerUuid === currentPlayerUuid()
+          isSelfMessage(message)
         "
         [class.gv-server-chat-message-list__entry--focused]="
           message.playerUuid === selectedPlayerUuid()
         "
+        [class.gv-server-chat-message-list__entry--system]="
+          isSystemMessage(message)
+        "
+        [attr.title]="
+          hasContextActions(message) ? 'Right-click for actions' : null
+        "
+        (contextmenu)="openContextActions($event, message)"
       >
-        <div
-          class="gv-server-chat-message-list__portrait-box"
-          aria-hidden="true"
-        >
-          @if (message.avatarPath; as avatarPath) {
-            <img
-              class="gv-server-chat-message-list__avatar-image"
-              [src]="avatarPath"
-              [alt]="displayName(message)"
-              loading="lazy"
-            />
-          } @else {
-            <div class="gv-server-chat-message-list__avatar">
-              {{ avatarInitials(message) }}
-            </div>
-          }
-        </div>
+        @if (!isSystemMessage(message)) {
+          <div
+            class="gv-server-chat-message-list__portrait-box"
+            aria-hidden="true"
+          >
+            @if (message.avatarPath; as avatarPath) {
+              <img
+                class="gv-server-chat-message-list__avatar-image"
+                [src]="avatarPath"
+                [alt]="displayName(message)"
+                loading="lazy"
+              />
+            } @else {
+              <div class="gv-server-chat-message-list__avatar">
+                {{ avatarInitials(message) }}
+              </div>
+            }
+          </div>
+        }
 
         <div class="gv-server-chat-message-list__bubble">
           <header class="gv-server-chat-message-list__header">
-            <button
-              type="button"
-              class="gv-server-chat-message-list__name"
-              [disabled]="!canSelectPlayers()"
-              (click)="selectPlayer(message)"
-            >
-              {{ displayName(message) }}
-            </button>
+            @if (canSelectAuthor(message)) {
+              <button
+                type="button"
+                class="gv-server-chat-message-list__name"
+                (click)="selectPlayer(message)"
+              >
+                {{ displayName(message) }}
+              </button>
+            } @else {
+              <span
+                class="gv-server-chat-message-list__name gv-server-chat-message-list__name--static"
+              >
+                {{ displayName(message) }}
+              </span>
+            }
+            @if (message.sender.badges.length > 0) {
+              <span class="gv-server-chat-message-list__badges">
+                @for (badge of message.sender.badges; track badge.type + ':' + badge.label) {
+                  <span class="gv-server-chat-message-list__badge">{{ badge.label }}</span>
+                }
+              </span>
+            }
             <p class="gv-server-chat-message-list__meta">
-              {{ message.rank.toUpperCase() }} -
-              {{ formatTime(message.createdAt) }}
+              {{ metaLabel(message) }}
             </p>
           </header>
           <p class="gv-server-chat-message-list__body">

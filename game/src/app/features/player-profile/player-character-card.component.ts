@@ -9,10 +9,27 @@ import type { CharacterCompatibilityStatus } from "./player-profile-api.service"
     <div
       class="gv-char-card"
       [class.gv-char-card--incompatible]="!status().compatible"
+      [class.gv-char-card--selected]="selected()"
       [attr.aria-disabled]="!status().compatible"
     >
+      <div class="gv-char-card__portrait-wrap">
+        @if (portraitSrc()) {
+          <img
+            class="gv-char-card__portrait"
+            [src]="portraitSrc()!"
+            [alt]="status().character.name + ' portrait'"
+          />
+        } @else {
+          <span class="gv-char-card__portrait-fallback">{{ portraitFallbackText() }}</span>
+        }
+      </div>
       <div class="gv-char-card__body">
         <p class="gv-char-card__name">{{ status().character.name }}</p>
+        @if (selected()) {
+          <p class="gv-char-card__server">Active on this server</p>
+        }
+        <p class="gv-char-card__server">Level: {{ levelLabel() }}</p>
+        <p class="gv-char-card__server">Last Location: {{ locationLabel() }}</p>
         <p class="gv-char-card__server">
           @if (status().character.contentBinding; as binding) {
             {{ binding.serverName }} &middot;
@@ -30,12 +47,12 @@ import type { CharacterCompatibilityStatus } from "./player-profile-api.service"
       </div>
       <button
         type="button"
-        class="gv-char-card__select-btn"
-        [disabled]="!status().compatible"
-        (click)="selectRequested.emit(status().character.id)"
-        [attr.title]="status().compatible ? 'Select character' : status().reason"
+        class="gv-char-card__remove-btn"
+        [disabled]="selected()"
+        (click)="removeRequested.emit(status().character.id)"
+        [attr.title]="selected() ? 'Switch to a different character before removing this one from the server profile.' : 'Remove from this server profile'"
       >
-        Select
+        Remove
       </button>
     </div>
   `,
@@ -43,5 +60,21 @@ import type { CharacterCompatibilityStatus } from "./player-profile-api.service"
 })
 export class PlayerCharacterCardComponent {
   readonly status = input.required<CharacterCompatibilityStatus>();
-  readonly selectRequested = output<string>();
+  readonly portraitSrc = input<string | null>(null);
+  readonly selected = input(false);
+  readonly removeRequested = output<string>();
+
+  protected levelLabel(): string {
+    const level = this.status().character.level;
+    return typeof level === "number" ? String(level) : "Unknown";
+  }
+
+  protected locationLabel(): string {
+    return this.status().character.lastLocationName ?? "Unknown";
+  }
+
+  protected portraitFallbackText(): string {
+    const name = this.status().character.name.trim();
+    return name.length > 0 ? name[0]!.toUpperCase() : "?";
+  }
 }

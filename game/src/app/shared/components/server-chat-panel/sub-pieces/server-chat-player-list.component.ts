@@ -1,10 +1,16 @@
-import { Component, input, output } from "@angular/core";
+import { Component, input, output, signal, viewChild } from "@angular/core";
+import { MenuItem } from "primeng/api";
+import { ContextMenu, ContextMenuModule } from "primeng/contextmenu";
 
-import { ServerPresencePlayerView } from "../../../../core/services/server-chat.models";
+import {
+  ServerChatPlayerActionRequest,
+  ServerPresencePlayerView,
+} from "../../../../core/services/server-chat.models";
 
 @Component({
   selector: "gv-server-chat-player-list",
   standalone: true,
+  imports: [ContextMenuModule],
   templateUrl: "./server-chat-player-list.component.html",
   styleUrl: "./server-chat-player-list.component.scss",
 })
@@ -15,20 +21,39 @@ export class ServerChatPlayerListComponent {
   readonly selectedPlayerUuid = input<string | null>(null);
 
   readonly playerSelected = output<ServerPresencePlayerView>();
+  readonly playerActionRequested = output<ServerChatPlayerActionRequest>();
+  protected readonly contextMenuItems = signal<MenuItem[]>([]);
+  protected readonly activeContextTargetId = signal<string | null>(null);
+  protected readonly contextMenu =
+    viewChild.required<ContextMenu>("contextMenu");
 
   protected trackByPlayerUuid(
     _index: number,
     player: ServerPresencePlayerView,
   ): string {
-    return player.playerUuid;
+    return player.characterId ?? player.profileId;
   }
 
   protected displayName(player: ServerPresencePlayerView): string {
-    return player.displayName?.trim() || "Unknown Adventurer";
+    const baseName =
+      player.displayName?.trim() ||
+      player.profileId?.trim() ||
+      player.characterId ||
+      "unknown-profile";
+
+    return formatGuildTaggedName(
+      baseName,
+      player.guildShortName,
+    );
   }
 
   protected avatarInitials(player: ServerPresencePlayerView): string {
-    return initialsFor(this.displayName(player));
+    return initialsFor(
+      player.displayName?.trim() ||
+      player.profileId?.trim() ||
+      player.characterId ||
+      "unknown-profile",
+    );
   }
 
   protected formatTime(value: string): string {
@@ -39,11 +64,50 @@ export class ServerChatPlayerListComponent {
   }
 
   protected canModeratePlayer(player: ServerPresencePlayerView): boolean {
-    return this.canModerate() && player.playerUuid !== this.currentPlayerUuid();
+    return this.canModerate() && player.characterId !== this.currentPlayerUuid();
   }
 
   protected isSelected(player: ServerPresencePlayerView): boolean {
-    return player.playerUuid === this.selectedPlayerUuid();
+    return player.characterId === this.selectedPlayerUuid();
+  }
+
+  protected hasContextActions(player: ServerPresencePlayerView): boolean {
+    return (
+      player.characterId !== this.currentPlayerUuid() &&
+      Boolean(player.profileId?.trim())
+    );
+  }
+
+  protected closeContextMenu(): void {
+    this.activeContextTargetId.set(null);
+    this.contextMenu().hide();
+  }
+
+  protected openContextActions(event: MouseEvent, player: ServerPresencePlayerView): void {
+    event.preventDefault();
+
+    if (!this.hasContextActions(player)) {
+      this.closeContextMenu();
+      return;
+    }
+
+    const targetId = player.characterId ?? player.profileId;
+
+    if (this.activeContextTargetId() === targetId) {
+      this.closeContextMenu();
+      return;
+    }
+
+    this.activeContextTargetId.set(targetId);
+    this.contextMenuItems.set(
+      buildPlayerActionItems(
+        player,
+        this.canModeratePlayer(player),
+        () => this.playerSelected.emit(player),
+        (request) => this.playerActionRequested.emit(request),
+      ),
+    );
+    this.contextMenu().show(event);
   }
 }
 
@@ -59,4 +123,66 @@ function initialsFor(value: string): string {
   }
 
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+
+function formatGuildTaggedName(
+  baseName: string,
+  guildShortName?: string,
+): string {
+  const normalizedGuildTag = guildShortName?.trim();
+
+  if (!normalizedGuildTag) {
+    return baseName;
+  }
+
+  return `${baseName} <${normalizedGuildTag}>`;
+}
+
+function buildPlayerActionItems(
+  player: ServerPresencePlayerView,
+  canFocus: boolean,
+  focus: () => void,
+  emit: (request: ServerChatPlayerActionRequest) => void,
+): MenuItem[] {
+  const targetProfileId = player.profileId;
+  const items: MenuItem[] = [];
+
+  if (targetProfileId) {
+    items.push(
+      createActionItem("Inspect Profile", "pi pi-id-card", () =>
+        emit({
+          action: "inspect_profile",
+          targetProfileId,
+          targetPlayerUuid: player.characterId,
+          targetCharacterName: player.currentCharacterName ?? player.displayName,
+        }),
+      ),
+      createActionItem("Whisper", "pi pi-send", () =>
+        emit({
+          action: "whisper",
+          targetProfileId,
+          targetPlayerUuid: player.characterId,
+          targetCharacterName: player.currentCharacterName ?? player.displayName,
+        }),
+      ),
+    );
+  }
+
+  if (canFocus) {
+    items.unshift(createActionItem("Focus", "pi pi-search", focus));
+  }
+
+  return items;
+}
+
+function createActionItem(
+  label: string,
+  icon: string,
+  command: () => void,
+): MenuItem {
+  return {
+    label,
+    icon,
+    command,
+  };
 }

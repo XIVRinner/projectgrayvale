@@ -1,0 +1,100 @@
+<section class="gv-server-chat-friend-list">
+  @if (loading()) {
+    <p class="gv-server-chat-friend-list__empty">Loading friendships...</p>
+  } @else {
+    <header class="gv-server-chat-friend-list__header">
+      <h4>Friends</h4>
+      <p>{{ accepted().length }} accepted</p>
+    </header>
+
+    <div class="gv-server-chat-friend-list__actions">
+      <input #profileTarget type="text" placeholder="Profile ID for request..." aria-label="Profile ID for friend request" />
+      <button
+        type="button"
+        class="gv-server-chat-friend-list__button"
+        (click)="addProfileFriendRequested.emit(profileTarget.value.trim()); profileTarget.value = ''"
+      >
+        Add Profile Friend
+      </button>
+      <input #characterTarget type="text" placeholder="Profile ID for character friend..." aria-label="Profile ID for character friend" />
+      <button
+        type="button"
+        class="gv-server-chat-friend-list__button"
+        (click)="addCharacterFriendRequested.emit({ profileId: characterTarget.value.trim() }); characterTarget.value = ''"
+      >
+        Add Character Friend
+      </button>
+    </div>
+
+    <h5>Accepted</h5>
+    @if (accepted().length === 0) {
+      <p class="gv-server-chat-friend-list__empty">No accepted friends yet.</p>
+    } @else {
+      <ul class="gv-server-chat-friend-list__list">
+        @for (entry of accepted(); track entry.id) {
+          <li class="gv-server-chat-friend-list__item">
+            <div>
+              <strong>{{ displayName(entry) }}</strong>
+              <p>
+                {{ entry.counterpartCurrentCharacterName ?? "No active character" }} ·
+                {{ entry.counterpartOnline ? "Online" : "Offline" }}
+                @if (entry.counterpartLastOnlineAt) { · last {{ entry.counterpartLastOnlineAt | date: "short" }} }
+              </p>
+            </div>
+            <div class="gv-server-chat-friend-list__item-actions">
+              <button
+                type="button"
+                class="gv-server-chat-friend-list__button"
+                (click)="whisperRequested.emit({ profileId: entry.counterpartProfileId, characterName: entry.counterpartCurrentCharacterName })"
+              >
+                Whisper
+              </button>
+              <button type="button" class="gv-server-chat-friend-list__button" (click)="removeRequested.emit(entry.id)">
+                Remove
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    <h5>Pending Incoming</h5>
+    @if (pendingIncoming().length === 0) {
+      <p class="gv-server-chat-friend-list__empty">No pending incoming requests.</p>
+    } @else {
+      <ul class="gv-server-chat-friend-list__list">
+        @for (entry of pendingIncoming(); track entry.id) {
+          <li class="gv-server-chat-friend-list__item">
+            <div>
+              <strong>{{ displayName(entry) }}</strong>
+            </div>
+            <div class="gv-server-chat-friend-list__item-actions">
+              <button type="button" class="gv-server-chat-friend-list__button" (click)="acceptRequested.emit(entry.id)">
+                Accept
+              </button>
+              <button type="button" class="gv-server-chat-friend-list__button" (click)="rejectRequested.emit(entry.id)">
+                Reject
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    <h5>Pending Outgoing</h5>
+    @if (pendingOutgoing().length === 0) {
+      <p class="gv-server-chat-friend-list__empty">No pending outgoing requests.</p>
+    } @else {
+      <ul class="gv-server-chat-friend-list__list">
+        @for (entry of pendingOutgoing(); track entry.id) {
+          <li class="gv-server-chat-friend-list__item">
+            <div>
+              <strong>{{ displayName(entry) }}</strong>
+              <p>Sent {{ entry.updatedAt | date: "short" }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

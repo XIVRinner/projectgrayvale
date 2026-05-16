@@ -48,7 +48,7 @@ export function registerAdminDefinitionRoutes(
         );
 
         await multiplayerRepository.markSessionSeen(actor.sessionId);
-        await multiplayerRepository.markPlayerSeen(actor.playerUuid);
+        await multiplayerRepository.markPlayerSeen(actor.profileId);
 
         response.setHeader("Cache-Control", "no-cache").json(saved);
       } catch (error) {
@@ -79,7 +79,7 @@ export async function requireAdminActor(
   request: Request,
   response: Response,
   multiplayerRepository: MultiplayerRepository,
-): Promise<{ sessionId: string; playerUuid: string } | null> {
+): Promise<{ sessionId: string; profileId: string } | null> {
   const sessionId = extractSessionId(request);
 
   if (!sessionId) {
@@ -101,7 +101,7 @@ export async function requireAdminActor(
     return null;
   }
 
-  const player = await multiplayerRepository.getAllowedPlayer(session.playerUuid);
+  const player = await multiplayerRepository.getAllowedPlayer(session.profileId);
 
   if (!player || player.serverBanned) {
     clearSessionCookie(response, request);
@@ -120,11 +120,11 @@ export async function requireAdminActor(
     return null;
   }
 
-  return {
-    sessionId,
-    playerUuid: player.playerUuid,
-  };
-}
+    return {
+      sessionId,
+      profileId: player.profileId,
+    };
+  }
 
 function readDefinitionId(request: Request): string {
   const rawId = request.params["id"];

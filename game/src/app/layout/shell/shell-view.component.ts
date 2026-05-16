@@ -8,11 +8,18 @@ import type { GameplayGraphDebugSnapshot } from "../../core/execution-graph/game
 import { GameDialogComponent } from "../../shared/components/game-dialog/game-dialog.component";
 import { GameDialogSessionView } from "../../shared/components/game-dialog/game-dialog.types";
 import type {
+  AdminPlayerListEntryView,
+  AdminProfileDetailView,
+  CurrentGuildView,
+  GuildInvitationView,
+  SocialFriendshipView,
+  ServerChatPlayerActionRequest,
   ServerChatCommandView,
   ServerChatCustomEmojiView,
   ServerChatMessageView,
   ServerModerationRequest,
   ServerChatPanelView,
+  ServerRelayProfileView,
   ServerFooterSummaryView,
   ServerPresencePlayerView,
 } from "../../core/services/server-chat.models";
@@ -119,6 +126,7 @@ export class ShellViewComponent {
   readonly isServerAdminOpen = input.required<boolean>();
   readonly serverFooterSummary = input.required<ServerFooterSummaryView>();
   readonly serverChatPanel = input.required<ServerChatPanelView>();
+  readonly serverRelayProfile = input<ServerRelayProfileView | null>(null);
   readonly serverChatPlayers =
     input.required<readonly ServerPresencePlayerView[]>();
   readonly serverChatMessages =
@@ -139,6 +147,27 @@ export class ShellViewComponent {
   readonly isServerChatSending = input.required<boolean>();
   readonly isServerAdminSubmitting = input.required<boolean>();
   readonly isServerModerationSubmitting = input.required<boolean>();
+  readonly canShowAdminPanel = input(false);
+  readonly adminEntries = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly adminTotal = input(0);
+  readonly adminPage = input(1);
+  readonly adminPageSize = input(20);
+  readonly adminSearch = input("");
+  readonly adminLoading = input(false);
+  readonly selectedAdminProfileId = input<string | null>(null);
+  readonly adminProfileDetail = input<AdminProfileDetailView | null>(null);
+  readonly grantablePermissions = input.required<readonly string[]>();
+  readonly socialPlayers = input.required<readonly AdminPlayerListEntryView[]>();
+  readonly socialPlayersTotal = input(0);
+  readonly socialPlayersPage = input(1);
+  readonly socialPlayersPageSize = input(20);
+  readonly socialPlayersSearch = input("");
+  readonly socialPlayersLoading = input(false);
+  readonly friendships = input.required<readonly SocialFriendshipView[]>();
+  readonly friendsLoading = input(false);
+  readonly currentGuild = input<CurrentGuildView | null>(null);
+  readonly guildInvitations = input.required<readonly GuildInvitationView[]>();
+  readonly guildLoading = input(false);
   readonly gameDialogSession = input<GameDialogSessionView | null>(null);
   readonly version = input.required<string>();
 
@@ -186,6 +215,30 @@ export class ShellViewComponent {
   readonly serverModerationSubmitted = output<ServerModerationRequest>();
   readonly serverModerationCleared = output<void>();
   readonly serverChatSendRequested = output<string>();
+  readonly serverChatChannelSelected = output<string>();
+  readonly serverChatPlayerActionRequested = output<ServerChatPlayerActionRequest>();
+  readonly adminSearchChanged = output<string>();
+  readonly adminPageChanged = output<number>();
+  readonly adminProfileSelected = output<string>();
+  readonly adminPermissionGranted = output<{ profileId: string; permissionId: string }>();
+  readonly adminPermissionRevoked = output<{ profileId: string; permissionId: string }>();
+  readonly adminModerationRequested = output<{ profileId: string; action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn" }>();
+  readonly adminNoteAdded = output<{ profileId: string; body: string }>();
+  readonly socialPlayersSearchChanged = output<string>();
+  readonly socialPlayersPageChanged = output<number>();
+  readonly friendAddCharacterRequested = output<{ profileId: string; characterId?: string }>();
+  readonly friendAddProfileRequested = output<string>();
+  readonly friendAcceptRequested = output<string>();
+  readonly friendRejectRequested = output<string>();
+  readonly friendshipRemoveRequested = output<string>();
+  readonly guildCreateRequested = output<{ name: string; shortName: string }>();
+  readonly guildInviteRequested = output<{ guildId: string; targetProfileId: string }>();
+  readonly guildInvitationResponded = output<{ invitationId: string; accept: boolean }>();
+  readonly guildRoleChanged = output<{ guildId: string; characterId: string; role: "guild_master" | "officer" | "member" | "recruit" }>();
+  readonly guildLeaveRequested = output<string>();
+  readonly channelLeaveRequested = output<string>();
+  readonly channelCloseRequested = output<string>();
+  readonly channelDestroyRequested = output<string>();
   readonly serverChatServerSelectRequested = output<void>();
   readonly actionSelected = output<string>();
   readonly characterPanelActionSelected = output<string>();

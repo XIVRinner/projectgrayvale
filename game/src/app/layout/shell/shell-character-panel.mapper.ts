@@ -180,9 +180,9 @@ export function buildShellCharacterPanel(
 
 function buildEmptyCharacterPanel(): ShellCharacterPanel {
   return {
-    initials: "UA",
+    initials: "NA",
     rank: "G",
-    name: "Unknown Adventurer",
+    name: "No Active Character",
     subtitle: "No active save",
     genderLabel: undefined,
     genderIconPath: undefined,

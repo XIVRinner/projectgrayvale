@@ -64,12 +64,60 @@ export const SERVER_CHAT_COMMANDS: readonly ServerChatCommandView[] = [
       'Lift chat restrictions for a player. Syntax: /clear "Player Name"',
     keywords: ["unmute", "unban", "moderation", "restore"],
   },
+  {
+    id: "join-channel",
+    trigger: "/join",
+    label: "Join Channel",
+    description: "Join or create a custom channel. Syntax: /join channel_name",
+    keywords: ["channel", "custom", "social"],
+  },
+  {
+    id: "leave-channel",
+    trigger: "/leave",
+    label: "Leave Channel",
+    description: "Leave a custom channel. Syntax: /leave channel_name",
+    keywords: ["channel", "custom", "social"],
+  },
+  {
+    id: "whisper",
+    trigger: "/whisper",
+    label: "Whisper",
+    description: "Direct message another character. Syntax: /whisper \"Name\" message",
+    keywords: ["dm", "tell", "w", "direct"],
+  },
+  {
+    id: "tell",
+    trigger: "/tell",
+    label: "Tell",
+    description: "Alias of whisper. Syntax: /tell \"Name\" message",
+    keywords: ["dm", "whisper", "w", "direct"],
+  },
+  {
+    id: "friend-add",
+    trigger: "/friend add",
+    label: "Add Friend",
+    description:
+      "Add a friend by character or profile name. Syntax: /friend add name",
+    keywords: ["friend", "social", "profile"],
+  },
+  {
+    id: "guild-invite",
+    trigger: "/guild invite",
+    label: "Guild Invite",
+    description: "Invite a character to guild. Syntax: /guild invite \"Name\"",
+    keywords: ["guild", "invite", "social"],
+  },
 ] as const;
 
 export interface ParsedServerModerationCommand {
   readonly targetQuery: string;
   readonly request: ServerModerationRequest;
   readonly usage: string;
+}
+
+export interface ParsedWhisperCommand {
+  readonly targetCharacterName: string;
+  readonly body: string;
 }
 
 export function resolveServerChatCommand(
@@ -186,6 +234,33 @@ export function formatServerChatHelp(): string {
   return SERVER_CHAT_COMMANDS.map(
     (command) => `${command.trigger} - ${command.description}`,
   ).join(" | ");
+}
+
+export function resolveWhisperCommand(
+  message: string,
+): ParsedWhisperCommand | null {
+  const tokens = tokenizeChatInput(message.trim());
+  const command = tokens[0]?.toLowerCase();
+
+  if (
+    command !== "/w" &&
+    command !== "/whisper" &&
+    command !== "/tell"
+  ) {
+    return null;
+  }
+
+  const targetCharacterName = tokens[1]?.trim() ?? "";
+  const body = tokens.slice(2).join(" ").trim();
+
+  if (!targetCharacterName || !body) {
+    return null;
+  }
+
+  return {
+    targetCharacterName,
+    body,
+  };
 }
 
 function tokenizeChatInput(message: string): string[] {

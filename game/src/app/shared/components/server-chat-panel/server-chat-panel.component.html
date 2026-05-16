@@ -8,15 +8,20 @@
       </p>
     </div>
     <div class="gv-server-chat-panel__stats">
-      <span class="gv-server-chat-panel__badge"
-        >{{ panel().onlinePlayerCount }} online</span
-      >
+      <span class="gv-server-chat-panel__badge">{{ panel().onlinePlayerCount }} online</span>
       <span
         class="gv-server-chat-panel__badge"
         [class.gv-server-chat-panel__badge--live]="panel().isConnected"
       >
         {{ panel().sessionRankLabel ?? "Observer" }}
       </span>
+      <button
+        type="button"
+        class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
+        (click)="openServerSelectRequested.emit()"
+      >
+        Disconnect / Change Server
+      </button>
       @if (showGrantAdmin()) {
         <button
           type="button"
@@ -33,76 +38,297 @@
     <p class="gv-server-chat-panel__status">{{ statusMessage }}</p>
   }
 
-  <div class="gv-server-chat-panel__layout">
-    <section class="gv-server-chat-panel__column">
-      <div class="gv-server-chat-panel__section-header">
-        <h4>Online Players</h4>
+  <div class="gv-server-chat-panel__root-layout">
+    <nav class="gv-server-chat-panel__menu" aria-label="Server relay menu">
+      <button
+        type="button"
+        class="gv-server-chat-panel__menu-item"
+        [class.gv-server-chat-panel__menu-item--active]="isRootMenuActive('communications')"
+        (click)="selectRootMenu('communications')"
+      >
+        Communications
+      </button>
+      <button
+        type="button"
+        class="gv-server-chat-panel__menu-item"
+        [class.gv-server-chat-panel__menu-item--active]="isRootMenuActive('profile')"
+        (click)="selectRootMenu('profile')"
+      >
+        Your Profile
+      </button>
+      <button
+        type="button"
+        class="gv-server-chat-panel__menu-item gv-server-chat-panel__menu-item--locked"
+        title="Work in progress"
+        disabled
+      >
+        Guild <span class="gv-server-chat-panel__lock" aria-hidden="true">Lock</span>
+      </button>
+      <button
+        type="button"
+        class="gv-server-chat-panel__menu-item gv-server-chat-panel__menu-item--locked"
+        title="Work in progress"
+        disabled
+      >
+        Leaderboards <span class="gv-server-chat-panel__lock" aria-hidden="true">Lock</span>
+      </button>
+    </nav>
+
+    @if (isRootMenuActive("communications")) {
+      <div class="gv-server-chat-panel__layout">
+        <section class="gv-server-chat-panel__column">
+          <div class="gv-server-chat-panel__section-header">
+            <h4>Online Players</h4>
+            <button
+              type="button"
+              class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
+              (click)="refreshRequested.emit()"
+            >
+              Refresh
+            </button>
+          </div>
+          <gv-server-chat-player-list
+            [players]="players()"
+            [canModerate]="canModerate()"
+            [currentPlayerUuid]="currentPlayerUuid()"
+            [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
+            (playerSelected)="moderatePlayerRequested.emit($event)"
+            (playerActionRequested)="handlePlayerActionRequest($event)"
+          />
+        </section>
+
+        <section class="gv-server-chat-panel__column gv-server-chat-panel__column--chat">
+          <div class="gv-server-chat-panel__mode-tabs">
+            <button
+              type="button"
+              class="gv-server-chat-panel__tab"
+              [class.gv-server-chat-panel__tab--active]="isPanelActive('chat')"
+              (click)="selectPanel('chat')"
+            >
+              Chat
+            </button>
+            <button
+              type="button"
+              class="gv-server-chat-panel__tab"
+              [class.gv-server-chat-panel__tab--active]="isPanelActive('friends')"
+              (click)="selectPanel('friends')"
+            >
+              Friends
+            </button>
+            <button
+              type="button"
+              class="gv-server-chat-panel__tab"
+              [class.gv-server-chat-panel__tab--active]="isPanelActive('guild')"
+              (click)="selectPanel('guild')"
+            >
+              Guild
+            </button>
+            <button
+              type="button"
+              class="gv-server-chat-panel__tab"
+              [class.gv-server-chat-panel__tab--active]="isPanelActive('players')"
+              (click)="selectPanel('players')"
+            >
+              Players
+            </button>
+            @if (canShowAdminPanel()) {
+              <button
+                type="button"
+                class="gv-server-chat-panel__tab"
+                [class.gv-server-chat-panel__tab--active]="isPanelActive('admin')"
+                (click)="selectPanel('admin')"
+              >
+                Admin
+              </button>
+            }
+          </div>
+
+          @if (isPanelActive("chat")) {
+            <div class="gv-server-chat-panel__section-header">
+              <h4>Social Chat</h4>
+              @if (!canSend()) {
+                <button
+                  type="button"
+                  class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
+                  (click)="openServerSelectRequested.emit()"
+                >
+                  Server Select
+                </button>
+              }
+            </div>
+
+            <div
+              class="gv-server-chat-panel__chat-surface"
+              [attr.data-chat-skin]="activeChatSkin()"
+            >
+              <div class="gv-server-chat-panel__tabs">
+                <p-contextmenu
+                  #channelContextMenu
+                  [model]="contextMenuItems()"
+                  appendTo="body"
+                  (onHide)="activeContextChannelId.set(null)"
+                />
+                @for (channel of channels(); track channel.id) {
+                  <button
+                    type="button"
+                    class="gv-server-chat-panel__tab"
+                    [class.gv-server-chat-panel__tab--active]="channel.id === activeChannelId()"
+                    [attr.title]="channel.type !== 'official' ? 'Right-click for options' : null"
+                    (click)="channelSelected.emit(channel.id)"
+                    (contextmenu)="openChannelContextMenu($event, channel)"
+                  >
+                    <span>{{ channel.name }}</span>
+                    @if (channel.unreadCount > 0) {
+                      <span class="gv-server-chat-panel__tab-unread">{{ channel.unreadCount }}</span>
+                    }
+                  </button>
+                }
+              </div>
+
+              @if (canModerate() && selectedModerationPlayer(); as selectedModerationPlayer) {
+                <gv-server-chat-moderation-banner
+                  [player]="selectedModerationPlayer"
+                  [canBlockServerEntry]="canBlockServerEntry()"
+                  [statusMessage]="moderationStatusMessage()"
+                  [submitting]="isModerationSubmitting()"
+                  (closed)="moderationCleared.emit()"
+                  (submitted)="moderationSubmitted.emit($event)"
+                />
+              } @else if (canModerate()) {
+                <p class="gv-server-chat-panel__moderation-hint">
+                  Moderation focus appears here. Use the player list context menu or
+                  click a speaker name in chat.
+                </p>
+              }
+
+              <gv-server-chat-message-list
+                [messages]="messages()"
+                [customEmojis]="customEmojis()"
+                [currentPlayerUuid]="currentPlayerUuid()"
+                [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
+                [canSelectPlayers]="canModerate()"
+                [canModerate]="canModerate()"
+                (playerSelected)="focusMessageAuthor($event)"
+                (playerActionRequested)="handlePlayerActionRequest($event)"
+              />
+
+              <gv-server-chat-composer
+                [canSend]="canSend() && activeChannelCanSend()"
+                [isSending]="isSending()"
+                [commands]="commands()"
+                [customEmojis]="customEmojis()"
+                [hint]="composerHintText()"
+                (sendRequested)="sendRequested.emit($event)"
+              />
+            </div>
+          } @else if (isPanelActive("friends")) {
+            <gv-server-chat-friend-list
+              [friendships]="friendships()"
+              [loading]="friendsLoading()"
+              (acceptRequested)="friendAcceptRequested.emit($event)"
+              (rejectRequested)="friendRejectRequested.emit($event)"
+              (removeRequested)="friendshipRemoveRequested.emit($event)"
+              (addCharacterFriendRequested)="friendAddCharacterRequested.emit($event)"
+              (addProfileFriendRequested)="friendAddProfileRequested.emit($event)"
+              (whisperRequested)="
+                playerActionRequested.emit({
+                  action: 'whisper',
+                  targetProfileId: $event.profileId,
+                  targetCharacterName: $event.characterName
+                })
+              "
+            />
+          } @else if (isPanelActive("guild")) {
+            <gv-server-chat-guild-shell
+              [guild]="currentGuild()"
+              [invitations]="guildInvitations()"
+              [loading]="guildLoading()"
+              (createGuildRequested)="guildCreateRequested.emit($event)"
+              (inviteRequested)="guildInviteRequested.emit($event)"
+              (invitationResponded)="guildInvitationResponded.emit($event)"
+              (roleChangeRequested)="guildRoleChanged.emit($event)"
+              (leaveGuildRequested)="guildLeaveRequested.emit($event)"
+            />
+          } @else if (isPanelActive("players")) {
+            <gv-server-chat-player-directory
+              [entries]="socialPlayers()"
+              [total]="socialPlayersTotal()"
+              [page]="socialPlayersPage()"
+              [pageSize]="socialPlayersPageSize()"
+              [search]="socialPlayersSearch()"
+              [loading]="socialPlayersLoading()"
+              [canAdminTools]="canShowAdminPanel()"
+              (searchChanged)="socialPlayersSearchChanged.emit($event)"
+              (pageChanged)="socialPlayersPageChanged.emit($event)"
+              (actionRequested)="
+                playerActionRequested.emit({
+                  action: $event.action,
+                  targetProfileId: $event.profileId,
+                  targetCharacterName: $event.characterName
+                })
+              "
+            />
+          } @else {
+            <gv-server-chat-admin-panel
+              [entries]="adminEntries()"
+              [total]="adminTotal()"
+              [page]="adminPage()"
+              [pageSize]="adminPageSize()"
+              [search]="adminSearch()"
+              [loading]="adminLoading()"
+              [selectedProfileId]="selectedAdminProfileId()"
+              [detail]="adminProfileDetail()"
+              [grantablePermissions]="grantablePermissions()"
+              (refreshRequested)="refreshRequested.emit()"
+              (searchChanged)="adminSearchChanged.emit($event)"
+              (pageChanged)="adminPageChanged.emit($event)"
+              (profileSelected)="adminProfileSelected.emit($event)"
+              (grantPermissionRequested)="adminPermissionGranted.emit($event)"
+              (revokePermissionRequested)="adminPermissionRevoked.emit($event)"
+              (moderateRequested)="adminModerationRequested.emit($event)"
+              (noteAdded)="adminNoteAdded.emit($event)"
+            />
+          }
+        </section>
+      </div>
+    } @else {
+      <section class="gv-server-chat-panel__column gv-server-chat-panel__profile">
+        <gv-player-profile-container />
+      </section>
+    }
+  </div>
+
+  @if (inspectProfile(); as inspectProfile) {
+    <div class="gv-server-chat-panel__inspect-backdrop" (click)="closeInspectProfile()">
+      <div
+        class="gv-server-chat-panel__inspect-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Player profile preview"
+        (click)="$event.stopPropagation()"
+      >
+        @if (inspectProfile.avatarPath; as avatarPath) {
+          <img
+            class="gv-server-chat-panel__inspect-avatar"
+            [src]="avatarPath"
+            [alt]="inspectProfile.displayName"
+            loading="lazy"
+          />
+        } @else {
+          <div class="gv-server-chat-panel__inspect-avatar gv-server-chat-panel__inspect-avatar--fallback">
+            {{ inspectProfile.displayName.charAt(0).toUpperCase() }}
+          </div>
+        }
+        <p class="gv-server-chat-panel__inspect-name">{{ inspectProfile.displayName }}</p>
+        <p class="gv-server-chat-panel__inspect-id">{{ inspectProfile.profileId }}</p>
         <button
           type="button"
           class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
-          (click)="refreshRequested.emit()"
+          (click)="closeInspectProfile()"
         >
-          Refresh
+          Close
         </button>
       </div>
-      <gv-server-chat-player-list
-        [players]="players()"
-        [canModerate]="canModerate()"
-        [currentPlayerUuid]="currentPlayerUuid()"
-        [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
-        (playerSelected)="moderatePlayerRequested.emit($event)"
-      />
-    </section>
-
-    <section
-      class="gv-server-chat-panel__column gv-server-chat-panel__column--chat"
-    >
-      <div class="gv-server-chat-panel__section-header">
-        <h4>World Chat</h4>
-        @if (!canSend()) {
-          <button
-            type="button"
-            class="gv-server-chat-panel__action gv-server-chat-panel__action--ghost"
-            (click)="openServerSelectRequested.emit()"
-          >
-            Server Select
-          </button>
-        }
-      </div>
-
-      @if (canModerate() && selectedModerationPlayer(); as selectedModerationPlayer) {
-        <gv-server-chat-moderation-banner
-          [player]="selectedModerationPlayer"
-          [canBlockServerEntry]="canBlockServerEntry()"
-          [statusMessage]="moderationStatusMessage()"
-          [submitting]="isModerationSubmitting()"
-          (closed)="moderationCleared.emit()"
-          (submitted)="moderationSubmitted.emit($event)"
-        />
-      } @else if (canModerate()) {
-        <p class="gv-server-chat-panel__moderation-hint">
-          Moderation focus appears here. Use Focus in the player list or click a
-          speaker name in chat.
-        </p>
-      }
-
-      <gv-server-chat-message-list
-        [messages]="messages()"
-        [customEmojis]="customEmojis()"
-        [currentPlayerUuid]="currentPlayerUuid()"
-        [selectedPlayerUuid]="selectedModerationPlayer()?.playerUuid ?? null"
-        [canSelectPlayers]="canModerate()"
-        (playerSelected)="focusMessageAuthor($event)"
-      />
-
-      <gv-server-chat-composer
-        [canSend]="canSend()"
-        [isSending]="isSending()"
-        [commands]="commands()"
-        [customEmojis]="customEmojis()"
-        [hint]="sendHint()"
-        (sendRequested)="sendRequested.emit($event)"
-      />
-    </section>
-  </div>
+    </div>
+  }
 </section>

@@ -1,0 +1,66 @@
+:host {
+  display: block;
+}
+
+.gv-server-chat-player-directory {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-chat-player-directory input {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-surface);
+  color: var(--gv-color-text-primary);
+  padding: 0.35rem 0.45rem;
+}
+
+.gv-server-chat-player-directory__header h4,
+.gv-server-chat-player-directory__header p,
+.gv-server-chat-player-directory__item p,
+.gv-server-chat-player-directory__empty {
+  margin: 0;
+}
+
+.gv-server-chat-player-directory__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 1.4);
+}
+
+.gv-server-chat-player-directory__item {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-surface);
+  padding: 0.4rem 0.5rem;
+  display: grid;
+  gap: calc(var(--gv-space-xs) * 1.2);
+}
+
+.gv-server-chat-player-directory__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--gv-space-xs) * 1.2);
+}
+
+.gv-server-chat-player-directory__chip {
+  color: var(--gv-color-success);
+}
+
+.gv-server-chat-player-directory__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-chat-player-directory__button {
+  border: var(--gv-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}

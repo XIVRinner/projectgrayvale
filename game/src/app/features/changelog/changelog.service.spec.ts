@@ -96,13 +96,13 @@ function createService(
   return TestBed.inject(ChangelogService);
 }
 
-function createServerConnectionMock(playerUuid: string | null) {
+function createServerConnectionMock(profileId: string | null) {
   return {
     session: signal(
-      playerUuid
+      profileId
         ? ({
-            playerUuid,
-          } as { readonly playerUuid: string })
+            profileId,
+          } as { readonly profileId: string })
         : null,
     ),
   } as Pick<ServerConnectionService, "session">;

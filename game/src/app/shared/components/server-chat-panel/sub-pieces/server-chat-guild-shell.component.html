@@ -1,0 +1,96 @@
+<section class="gv-server-chat-guild-shell">
+  @if (loading()) {
+    <p class="gv-server-chat-guild-shell__empty">Loading guild...</p>
+  } @else if (guild(); as guild) {
+    <header class="gv-server-chat-guild-shell__header">
+      <h4>
+        {{ guild.guildName }}
+        @if (guild.guildShortName) {
+          <span>&lt;{{ guild.guildShortName }}&gt;</span>
+        }
+      </h4>
+      <p>Your role: {{ guild.role }}</p>
+    </header>
+
+    @if (canInvite()) {
+      <div class="gv-server-chat-guild-shell__actions">
+        <input #inviteTarget type="text" placeholder="Target profile ID..." aria-label="Target profile ID for guild invite" />
+        <button
+          type="button"
+          class="gv-server-chat-guild-shell__button"
+          (click)="inviteRequested.emit({ guildId: guild.guildId, targetProfileId: inviteTarget.value.trim() }); inviteTarget.value = ''"
+        >
+          Invite
+        </button>
+      </div>
+    }
+
+    <ul class="gv-server-chat-guild-shell__members">
+      @for (member of guild.members; track member.characterId) {
+        <li class="gv-server-chat-guild-shell__member">
+          <div>
+            <strong>{{ member.name }}</strong>
+            <p>{{ member.role }}</p>
+          </div>
+          @if (canManageRoles()) {
+            <div class="gv-server-chat-guild-shell__member-actions">
+              <button
+                type="button"
+                class="gv-server-chat-guild-shell__button"
+                (click)="roleChangeRequested.emit({ guildId: guild.guildId, characterId: member.characterId, role: nextRole(member.role) })"
+              >
+                {{ member.role === "officer" ? "Demote to Member" : "Promote to Officer" }}
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    <button type="button" class="gv-server-chat-guild-shell__button" (click)="leaveGuildRequested.emit(guild.guildId)">
+      Leave Guild
+    </button>
+  } @else {
+    <p class="gv-server-chat-guild-shell__empty">You are not in a guild.</p>
+    <div class="gv-server-chat-guild-shell__actions">
+      <input #guildName type="text" placeholder="Guild name..." aria-label="New guild name" />
+      <input #guildShortName type="text" maxlength="4" placeholder="TAG" aria-label="New guild short name" />
+      <button
+        type="button"
+        class="gv-server-chat-guild-shell__button"
+        (click)="createGuildRequested.emit({ name: guildName.value.trim(), shortName: guildShortName.value.trim().toUpperCase() }); guildName.value = ''; guildShortName.value = ''"
+      >
+        Create Guild
+      </button>
+    </div>
+  }
+
+  <h5>Pending Invitations</h5>
+  @if (invitations().length === 0) {
+    <p class="gv-server-chat-guild-shell__empty">No pending invitations.</p>
+  } @else {
+    <ul class="gv-server-chat-guild-shell__invitations">
+      @for (invitation of invitations(); track invitation.id) {
+        <li class="gv-server-chat-guild-shell__invitation">
+          <div>
+            <strong>
+              {{ invitation.guildName }}
+              @if (invitation.guildShortName) {
+                <span>&lt;{{ invitation.guildShortName }}&gt;</span>
+              }
+            </strong>
+            <p>Invited {{ invitation.createdAt | date: "short" }}</p>
+          </div>
+          <div class="gv-server-chat-guild-shell__member-actions">
+            <button type="button" class="gv-server-chat-guild-shell__button" data-action="accept" (click)="invitationResponded.emit({ invitationId: invitation.id, accept: true })">
+              Accept
+            </button>
+            <button type="button" class="gv-server-chat-guild-shell__button" data-action="reject" (click)="invitationResponded.emit({ invitationId: invitation.id, accept: false })">
+              Reject
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

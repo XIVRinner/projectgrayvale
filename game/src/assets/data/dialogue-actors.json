@@ -20,7 +20,6 @@
   {
     "id": "player",
     "name": "You",
-    "title": "Unknown Adventurer",
     "portraitPath": "assets/images/player-avatar.svg"
   },
   {

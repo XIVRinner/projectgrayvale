@@ -5,10 +5,11 @@ import { z } from "zod";
 import type { ServerConfig } from "../config";
 import type { MultiplayerRepository } from "../multiplayer/multiplayer-repository";
 import type { PlayerProfileRepository } from "./player-profile-repository";
-import type { CharacterContentBinding } from "./player-profile-types";
+import type { CharacterContentBinding, PlayerProfileSummary } from "./player-profile-types";
 import { extractSessionId } from "../auth/session-auth";
 import { buildServerProfile } from "../server-profile/server-profile-service";
 import { validateServerProfileToken } from "../server-profile/server-profile-token";
+import type { SocialRepository } from "../social/social-repository";
 
 const characterNameSchema = z.string().trim().min(1).max(80);
 const contentBindingSchema = z.object({
@@ -16,15 +17,43 @@ const contentBindingSchema = z.object({
   customContent: z.boolean(),
   profileToken: z.string().min(1).max(2000),
 });
+const characterSnapshotSchema = z.object({
+  portraitShardId: z.string().trim().min(1).max(200).optional(),
+  level: z.number().int().min(1).optional(),
+  locationId: z.string().trim().min(1).max(200).optional(),
+  lastLocationName: z.string().trim().min(1).max(200).optional(),
+});
 const createCharacterBodySchema = z.object({
   name: characterNameSchema,
   contentBinding: contentBindingSchema.optional(),
+  initialSnapshot: characterSnapshotSchema.optional(),
+});
+const registerCharacterBodySchema = z.object({
+  characterId: z.string().trim().uuid(),
+  characterName: characterNameSchema,
+  portraitShardId: z.string().trim().min(1).max(200),
+  level: z.number().int().min(1).optional(),
+  locationId: z.string().trim().min(1).max(200).optional(),
+  lastLocationName: z.string().trim().min(1).max(200).optional(),
+});
+const registerActiveCharacterBodySchema = z.object({
+  characterId: z.string().trim().uuid(),
+  level: z.number().int().min(1).optional(),
+  locationId: z.string().trim().min(1).max(200).optional(),
+  lastLocationName: z.string().trim().min(1).max(200).optional(),
+});
+const selectCharacterBodySchema = z.object({
+  snapshot: characterSnapshotSchema.optional(),
+});
+const patchProfileBodySchema = z.object({
+  displayName: z.string().trim().min(1).max(80),
 });
 
 export function createPlayerProfileRouter(
   repository: PlayerProfileRepository,
   multiplayerRepository: MultiplayerRepository,
   config: ServerConfig,
+  socialRepository?: SocialRepository,
 ): Router {
   const router = Router();
 
@@ -59,9 +88,9 @@ export function createPlayerProfileRouter(
    */
   router.get("/profile", enforceReadRateLimit, async (request, response, next) => {
     try {
-      const playerUuid = await resolveAuthenticatedPlayerUuid(request, multiplayerRepository);
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
 
-      if (!playerUuid) {
+      if (!session) {
         response.status(401).json({
           error: "unauthenticated",
           message: "You must be logged in to access your profile.",
@@ -70,8 +99,8 @@ export function createPlayerProfileRouter(
       }
 
       // Ensure a profile row exists (upsert on first access).
-      await repository.upsertProfile(playerUuid);
-      const summary = await repository.getProfileSummary(playerUuid);
+      await repository.upsertProfile(session.profileId);
+      const summary = await repository.getProfileSummary(session.profileId);
 
       if (!summary) {
         response.status(404).json({
@@ -81,7 +110,247 @@ export function createPlayerProfileRouter(
         return;
       }
 
-      response.json(summary);
+      response.json(await buildProfileResponse(summary, session, socialRepository));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * PATCH /api/player/profile
+   * Update the authenticated player's profile display name and return the full profile summary.
+   */
+  router.patch("/profile", enforceWriteRateLimit, async (request, response, next) => {
+    try {
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
+
+      if (!session) {
+        response.status(401).json({
+          error: "unauthenticated",
+          message: "You must be logged in to update your profile.",
+        });
+        return;
+      }
+
+      const parseResult = patchProfileBodySchema.safeParse(request.body);
+
+      if (!parseResult.success) {
+        response.status(400).json({
+          error: "invalid_request",
+          message: parseResult.error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+
+      await repository.upsertProfile(session.profileId);
+      await repository.updateProfileDisplayName(session.profileId, parseResult.data.displayName);
+
+      if (socialRepository) {
+        await socialRepository.refreshPresenceFromSessions();
+      }
+
+      const summary = await repository.getProfileSummary(session.profileId);
+
+      if (!summary) {
+        response.status(404).json({
+          error: "profile_not_found",
+          message: "Player profile could not be found.",
+        });
+        return;
+      }
+
+      response.json(await buildProfileResponse(summary, session, socialRepository));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/register-character", enforceWriteRateLimit, async (request, response, next) => {
+    try {
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
+
+      if (!session) {
+        response.status(401).json({
+          error: "unauthenticated",
+          message: "You must be logged in to register a character.",
+        });
+        return;
+      }
+
+      const parseResult = registerCharacterBodySchema.safeParse(request.body);
+
+      if (!parseResult.success) {
+        response.status(400).json({
+          error: "invalid_request",
+          message: parseResult.error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+
+      const currentProfile = buildServerProfile(config);
+      const registered = await repository.registerCharacter(
+        session.profileId,
+        parseResult.data,
+        {
+          serverName: currentProfile.serverName,
+          customContent: currentProfile.customContent,
+          profileToken: currentProfile.profileToken,
+          acceptedAt: new Date().toISOString(),
+        },
+      );
+
+      response.status(registered.status === "created" ? 201 : 200).json({
+        status: registered.status,
+        character: toCharacterSummary(registered.character),
+      });
+    } catch (error) {
+      if (isErrorCode(error, "character_profile_conflict")) {
+        response.status(409).json({
+          error: "character_profile_conflict",
+          message: "This character is already registered to a different profile on this server.",
+        });
+        return;
+      }
+
+      if (isErrorCode(error, "character_tamper_detected")) {
+        response.status(409).json({
+          error: "character_tamper_detected",
+          message: "This character's data could not be verified on this server.",
+        });
+        return;
+      }
+
+      next(error);
+    }
+  });
+
+  router.post("/register-active-character", enforceWriteRateLimit, async (request, response, next) => {
+    try {
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
+
+      if (!session) {
+        response.status(401).json({
+          error: "unauthenticated",
+          message: "You must be logged in to activate a character.",
+        });
+        return;
+      }
+
+      const parseResult = registerActiveCharacterBodySchema.safeParse(request.body);
+
+      if (!parseResult.success) {
+        response.status(400).json({
+          error: "invalid_request",
+          message: parseResult.error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
+
+      const character = await repository.getCharacter(parseResult.data.characterId);
+
+      if (!character || character.profileId !== session.profileId) {
+        response.status(404).json({
+          error: "character_not_registered",
+          message: "This character is not registered on the current server for your profile.",
+        });
+        return;
+      }
+
+      const currentProfile = buildServerProfile(config);
+      const compatibilityResult = checkCharacterCompatibility(
+        character.contentBinding ?? null,
+        currentProfile.profileToken,
+        currentProfile.customContent,
+        config.clientSecret,
+      );
+
+      if (!compatibilityResult.compatible) {
+        response.status(409).json({
+          error: "character_incompatible",
+          message: compatibilityResult.reason,
+        });
+        return;
+      }
+
+      const updated = await repository.registerActiveCharacter(
+        session.profileId,
+        parseResult.data.characterId,
+        {
+          level: parseResult.data.level,
+          locationId: parseResult.data.locationId,
+          lastLocationName: parseResult.data.lastLocationName,
+        },
+      );
+      await multiplayerRepository.setActiveCharacter(
+        session.sessionId,
+        session.profileId,
+        parseResult.data.characterId,
+      );
+
+      if (socialRepository) {
+        await socialRepository.refreshPresenceFromSessions();
+      }
+
+      response.json({
+        status: "activated",
+        profileId: session.profileId,
+        activeCharacterId: parseResult.data.characterId,
+        character: toCharacterSummary(updated),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/characters/:characterId", enforceWriteRateLimit, async (request, response, next) => {
+    try {
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
+
+      if (!session) {
+        response.status(401).json({
+          error: "unauthenticated",
+          message: "You must be logged in to remove a character.",
+        });
+        return;
+      }
+
+      const { characterId } = request.params;
+      const characterIdStr = Array.isArray(characterId) ? characterId[0] : characterId;
+
+      if (!characterIdStr) {
+        response.status(400).json({
+          error: "invalid_request",
+          message: "Character ID is required.",
+        });
+        return;
+      }
+
+      if (session.activeCharacterId === characterIdStr) {
+        response.status(409).json({
+          error: "active_character_delete_blocked",
+          message: "Switch to a different character before removing this one from the server profile.",
+        });
+        return;
+      }
+
+      const deleted = await repository.deleteCharacter(session.profileId, characterIdStr);
+
+      if (!deleted) {
+        response.status(404).json({
+          error: "character_not_found",
+          message: "Character not found in your current server profile.",
+        });
+        return;
+      }
+
+      if (socialRepository) {
+        await socialRepository.refreshPresenceFromSessions();
+      }
+
+      response.json({
+        deleted: true,
+        characterId: characterIdStr,
+      });
     } catch (error) {
       next(error);
     }
@@ -94,9 +363,9 @@ export function createPlayerProfileRouter(
    */
   router.post("/characters", enforceWriteRateLimit, async (request, response, next) => {
     try {
-      const playerUuid = await resolveAuthenticatedPlayerUuid(request, multiplayerRepository);
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
 
-      if (!playerUuid) {
+      if (!session) {
         response.status(401).json({
           error: "unauthenticated",
           message: "You must be logged in to create a character.",
@@ -114,7 +383,11 @@ export function createPlayerProfileRouter(
         return;
       }
 
-      const { name, contentBinding: submittedBinding } = parseResult.data;
+      const {
+        name,
+        contentBinding: submittedBinding,
+        initialSnapshot,
+      } = parseResult.data;
 
       // Validate submitted content binding against current server profile.
       let resolvedBinding: CharacterContentBinding | null = null;
@@ -151,12 +424,13 @@ export function createPlayerProfileRouter(
       }
 
       // Ensure profile exists.
-      await repository.upsertProfile(playerUuid);
+      await repository.upsertProfile(session.profileId);
 
       const character = await repository.createCharacter(
-        playerUuid,
+        session.profileId,
         name,
         resolvedBinding,
+        initialSnapshot,
       );
 
       response.status(201).json(character);
@@ -173,9 +447,9 @@ export function createPlayerProfileRouter(
    */
   router.post("/characters/:characterId/select", enforceWriteRateLimit, async (request, response, next) => {
     try {
-      const playerUuid = await resolveAuthenticatedPlayerUuid(request, multiplayerRepository);
+      const session = await resolveAuthenticatedProfileSession(request, multiplayerRepository);
 
-      if (!playerUuid) {
+      if (!session) {
         response.status(401).json({
           error: "unauthenticated",
           message: "You must be logged in to select a character.",
@@ -185,6 +459,15 @@ export function createPlayerProfileRouter(
 
       const { characterId } = request.params;
       const characterIdStr = Array.isArray(characterId) ? characterId[0] : characterId;
+      const bodyParseResult = selectCharacterBodySchema.safeParse(request.body ?? {});
+
+      if (!bodyParseResult.success) {
+        response.status(400).json({
+          error: "invalid_request",
+          message: bodyParseResult.error.issues.map((issue) => issue.message).join("; "),
+        });
+        return;
+      }
 
       if (!characterIdStr) {
         response.status(400).json({
@@ -205,7 +488,7 @@ export function createPlayerProfileRouter(
       }
 
       // Ensure the character belongs to the authenticated player.
-      if (character.profileId !== playerUuid) {
+      if (character.profileId !== session.profileId) {
         response.status(403).json({
           error: "character_access_denied",
           message: "You do not have access to this character.",
@@ -217,7 +500,7 @@ export function createPlayerProfileRouter(
 
       // Enforce content compatibility.
       const compatibilityResult = checkCharacterCompatibility(
-        character.contentBinding,
+        character.contentBinding ?? null,
         currentProfile.profileToken,
         currentProfile.customContent,
         config.clientSecret,
@@ -241,10 +524,25 @@ export function createPlayerProfileRouter(
         });
       }
 
+      if (bodyParseResult.data.snapshot) {
+        await repository.updateCharacterSnapshot(characterIdStr, bodyParseResult.data.snapshot);
+      }
+
+      await repository.markCharacterSelected(characterIdStr);
+      await multiplayerRepository.setActiveCharacter(
+        session.sessionId,
+        session.profileId,
+        characterIdStr,
+      );
+      if (socialRepository) {
+        await socialRepository.refreshPresenceFromSessions();
+      }
       const updatedCharacter = await repository.getCharacter(characterIdStr);
 
       response.json({
         selected: true,
+        profileId: session.profileId,
+        activeCharacterId: characterIdStr,
         character: updatedCharacter,
       });
     } catch (error) {
@@ -319,10 +617,14 @@ function checkCharacterCompatibility(
   return { compatible: true, reason: "Token match; character is compatible." };
 }
 
-async function resolveAuthenticatedPlayerUuid(
+async function resolveAuthenticatedProfileSession(
   request: import("express").Request,
   multiplayerRepository: MultiplayerRepository,
-): Promise<string | null> {
+): Promise<{
+  sessionId: string;
+  profileId: string;
+  activeCharacterId?: string;
+} | null> {
   const sessionId = extractSessionId(request);
 
   if (!sessionId) {
@@ -335,11 +637,89 @@ async function resolveAuthenticatedPlayerUuid(
     return null;
   }
 
-  const player = await multiplayerRepository.getAllowedPlayer(session.playerUuid);
+  const player = await multiplayerRepository.getAllowedPlayer(session.profileId);
 
   if (!player || player.serverBanned) {
     return null;
   }
 
-  return player.playerUuid;
+  return {
+    sessionId: session.sessionId,
+    profileId: session.profileId,
+    activeCharacterId: session.activeCharacterId,
+  };
+}
+
+async function buildProfileResponse(
+  summary: PlayerProfileSummary,
+  session: {
+    activeCharacterId?: string;
+  },
+  socialRepository?: SocialRepository,
+): Promise<{
+  id: string;
+  displayName?: string;
+  createdAt: string;
+  updatedAt: string;
+  characters: PlayerProfileSummary["characters"];
+  profileId: string;
+  activeCharacterId?: string;
+  currentCharacterId?: string;
+  currentCharacterName?: string;
+  badges: readonly {
+    type: "friend" | "guild_role" | "admin" | "moderation" | "permission";
+    label: string;
+  }[];
+  friendSummary: {
+    count: number;
+  };
+  guildSummary: {
+    id: string;
+    name: string;
+    role: string;
+  } | null;
+}> {
+  const socialSummary = socialRepository
+    ? await socialRepository.getProfileSummary(summary.id)
+    : null;
+
+  return {
+    ...summary,
+    profileId: summary.id,
+    activeCharacterId: session.activeCharacterId,
+    currentCharacterId: socialSummary?.currentCharacterId,
+    currentCharacterName: socialSummary?.currentCharacterName,
+    badges: socialSummary?.badges ?? [],
+    friendSummary: {
+      count: socialSummary?.friendCount ?? 0,
+    },
+    guildSummary: socialSummary?.guild
+      ? {
+          id: socialSummary.guild.id,
+          name: socialSummary.guild.name,
+          role: socialSummary.guild.role,
+        }
+      : null,
+  };
+}
+
+function toCharacterSummary(character: import("./player-profile-types").PlayerCharacterRecord): PlayerProfileSummary["characters"][number] {
+  return {
+    id: character.id,
+    profileId: character.profileId,
+    name: character.name,
+    portraitShardId: character.portraitShardId,
+    level: character.level,
+    locationId: character.locationId,
+    lastLocationName: character.lastLocationName,
+    online: character.online,
+    lastPlayedAt: character.lastPlayedAt,
+    contentBinding: character.contentBinding,
+    guildId: character.guildId,
+    guildName: character.guildName,
+  };
+}
+
+function isErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Error && error.message === code;
 }

@@ -13,6 +13,8 @@ export interface PlayerModerationRecord {
 }
 
 export interface AllowedPlayerRecord extends PlayerModerationRecord {
+  readonly profileId: string;
+  /** Legacy alias for profileId. */
   readonly playerUuid: string;
   readonly displayName?: string;
   readonly avatarPath?: string;
@@ -24,9 +26,11 @@ export interface AllowedPlayerRecord extends PlayerModerationRecord {
 
 export interface ServerSessionRecord {
   readonly sessionId: string;
-  readonly playerUuid: string;
+  readonly profileId: string;
+  readonly activeCharacterId?: string;
   readonly clientId: string;
   readonly ipAddress?: string;
+  readonly authenticatedAt: string;
   readonly connectedAt: string;
   readonly lastSeenAt: string;
 }
@@ -42,8 +46,13 @@ export interface ChatMessageRecord extends PlayerModerationRecord {
 }
 
 export interface OnlinePlayerRecord extends PlayerModerationRecord {
-  readonly playerUuid: string;
+  readonly profileId: string;
+  readonly characterId?: string;
+  /** Legacy alias for characterId. */
+  readonly playerUuid?: string;
   readonly displayName?: string;
+  readonly currentCharacterName?: string;
+  readonly guildShortName?: string;
   readonly avatarPath?: string;
   readonly rank: PlayerRank;
   readonly clientId: string;

@@ -9,6 +9,10 @@ import { ActivityService } from "../../core/services/activity.service";
 import { CombatEncounterService } from "../../features/combat/combat-encounter.service";
 import { ChangelogService } from "../../features/changelog/changelog.service";
 import type { ChangelogRelease } from "../../features/changelog/changelog.types";
+import {
+  PlayerProfileApiService,
+  type PlayerProfileData,
+} from "../../features/player-profile/player-profile-api.service";
 import { GameDialogService } from "../../core/services/game-dialog.service";
 import { DebugLogService } from "../../core/services/game-log/debug-log.service";
 import { GameplayLogService } from "../../core/services/game-log/gameplay-log.service";
@@ -18,10 +22,16 @@ import {
   formatServerChatHelp,
   resolveServerModerationCommand,
   resolveServerChatCommand,
+  resolveWhisperCommand,
 } from "../../core/services/server-chat-commands";
 import { ServerChatService } from "../../core/services/server-chat.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
+import { GuildService } from "../../core/services/guild.service";
+import { SocialService } from "../../core/services/social.service";
+import { PlayerIdentityService } from "../../core/services/player-identity.service";
 import type {
+  ServerChatPlayerActionRequest,
+  ServerRelayProfileView,
   ServerModerationRequest,
   ServerPresencePlayerView,
 } from "../../core/services/server-chat.models";
@@ -109,6 +119,7 @@ import {
       [isServerAdminOpen]="isServerAdminOpen()"
       [serverFooterSummary]="serverChat.footerSummary()"
       [serverChatPanel]="serverChat.panel()"
+      [serverRelayProfile]="serverRelayProfile()"
       [serverChatPlayers]="serverChat.players()"
       [serverChatMessages]="serverChat.messages()"
       [serverChatCustomEmojis]="serverChat.customEmojis()"
@@ -125,6 +136,27 @@ import {
       [isServerChatSending]="serverChat.isSending()"
       [isServerAdminSubmitting]="isServerAdminSubmitting()"
       [isServerModerationSubmitting]="isServerModerationSubmitting()"
+      [canShowAdminPanel]="serverChat.canShowAdminPanel()"
+      [adminEntries]="serverChat.adminEntries()"
+      [adminTotal]="serverChat.adminTotal()"
+      [adminPage]="serverChat.adminPage()"
+      [adminPageSize]="serverChat.adminPageSize()"
+      [adminSearch]="serverChat.adminSearch()"
+      [adminLoading]="serverChat.adminLoading()"
+      [selectedAdminProfileId]="serverChat.selectedAdminProfileId()"
+      [adminProfileDetail]="serverChat.adminProfileDetail()"
+      [grantablePermissions]="serverChat.grantablePermissions()"
+      [socialPlayers]="serverChat.socialPlayers()"
+      [socialPlayersTotal]="serverChat.socialPlayersTotal()"
+      [socialPlayersPage]="serverChat.socialPlayersPage()"
+      [socialPlayersPageSize]="serverChat.socialPlayersPageSize()"
+      [socialPlayersSearch]="serverChat.socialPlayersSearch()"
+      [socialPlayersLoading]="serverChat.socialPlayersLoading()"
+      [friendships]="serverChat.friendships()"
+      [friendsLoading]="serverChat.friendsLoading()"
+      [currentGuild]="serverChat.currentGuild()"
+      [guildInvitations]="serverChat.guildInvitations()"
+      [guildLoading]="serverChat.guildLoading()"
       [gameDialogSession]="gameDialog.session()"
       [version]="version"
       (actionSelected)="handleActionSelected($event)"
@@ -170,6 +202,30 @@ import {
       (serverChatRefreshRequested)="refreshServerChat()"
       (serverChatGrantAdminRequested)="openServerAdminDialog()"
       (serverChatModeratePlayerRequested)="openServerModerationDialog($event)"
+      (serverChatChannelSelected)="selectServerChatChannel($event)"
+      (serverChatPlayerActionRequested)="handleServerChatPlayerAction($event)"
+      (adminSearchChanged)="setAdminSearch($event)"
+      (adminPageChanged)="setAdminPage($event)"
+      (adminProfileSelected)="selectAdminProfile($event)"
+      (adminPermissionGranted)="grantAdminPermission($event)"
+      (adminPermissionRevoked)="revokeAdminPermission($event)"
+      (adminModerationRequested)="handleAdminModerationRequest($event)"
+      (adminNoteAdded)="addAdminNote($event)"
+      (socialPlayersSearchChanged)="setSocialPlayersSearch($event)"
+      (socialPlayersPageChanged)="setSocialPlayersPage($event)"
+      (friendAddCharacterRequested)="addCharacterFriend($event)"
+      (friendAddProfileRequested)="addProfileFriend($event)"
+      (friendAcceptRequested)="acceptFriendRequest($event)"
+      (friendRejectRequested)="rejectFriendRequest($event)"
+      (friendshipRemoveRequested)="removeFriendship($event)"
+      (guildCreateRequested)="createGuild($event)"
+      (guildInviteRequested)="inviteGuildMember($event)"
+      (guildInvitationResponded)="respondGuildInvitation($event)"
+      (guildRoleChanged)="changeGuildRole($event)"
+      (guildLeaveRequested)="leaveGuild($event)"
+      (channelLeaveRequested)="leaveCustomChannel($event)"
+      (channelCloseRequested)="closeDirectConversation($event)"
+      (channelDestroyRequested)="destroyCustomChannel($event)"
       (serverAdminSubmitted)="submitServerAdminDialog($event)"
       (serverModerationSubmitted)="submitServerModeration($event)"
       (serverModerationCleared)="closeServerModerationDialog()"
@@ -187,6 +243,7 @@ export class ShellContainerComponent {
   private readonly activityService = inject(ActivityService);
   private readonly combatEncounter = inject(CombatEncounterService);
   private readonly changelogService = inject(ChangelogService);
+  private readonly playerProfileApi = inject(PlayerProfileApiService);
   private readonly debugLog = inject(DebugLogService);
   private readonly gameplayLog = inject(GameplayLogService);
   private readonly gameQuests = inject(GameQuestService);
@@ -194,6 +251,9 @@ export class ShellContainerComponent {
   private readonly worldState = inject(WorldStateService);
   private readonly gameplayRuntime = inject(GameplayGraphRuntime);
   private readonly serverConnection = inject(ServerConnectionService);
+  private readonly guildService = inject(GuildService);
+  private readonly socialService = inject(SocialService);
+  private readonly playerIdentity = inject(PlayerIdentityService);
   protected readonly serverChat = inject(ServerChatService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
@@ -222,6 +282,7 @@ export class ShellContainerComponent {
   protected readonly whatsNewUnreadCount = signal(0);
   protected readonly selectedModerationPlayer =
     signal<ServerPresencePlayerView | null>(null);
+  protected readonly relayProfileState = signal<PlayerProfileData | null>(null);
   protected readonly trackedQuestIdsState = signal<readonly string[]>([]);
   private readonly creatorOptions = signal<CharacterCreatorOptions | null>(
     null,
@@ -244,7 +305,7 @@ export class ShellContainerComponent {
     const activeCharacter = this.roster.activeCharacter();
 
     if (!activeCharacter) {
-      return "Playing as Unknown Adventurer";
+      return "Playing as No Active Character";
     }
 
     return `Playing as Level ${activeCharacter.progression.level} ${activeCharacter.name}`;
@@ -262,7 +323,6 @@ export class ShellContainerComponent {
   );
 
   readonly navItems = signal<readonly ShellNavItem[]>([
-    { label: "Home", route: "/" },
     { label: "Creator Lab", route: "/creator" },
     { label: "Changelog", route: "/changelog" },
     { label: "Profile", route: "/profile" },
@@ -377,7 +437,7 @@ export class ShellContainerComponent {
       const refreshedPlayer =
         this.serverChat
           .players()
-          .find((player) => player.playerUuid === selectedPlayer.playerUuid) ??
+          .find((player) => player.profileId === selectedPlayer.profileId) ??
         null;
 
       if (!refreshedPlayer) {
@@ -427,7 +487,7 @@ export class ShellContainerComponent {
 
     if (!activeSlot) {
       return {
-        lead: "Unknown Adventurer",
+        lead: "No Active Character",
         lastSaved: "—",
       };
     }
@@ -555,6 +615,25 @@ export class ShellContainerComponent {
     };
   });
 
+  readonly serverRelayProfile = computed<ServerRelayProfileView | null>(() => {
+    const profile = this.relayProfileState();
+
+    if (!profile) {
+      return null;
+    }
+
+    return {
+      profileId: profile.id,
+      playerUuid: this.serverChat.currentPlayerUuid(),
+      displayName: profile.displayName?.trim() || profile.id,
+      characters: profile.characters.map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+      })),
+      friendships: this.serverChat.friendships(),
+    };
+  });
+
   protected openCharacterCreation(): void {
     this.logUi("Opening character creation dialog.");
     this.closeServerChat();
@@ -602,10 +681,19 @@ export class ShellContainerComponent {
     this.isCharacterCreationOpenState.set(false);
   }
 
-  protected handleCharacterCreated(): void {
+  protected async handleCharacterCreated(): Promise<void> {
     this.logUi("Character creation completed.");
     this.isCharacterCreationOpenState.set(false);
-    this.transferStatusMessage.set("Character registered and active.");
+
+    if (!this.serverConnection.isConnected()) {
+      this.transferStatusMessage.set(
+        "Character created locally. Connect to a server to register it there.",
+      );
+      return;
+    }
+
+    this.transferStatusMessage.set("Character created locally.");
+    this.handleLoadedCharacterChangedWhileConnected();
   }
 
   protected openSaveManager(): void {
@@ -666,6 +754,7 @@ export class ShellContainerComponent {
     this.isGegVisualizerOpen.set(false);
     this.isServerChatOpen.set(true);
     this.serverChat.openPanel();
+    void this.refreshRelayProfile();
   }
 
   protected closeServerChat(): void {
@@ -683,6 +772,345 @@ export class ShellContainerComponent {
   protected refreshServerChat(): void {
     this.logUi("Refreshing server relay data.");
     void this.serverChat.refreshAll();
+    void this.refreshRelayProfile();
+  }
+
+  protected selectServerChatChannel(channelId: string): void {
+    this.serverChat.selectChannel(channelId);
+  }
+
+  protected setAdminSearch(search: string): void {
+    this.serverChat.setAdminSearch(search);
+  }
+
+  protected setAdminPage(page: number): void {
+    this.serverChat.setAdminPage(page);
+  }
+
+  protected selectAdminProfile(profileId: string): void {
+    this.serverChat.selectAdminProfile(profileId);
+  }
+
+  protected setSocialPlayersSearch(search: string): void {
+    this.serverChat.setSocialPlayersSearch(search);
+  }
+
+  protected setSocialPlayersPage(page: number): void {
+    this.serverChat.setSocialPlayersPage(page);
+  }
+
+  protected async addCharacterFriend(input: {
+    profileId: string;
+    characterId?: string;
+  }): Promise<void> {
+    if (!input.profileId.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.addCharacterFriend(input.profileId.trim(), input.characterId);
+      this.serverChat.showStatusMessage("Character friend added.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async addProfileFriend(profileId: string): Promise<void> {
+    if (!profileId.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.requestProfileFriend(profileId.trim());
+      this.serverChat.showStatusMessage("Profile friend request sent.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async acceptFriendRequest(friendshipId: string): Promise<void> {
+    try {
+      await this.serverChat.acceptFriendRequest(friendshipId);
+      this.serverChat.showStatusMessage("Friend request accepted.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async rejectFriendRequest(friendshipId: string): Promise<void> {
+    try {
+      await this.serverChat.rejectFriendRequest(friendshipId);
+      this.serverChat.showStatusMessage("Friend request rejected.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async removeFriendship(friendshipId: string): Promise<void> {
+    try {
+      await this.serverChat.removeFriendship(friendshipId);
+      this.serverChat.showStatusMessage("Friend removed.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async createGuild(input: {
+    name: string;
+    shortName: string;
+  }): Promise<void> {
+    if (!input.name.trim() || !input.shortName.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.createGuild({
+        name: input.name.trim(),
+        shortName: input.shortName.trim().toUpperCase(),
+      });
+      this.serverChat.showStatusMessage("Guild created.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async inviteGuildMember(input: {
+    guildId: string;
+    targetProfileId: string;
+  }): Promise<void> {
+    if (!input.targetProfileId.trim()) {
+      return;
+    }
+    try {
+      await this.serverChat.inviteToGuild(input.guildId, input.targetProfileId.trim());
+      this.serverChat.showStatusMessage("Guild invitation sent.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async respondGuildInvitation(input: {
+    invitationId: string;
+    accept: boolean;
+  }): Promise<void> {
+    try {
+      await this.serverChat.respondGuildInvitation(input.invitationId, input.accept);
+      this.serverChat.showStatusMessage(input.accept ? "Guild invitation accepted." : "Guild invitation rejected.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async changeGuildRole(input: {
+    guildId: string;
+    characterId: string;
+    role: "guild_master" | "officer" | "member" | "recruit";
+  }): Promise<void> {
+    try {
+      await this.serverChat.setGuildMemberRole(input.guildId, input.characterId, input.role);
+      this.serverChat.showStatusMessage("Guild member role updated.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async leaveGuild(guildId: string): Promise<void> {
+    try {
+      await this.serverChat.leaveGuild(guildId);
+      this.serverChat.showStatusMessage("Left guild.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async leaveCustomChannel(channelId: string): Promise<void> {
+    try {
+      await this.serverChat.leaveCustomChannel(channelId);
+      this.serverChat.showStatusMessage("Left channel.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async closeDirectConversation(conversationId: string): Promise<void> {
+    try {
+      await this.serverChat.closeDirectConversation(conversationId);
+      this.serverChat.showStatusMessage("Conversation closed.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async destroyCustomChannel(channelId: string): Promise<void> {
+    try {
+      await this.serverChat.destroyCustomChannel(channelId);
+      this.serverChat.showStatusMessage("Channel destroyed.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async grantAdminPermission(input: {
+    profileId: string;
+    permissionId: string;
+  }): Promise<void> {
+    try {
+      await this.serverChat.grantProfilePermission(input.profileId, input.permissionId);
+      this.serverChat.showStatusMessage(`Granted ${input.permissionId}.`);
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async revokeAdminPermission(input: {
+    profileId: string;
+    permissionId: string;
+  }): Promise<void> {
+    try {
+      await this.serverChat.revokeProfilePermission(input.profileId, input.permissionId);
+      this.serverChat.showStatusMessage(`Revoked ${input.permissionId}.`);
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async handleAdminModerationRequest(input: {
+    profileId: string;
+    action: "kick" | "ban" | "unban" | "mute" | "unmute" | "warn";
+  }): Promise<void> {
+    try {
+      await this.serverChat.moderateProfile(input.profileId, input.action);
+      this.serverChat.showStatusMessage(`Applied ${input.action} on profile.`);
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async addAdminNote(input: { profileId: string; body: string }): Promise<void> {
+    try {
+      await this.serverChat.addAdminNote(input.profileId, input.body);
+      this.serverChat.showStatusMessage("Admin note added.");
+    } catch (error) {
+      this.serverChat.showStatusMessage(errorToMessage(error));
+    }
+  }
+
+  protected async handleServerChatPlayerAction(
+    request: ServerChatPlayerActionRequest,
+  ): Promise<void> {
+    if (request.action === "whisper") {
+      if (!request.targetProfileId.trim()) {
+        this.serverChat.showStatusMessage(
+          "Whisper target is unavailable right now.",
+        );
+        return;
+      }
+
+      try {
+        await this.serverChat.openDirectConversation(request.targetProfileId);
+        this.serverChat.showStatusMessage(
+          request.targetCharacterName?.trim()
+            ? `Opened whisper with ${request.targetCharacterName.trim()}.`
+            : "Opened direct conversation.",
+        );
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "friend_profile") {
+      try {
+        await this.serverChat.requestProfileFriend(request.targetProfileId);
+        this.serverChat.showStatusMessage("Profile friend request sent.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "friend_character") {
+      try {
+        await this.serverChat.addCharacterFriend(request.targetProfileId);
+        this.serverChat.showStatusMessage("Character friend added.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "block") {
+      try {
+        await this.socialService.blockProfile(request.targetProfileId);
+        this.serverChat.showStatusMessage("Player blocked.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "ban" && this.serverChat.canModerate()) {
+      const targetPlayerUuid =
+        request.targetPlayerUuid ?? request.targetProfileId;
+      const player = this.serverChat
+        .players()
+        .find(
+          (entry) =>
+            (entry.characterId ?? entry.profileId) === targetPlayerUuid ||
+            entry.profileId === request.targetProfileId,
+        );
+
+      if (player) {
+        this.openServerModerationDialog(player);
+      }
+      return;
+    }
+
+    if ((request.action === "kick" || request.action === "mute") && this.serverChat.canModerate()) {
+      this.serverChat.showStatusMessage(
+        "Kick and mute actions are routed through the moderation panel right now.",
+      );
+      return;
+    }
+
+    if (request.action === "report") {
+      try {
+        await this.socialService.reportPlayer({
+          targetProfileId: request.targetProfileId,
+          reason: "Reported from shell chat context action.",
+        });
+        this.serverChat.showStatusMessage("Report submitted.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "guild_invite" && request.targetProfileId) {
+      try {
+        const guildResponse = await this.guildService.loadCurrentGuild();
+
+        if (!guildResponse.guild?.guildId) {
+          this.serverChat.showStatusMessage("Join or create a guild before inviting.");
+          return;
+        }
+
+        await this.guildService.inviteToGuild(guildResponse.guild.guildId, {
+          targetProfileId: request.targetProfileId,
+        });
+        this.serverChat.showStatusMessage("Guild invitation sent.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+      return;
+    }
+
+    if (request.action === "admin_profile" && this.serverChat.canModerate()) {
+      try {
+        this.serverChat.selectAdminProfile(request.targetProfileId);
+        await this.serverChat.refreshAdminPanel();
+        this.serverChat.showStatusMessage("Loaded admin profile detail.");
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
+    }
   }
 
   protected async sendServerChatMessage(message: string): Promise<void> {
@@ -691,6 +1119,23 @@ export class ShellContainerComponent {
 
     if (moderationCommand) {
       await this.handleServerModerationCommand(moderationCommand);
+      return;
+    }
+
+    const whisperCommand = resolveWhisperCommand(message);
+
+    if (whisperCommand) {
+      try {
+        await this.serverChat.sendWhisper(
+          whisperCommand.targetCharacterName,
+          whisperCommand.body,
+        );
+        this.serverChat.showStatusMessage(
+          `Opened whisper with ${whisperCommand.targetCharacterName}.`,
+        );
+      } catch (error) {
+        this.serverChat.showStatusMessage(errorToMessage(error));
+      }
       return;
     }
 
@@ -740,7 +1185,8 @@ export class ShellContainerComponent {
 
   protected openServerModerationDialog(player: ServerPresencePlayerView): void {
     this.logUi("Focusing server moderation target.", {
-      playerUuid: player.playerUuid,
+      profileId: player.profileId,
+      characterId: player.characterId,
     });
     this.closeServerAdminDialog();
     this.selectedModerationPlayer.set(player);
@@ -770,7 +1216,7 @@ export class ShellContainerComponent {
       const refreshedPlayer =
         this.serverChat
           .players()
-          .find((player) => player.playerUuid === request.targetUuid) ?? null;
+          .find((player) => player.profileId === request.targetUuid) ?? null;
 
       this.selectedModerationPlayer.set(refreshedPlayer);
     } catch (error) {
@@ -785,6 +1231,7 @@ export class ShellContainerComponent {
   protected selectServer(serverId: string): void {
     this.logUi("Selecting server.", { serverId });
     this.serverConnection.selectServer(serverId);
+    this.relayProfileState.set(null);
     this.serverStatusMessage.set(`Selected ${serverId}.`);
   }
 
@@ -810,11 +1257,11 @@ export class ShellContainerComponent {
 
   protected async connectServer(password: string): Promise<void> {
     const activeCharacter = this.roster.activeCharacter();
-    const playerUuid = activeCharacter?.id;
+    const profileId = this.playerIdentity.ensureProfileId();
 
-    if (!playerUuid) {
+    if (!activeCharacter) {
       this.serverStatusMessage.set(
-        "Create or load a character first so the server can track its UUID.",
+        "Create or load a character first before connecting a profile.",
       );
       return;
     }
@@ -833,21 +1280,58 @@ export class ShellContainerComponent {
             this.characterMetadata().racesById,
           )
         : undefined;
-      const session = await this.serverConnection.connectPlayer(
-        playerUuid,
+      await this.serverConnection.connectPlayer(
+        profileId,
         password,
-        activeCharacter?.name,
+        activeCharacter.name,
         avatarPath,
       );
+
+      await this.ensureServerCharacterRegistered(activeCharacter);
+
+      const updatedSession = this.serverConnection.session();
       this.serverStatusMessage.set(
-        `Connected ${session.playerUuid} as ${session.rank.toUpperCase()}.`,
+        updatedSession?.activeCharacterId
+          ? `Connected profile ${updatedSession.profileId} as ${updatedSession.rank.toUpperCase()} with ${updatedSession.activeCharacterId} active.`
+          : `Connected profile ${updatedSession?.profileId ?? profileId} as ${updatedSession?.rank.toUpperCase() ?? "PLAYER"}.`,
       );
-      this.logUi("Connected player to server.", session);
+      await this.refreshRelayProfile();
+      this.logUi("Connected player to server.", updatedSession);
     } catch (error) {
       const message = errorToMessage(error);
       this.serverStatusMessage.set(message);
       this.logUi("Connecting player to server failed.", message, "error");
     }
+  }
+
+  /**
+   * Registers the active local character with the current server, then marks it active.
+   * Local character creation stays client-owned; the server learns about it on connect.
+   */
+  private async ensureServerCharacterRegistered(localCharacter: Player): Promise<void> {
+    const initialSnapshot = buildInitialCharacterSnapshot(localCharacter);
+    const portraitShardId = resolvePortraitShardId(localCharacter);
+
+    if (!portraitShardId) {
+      throw new Error("The active character is missing portrait data required for server registration.");
+    }
+
+    await this.playerProfileApi.registerCharacter({
+      characterId: localCharacter.id,
+      characterName: localCharacter.name,
+      portraitShardId,
+      level: initialSnapshot.level,
+      locationId: initialSnapshot.locationId,
+      lastLocationName: initialSnapshot.lastLocationName,
+    });
+    await this.playerProfileApi.registerActiveCharacter({
+      characterId: localCharacter.id,
+      level: initialSnapshot.level,
+      locationId: initialSnapshot.locationId,
+      lastLocationName: initialSnapshot.lastLocationName,
+    });
+
+    await this.serverConnection.restoreSessionFromCookie();
   }
 
   private async handleServerModerationCommand(
@@ -910,7 +1394,7 @@ export class ShellContainerComponent {
     this.openServerModerationDialog(targetPlayer);
     await this.submitServerModeration({
       ...parsedCommand.request,
-      targetUuid: targetPlayer.playerUuid,
+      targetUuid: targetPlayer.profileId,
     });
   }
 
@@ -918,13 +1402,27 @@ export class ShellContainerComponent {
     await this.grantAdminRights(adminPassword, "server-select");
   }
 
+  private async refreshRelayProfile(): Promise<void> {
+    if (!this.serverConnection.session()) {
+      this.relayProfileState.set(null);
+      return;
+    }
+
+    try {
+      const profile = await this.playerProfileApi.getProfile();
+      this.relayProfileState.set(profile);
+    } catch {
+      this.relayProfileState.set(null);
+    }
+  }
+
   private async grantAdminRights(
     adminPassword: string,
     source: "server-select" | "relay",
   ): Promise<void> {
-    const playerUuid = this.roster.activeCharacter()?.id;
+    const profileId = this.playerIdentity.ensureProfileId();
 
-    if (!playerUuid) {
+    if (!this.roster.activeCharacter()) {
       const message = "Create or load a character before granting admin.";
       this.serverStatusMessage.set(message);
       this.serverAdminStatusMessage.set(message);
@@ -944,10 +1442,10 @@ export class ShellContainerComponent {
 
     try {
       const session = await this.serverConnection.grantAdmin(
-        playerUuid,
+        profileId,
         adminPassword,
       );
-      const message = `Granted ${session.playerUuid} admin rights on the selected server.`;
+      const message = `Granted profile ${session.profileId} admin rights on the selected server.`;
       this.serverStatusMessage.set(message);
       this.serverAdminStatusMessage.set(message);
       this.logUi("Granted admin rights.", session);
@@ -1027,7 +1525,9 @@ export class ShellContainerComponent {
 
   protected loadSlot(slotId: string): void {
     this.logUi("Loading save slot.", { slotId });
+    const previousCharacterId = this.roster.activeCharacter()?.id ?? null;
     this.roster.setActiveSlot(slotId);
+    const nextCharacterId = this.roster.activeCharacter()?.id ?? null;
     this.transferStatusMessage.set(`Loaded ${formatSlotLabel(slotId)}.`);
     this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
@@ -1035,6 +1535,26 @@ export class ShellContainerComponent {
     this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
+
+    if (
+      this.serverConnection.isConnected() &&
+      previousCharacterId !== null &&
+      nextCharacterId !== null &&
+      previousCharacterId !== nextCharacterId
+    ) {
+      this.handleLoadedCharacterChangedWhileConnected();
+    }
+  }
+
+  private handleLoadedCharacterChangedWhileConnected(): void {
+    this.serverConnection.disconnect();
+    this.serverStatusMessage.set(
+      "Your loaded character changed. Reconnect to a server to join with this character.",
+    );
+    this.logUi(
+      "Disconnected current server session because the loaded local character changed.",
+    );
+    this.openServerSelect();
   }
 
   protected deleteSlot(slotId: string): void {
@@ -1343,6 +1863,68 @@ function resolveSaveSlotPortraitPath(
   return `${race.imageBasePath}/${appearance.variant}/${portraitFile}`;
 }
 
+function buildInitialCharacterSnapshot(player: Player): {
+  portraitShardId?: string;
+  level?: number;
+  locationId?: string;
+  lastLocationName?: string;
+} {
+  const locationId = resolveLatestLocationId(player);
+
+  return {
+    portraitShardId: resolvePortraitShardId(player),
+    level: Number.isInteger(player.progression.level) && player.progression.level > 0
+      ? player.progression.level
+      : undefined,
+    locationId,
+    lastLocationName: locationId ? humanizeLocationId(locationId) : undefined,
+  };
+}
+
+function resolvePortraitShardId(player: Player): string | undefined {
+  const appearance = player.selectedAppearance;
+
+  if (!appearance) {
+    return undefined;
+  }
+
+  return `${player.raceId}:${appearance.variant}:${appearance.imageIndex}`;
+}
+
+function resolveLatestLocationId(player: Player): string | undefined {
+  const interactionState = player.interactionState;
+
+  if (!interactionState) {
+    return undefined;
+  }
+
+  const lastButtonLocationId = interactionState.lastButtonPress?.locationId?.trim();
+
+  if (lastButtonLocationId) {
+    return lastButtonLocationId;
+  }
+
+  const recent = interactionState.recentButtonPresses ?? [];
+
+  for (let index = recent.length - 1; index >= 0; index -= 1) {
+    const locationId = recent[index]?.locationId?.trim();
+
+    if (locationId) {
+      return locationId;
+    }
+  }
+
+  return undefined;
+}
+
+function humanizeLocationId(locationId: string): string {
+  return locationId
+    .split(/[-_]+/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment[0]!.toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
 function shouldShowServerSelectOnStartup(): boolean {
   try {
     const persisted = localStorage.getItem(SERVER_SELECT_STARTUP_KEY);
@@ -1385,7 +1967,9 @@ function resolveModerationTarget(
 
   const exactUuidMatch =
     players.find(
-      (player) => normalizeModerationTarget(player.playerUuid) === normalizedTarget,
+      (player) =>
+        normalizeModerationTarget(player.characterId ?? player.profileId) === normalizedTarget ||
+        normalizeModerationTarget(player.profileId) === normalizedTarget,
     ) ?? null;
 
   if (exactUuidMatch) {

@@ -16,7 +16,7 @@
       @if (player(); as player) {
         <div class="gv-server-moderation-dialog__summary">
           <p class="gv-server-moderation-dialog__name">
-            {{ player.displayName ?? "Unknown Adventurer" }}
+            {{ player.displayName ?? player.profileId ?? player.playerUuid }}
           </p>
           <p class="gv-server-moderation-dialog__meta">
             {{ player.rank.toUpperCase() }} | {{ player.chatAccessLabel }}

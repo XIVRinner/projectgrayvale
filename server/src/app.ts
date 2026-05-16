@@ -40,6 +40,8 @@ import { createMultiplayerRouter } from "./multiplayer/multiplayer-routes";
 import { MultiplayerRepository } from "./multiplayer/multiplayer-repository";
 import { PlayerProfileRepository } from "./player-profile/player-profile-repository";
 import { createPlayerProfileRouter } from "./player-profile/player-profile-routes";
+import { SocialRepository } from "./social/social-repository";
+import { createSocialRouter } from "./social/social-routes";
 import { registerAdminTagRoutes } from "./tags/admin-tag-routes";
 import { createTagRegistryRouter } from "./tags/tag-registry";
 import { TagRegistryService } from "./tags/tag-registry-service";
@@ -76,6 +78,7 @@ export async function createApp(
   const entityRepository = new EntityRepository(db);
   const multiplayerRepository = new MultiplayerRepository(db);
   const playerProfileRepository = new PlayerProfileRepository(db);
+  const socialRepository = new SocialRepository(db);
   const changelogRepository = new ChangelogRepository(db);
   const changelogService = new ChangelogService(changelogRepository);
   const changelogController = new ChangelogController(
@@ -107,6 +110,27 @@ export async function createApp(
         : randomUUID();
     request.headers["x-request-id"] = requestId;
     response.setHeader("X-Request-Id", requestId);
+    next();
+  });
+
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    const startedAt = Date.now();
+
+    response.on("finish", () => {
+      const requestId = response.getHeader("X-Request-Id");
+      process.stdout.write(
+        JSON.stringify({
+          event: "http_request",
+          requestId,
+          method: request.method,
+          path: request.originalUrl,
+          statusCode: response.statusCode,
+          durationMs: Date.now() - startedAt,
+          ip: request.ip,
+        }) + "\n",
+      );
+    });
+
     next();
   });
 
@@ -146,11 +170,20 @@ export async function createApp(
   );
   app.use(
     "/api/server",
-    createMultiplayerRouter(multiplayerRepository, config),
+    createMultiplayerRouter(multiplayerRepository, config, socialRepository),
   );
   app.use(
     "/api/player",
-    createPlayerProfileRouter(playerProfileRepository, multiplayerRepository, config),
+    createPlayerProfileRouter(
+      playerProfileRepository,
+      multiplayerRepository,
+      config,
+      socialRepository,
+    ),
+  );
+  app.use(
+    "/api",
+    createSocialRouter(socialRepository, multiplayerRepository, config),
   );
   registerDefinitionAssetRoutes(app, definitionAssetService);
   registerAdminDefinitionRoutes(
@@ -310,17 +343,32 @@ function isProductionRuntime(): boolean {
 
 function errorHandler(
   error: unknown,
-  _request: Request,
+  request: Request,
   response: Response,
   _next: NextFunction,
 ): void {
+  const requestId = response.getHeader("X-Request-Id");
+  const errorObject = error instanceof Error ? error : new Error(String(error));
+  const errorWithCode = error as { code?: string; errno?: number };
+
+  process.stderr.write(
+    JSON.stringify({
+      event: "http_error",
+      requestId,
+      method: request.method,
+      path: request.originalUrl,
+      code: errorWithCode.code,
+      errno: errorWithCode.errno,
+      message: errorObject.message,
+      stack: errorObject.stack,
+    }) + "\n",
+  );
+
   // In production hide internal error details to prevent information leakage.
   // In development return the full message to aid debugging.
   const message = isProductionRuntime()
     ? "An unexpected error occurred."
-    : error instanceof Error
-      ? error.message
-      : "Unexpected server error.";
+    : errorObject.message;
 
   response.status(500).json({
     error: "internal_error",

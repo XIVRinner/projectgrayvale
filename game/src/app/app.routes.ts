@@ -11,10 +11,7 @@ export const routes: Routes = [
       {
         path: "",
         pathMatch: "full",
-        loadComponent: () =>
-          import("./features/home/home-container.component").then(
-            (m) => m.HomeContainerComponent
-          )
+        redirectTo: "profile"
       },
       {
         path: "creator",
@@ -44,10 +41,6 @@ export const routes: Routes = [
           import("./features/changelog/changelog.routes").then(
             (m) => m.CHANGELOG_ROUTES
           )
-      },
-      {
-        path: "home",
-        redirectTo: ""
       },
       {
         path: "profile",

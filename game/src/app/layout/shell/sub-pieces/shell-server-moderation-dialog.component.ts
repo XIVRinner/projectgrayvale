@@ -90,7 +90,7 @@ export class ShellServerModerationDialogComponent {
     }
 
     this.submitted.emit({
-      targetUuid: player.playerUuid,
+      targetUuid: player.profileId,
       action,
       reason: reason || undefined,
       durationMinutes,

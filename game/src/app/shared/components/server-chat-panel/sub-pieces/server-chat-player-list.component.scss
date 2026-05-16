@@ -25,6 +25,7 @@
     linear-gradient(180deg, var(--gv-color-overlay-soft), transparent),
     color-mix(in srgb, var(--gv-color-bg-surface) 94%, black 6%);
   padding: 0.55rem 0.7rem;
+  cursor: context-menu;
 }
 
 .gv-server-chat-player-list__item--self {
@@ -33,6 +34,7 @@
     var(--gv-color-accent-cool) 52%,
     var(--gv-color-border-subtle)
   );
+  cursor: default;
 }
 
 .gv-server-chat-player-list__item--selected {
@@ -121,16 +123,4 @@
 .gv-server-chat-player-list__empty {
   color: color-mix(in srgb, var(--gv-color-text-muted) 76%, white 24%);
   font-size: var(--gv-font-size-xs);
-}
-
-.gv-server-chat-player-list__action {
-  border: var(--gv-border-subtle);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
-  color: var(--gv-color-text-primary);
-  cursor: pointer;
-  font-family: var(--gv-font-ui);
-  font-size: var(--gv-font-size-xxs);
-  font-weight: 700;
-  padding: calc(var(--gv-space-xs) * 1.1) var(--gv-space-sm);
 }
