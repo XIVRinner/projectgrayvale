@@ -32,7 +32,7 @@ export class ChangelogService {
 
   readonly anonymousClientId = this.anonymousClientIdState.asReadonly();
   readonly currentUserId = computed(
-    () => this.serverConnection.session()?.playerUuid ?? null,
+    () => this.serverConnection.session()?.profileId ?? null,
   );
 
   async fetchChangelog(

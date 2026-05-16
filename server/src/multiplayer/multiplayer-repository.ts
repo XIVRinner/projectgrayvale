@@ -36,9 +36,11 @@ interface AllowedPlayerRow {
 
 interface SessionRow {
   readonly session_id: string;
-  readonly player_uuid: string;
+  readonly profile_id: string | null;
+  readonly active_character_id: string | null;
   readonly client_id: string;
   readonly ip_address: string | null;
+  readonly authenticated_at: string;
   readonly connected_at: string;
   readonly last_seen_at: string;
 }
@@ -62,7 +64,9 @@ interface ChatMessageRow {
 }
 
 interface OnlinePlayerRow {
-  readonly player_uuid: string;
+  readonly profile_id: string;
+  readonly character_id: string | null;
+  readonly current_character_name: string | null;
   readonly display_name: string | null;
   readonly avatar_path: string | null;
   readonly chat_timeout_until: string | null;
@@ -95,12 +99,12 @@ export class MultiplayerRepository {
   constructor(private readonly db: GrayvaleDatabase) {}
 
   async registerPlayer(
-    playerUuid: string,
+    profileId: string,
     password: string,
     displayName?: string,
     avatarPath?: string,
   ): Promise<AllowedPlayerRecord> {
-    const existing = await this.getAllowedPlayer(playerUuid);
+    const existing = await this.getAllowedPlayer(profileId);
 
     if (existing) {
       throw new Error("player_exists");
@@ -114,15 +118,15 @@ export class MultiplayerRepository {
         INSERT INTO allowed_players (player_uuid, password_hash, display_name, avatar_path, rank)
         VALUES (?, ?, ?, ?, 'player')
       `,
-      playerUuid,
+      profileId,
       passwordHash,
       normalizedDisplayName,
       normalizeAvatarPath(avatarPath),
     );
 
-    await this.ensurePlayerProfileExists(playerUuid, normalizedDisplayName);
+    await this.ensurePlayerProfileExists(profileId, normalizedDisplayName);
 
-    const created = await this.getAllowedPlayer(playerUuid);
+    const created = await this.getAllowedPlayer(profileId);
 
     if (!created) {
       throw new Error("player_create_failed");
@@ -132,7 +136,7 @@ export class MultiplayerRepository {
   }
 
   async authenticatePlayer(
-    playerUuid: string,
+    profileId: string,
     password: string,
   ): Promise<AllowedPlayerRecord | null> {
     const row = await this.db.get<AllowedPlayerRow>(
@@ -157,7 +161,7 @@ export class MultiplayerRepository {
         FROM allowed_players
         WHERE player_uuid = ?
       `,
-      playerUuid,
+      profileId,
     );
 
     if (!row) {
@@ -172,7 +176,7 @@ export class MultiplayerRepository {
   }
 
   async getAllowedPlayer(
-    playerUuid: string,
+    profileId: string,
   ): Promise<AllowedPlayerRecord | null> {
     const row = await this.db.get<AllowedPlayerRow>(
       `
@@ -196,33 +200,44 @@ export class MultiplayerRepository {
         FROM allowed_players
         WHERE player_uuid = ?
       `,
-      playerUuid,
+      profileId,
     );
 
     return row ? mapAllowedPlayer(row) : null;
   }
 
   async createSession(
-    playerUuid: string,
+    profileId: string,
     clientId: string,
+    activeCharacterId?: string,
     ipAddress?: string,
   ): Promise<ServerSessionRecord> {
     const sessionId = randomUUID();
 
-    await this.ensurePlayerProfileExists(playerUuid);
+    await this.ensurePlayerProfileExists(profileId);
 
     await this.db.run(
       `
-        INSERT INTO server_sessions (session_id, player_uuid, client_id, ip_address)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO server_sessions (
+          session_id,
+          player_uuid,
+          profile_id,
+          active_character_id,
+          client_id,
+          ip_address,
+          authenticated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `,
       sessionId,
-      playerUuid,
+      profileId,
+      profileId,
+      activeCharacterId ?? null,
       clientId,
       ipAddress?.trim() || null,
     );
 
-    await this.markPlayerSeen(playerUuid);
+    await this.markPlayerSeen(profileId);
 
     const session = await this.getSession(sessionId);
 
@@ -238,9 +253,11 @@ export class MultiplayerRepository {
       `
         SELECT
           session_id,
-          player_uuid,
+          profile_id,
+          active_character_id,
           client_id,
           ip_address,
+          authenticated_at,
           connected_at,
           last_seen_at
         FROM server_sessions
@@ -263,7 +280,41 @@ export class MultiplayerRepository {
     );
   }
 
-  async markPlayerSeen(playerUuid: string): Promise<void> {
+  async setActiveCharacter(
+    sessionId: string,
+    profileId: string,
+    activeCharacterId: string,
+  ): Promise<void> {
+    await this.db.run(
+      `
+        UPDATE server_sessions
+        SET profile_id = ?,
+            active_character_id = ?,
+            last_seen_at = CURRENT_TIMESTAMP
+        WHERE session_id = ?
+      `,
+      profileId,
+      activeCharacterId,
+      sessionId,
+    );
+  }
+
+  async getDefaultCharacterId(profileId: string): Promise<string | null> {
+    const row = await this.db.get<{ id: string }>(
+      `
+        SELECT id
+        FROM player_characters
+        WHERE profile_id = ?
+        ORDER BY datetime(last_played_at) DESC, datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+        LIMIT 1
+      `,
+      profileId,
+    );
+
+    return row?.id ?? null;
+  }
+
+  async markPlayerSeen(profileId: string): Promise<void> {
     await this.db.run(
       `
         UPDATE allowed_players
@@ -271,12 +322,21 @@ export class MultiplayerRepository {
             updated_at = CURRENT_TIMESTAMP
         WHERE player_uuid = ?
       `,
-      playerUuid,
+      profileId,
+    );
+    await this.db.run(
+      `
+        UPDATE player_profiles
+        SET last_online_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      profileId,
     );
   }
 
   private async ensurePlayerProfileExists(
-    playerUuid: string,
+    profileId: string,
     displayName?: string | null,
   ): Promise<void> {
     await this.db.run(
@@ -287,13 +347,13 @@ export class MultiplayerRepository {
           display_name = COALESCE(player_profiles.display_name, excluded.display_name),
           updated_at = CURRENT_TIMESTAMP
       `,
-      playerUuid,
+      profileId,
       displayName ?? null,
     );
   }
 
   async syncPlayerProfile(
-    playerUuid: string,
+    profileId: string,
     profile: {
       readonly displayName?: string;
       readonly avatarPath?: string;
@@ -316,8 +376,9 @@ export class MultiplayerRepository {
       `,
       normalizedDisplayName,
       normalizedAvatarPath,
-      playerUuid,
+      profileId,
     );
+    await this.ensurePlayerProfileExists(profileId, normalizedDisplayName);
   }
 
   async setPlayerRank(
@@ -437,13 +498,13 @@ export class MultiplayerRepository {
     return this.getAllowedPlayer(playerUuid);
   }
 
-  async deleteSessionsForPlayer(playerUuid: string): Promise<void> {
+  async deleteSessionsForPlayer(profileId: string): Promise<void> {
     await this.db.run(
       `
         DELETE FROM server_sessions
-        WHERE player_uuid = ?
+        WHERE profile_id = ?
       `,
-      playerUuid,
+      profileId,
     );
   }
 
@@ -589,7 +650,9 @@ export class MultiplayerRepository {
     const rows = await this.db.all<OnlinePlayerRow[]>(
       `
         SELECT
-          ranked.player_uuid,
+          ranked.profile_id,
+          ranked.active_character_id AS character_id,
+          COALESCE(player_characters.name, allowed_players.display_name) AS current_character_name,
           allowed_players.display_name,
           allowed_players.avatar_path,
           allowed_players.chat_timeout_until,
@@ -606,12 +669,13 @@ export class MultiplayerRepository {
           ranked.last_seen_at
         FROM (
           SELECT
-            server_sessions.player_uuid,
+            COALESCE(server_sessions.profile_id, server_sessions.player_uuid) AS profile_id,
+            server_sessions.active_character_id,
             server_sessions.client_id,
             server_sessions.connected_at,
             server_sessions.last_seen_at,
             ROW_NUMBER() OVER (
-              PARTITION BY server_sessions.player_uuid
+              PARTITION BY COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
               ORDER BY
                 datetime(server_sessions.last_seen_at) DESC,
                 datetime(server_sessions.connected_at) DESC,
@@ -621,7 +685,9 @@ export class MultiplayerRepository {
           WHERE datetime(server_sessions.last_seen_at) >= datetime('now', ?)
         ) AS ranked
         INNER JOIN allowed_players
-          ON allowed_players.player_uuid = ranked.player_uuid
+          ON allowed_players.player_uuid = ranked.profile_id
+        LEFT JOIN player_characters
+          ON player_characters.id = ranked.active_character_id
         WHERE ranked.row_num = 1
         ORDER BY
           datetime(ranked.last_seen_at) DESC,
@@ -638,6 +704,7 @@ export class MultiplayerRepository {
 
 function mapAllowedPlayer(row: AllowedPlayerRow): AllowedPlayerRecord {
   return {
+    profileId: row.player_uuid,
     playerUuid: row.player_uuid,
     displayName: row.display_name ?? undefined,
     avatarPath: row.avatar_path ?? undefined,
@@ -652,9 +719,11 @@ function mapAllowedPlayer(row: AllowedPlayerRow): AllowedPlayerRecord {
 function mapSession(row: SessionRow): ServerSessionRecord {
   return {
     sessionId: row.session_id,
-    playerUuid: row.player_uuid,
+    profileId: row.profile_id ?? "",
+    activeCharacterId: row.active_character_id ?? undefined,
     clientId: row.client_id,
     ipAddress: row.ip_address ?? undefined,
+    authenticatedAt: row.authenticated_at,
     connectedAt: row.connected_at,
     lastSeenAt: row.last_seen_at,
   };
@@ -675,8 +744,11 @@ function mapChatMessage(row: ChatMessageRow): ChatMessageRecord {
 
 function mapOnlinePlayer(row: OnlinePlayerRow): OnlinePlayerRecord {
   return {
-    playerUuid: row.player_uuid,
+    profileId: row.profile_id,
+    characterId: row.character_id ?? undefined,
+    playerUuid: row.character_id ?? undefined,
     displayName: row.display_name ?? undefined,
+    currentCharacterName: row.current_character_name ?? undefined,
     avatarPath: row.avatar_path ?? undefined,
     ...mapModeration(row),
     rank: row.rank,

@@ -40,7 +40,7 @@ const GRANTABLE_PROFILE_PERMISSIONS = new Set([
 
 interface SessionActorRow {
   readonly session_id: string;
-  readonly character_id: string;
+  readonly character_id: string | null;
   readonly profile_id: string | null;
   readonly character_name: string | null;
   readonly profile_display_name: string | null;
@@ -120,9 +120,36 @@ export class SocialRepository {
       `
         SELECT
           server_sessions.session_id,
-          server_sessions.player_uuid AS character_id,
-          player_characters.profile_id,
-          player_characters.name AS character_name,
+          COALESCE(
+            server_sessions.active_character_id,
+            (
+              SELECT candidate.id
+              FROM player_characters AS candidate
+              WHERE candidate.profile_id = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
+              ORDER BY datetime(candidate.last_played_at) DESC, datetime(candidate.updated_at) DESC, candidate.id DESC
+              LIMIT 1
+            )
+          ) AS character_id,
+          COALESCE(
+            server_sessions.profile_id,
+            (
+              SELECT candidate.profile_id
+              FROM player_characters AS candidate
+              WHERE candidate.id = server_sessions.active_character_id
+              LIMIT 1
+            ),
+            server_sessions.player_uuid
+          ) AS profile_id,
+          COALESCE(
+            selected_character.name,
+            (
+              SELECT candidate.name
+              FROM player_characters AS candidate
+              WHERE candidate.profile_id = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
+              ORDER BY datetime(candidate.last_played_at) DESC, datetime(candidate.updated_at) DESC, candidate.id DESC
+              LIMIT 1
+            )
+          ) AS character_name,
           player_profiles.display_name AS profile_display_name,
           allowed_players.display_name AS allowed_display_name,
           allowed_players.rank,
@@ -132,11 +159,11 @@ export class SocialRepository {
           allowed_players.chat_ban_reason
         FROM server_sessions
         INNER JOIN allowed_players
-          ON allowed_players.player_uuid = server_sessions.player_uuid
-        LEFT JOIN player_characters
-          ON player_characters.id = server_sessions.player_uuid
+          ON allowed_players.player_uuid = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
+        LEFT JOIN player_characters AS selected_character
+          ON selected_character.id = server_sessions.active_character_id
         LEFT JOIN player_profiles
-          ON player_profiles.id = player_characters.profile_id
+          ON player_profiles.id = COALESCE(server_sessions.profile_id, selected_character.profile_id, server_sessions.player_uuid)
         WHERE server_sessions.session_id = ?
       `,
       sessionId,
@@ -146,14 +173,20 @@ export class SocialRepository {
       return null;
     }
 
-    const profileId = row.profile_id ?? row.character_id;
+    const profileId = row.profile_id;
+    const characterId = row.character_id;
+
+    if (!profileId || !characterId) {
+      return null;
+    }
+
     const characterName =
       row.character_name ?? row.allowed_display_name ?? row.profile_display_name ?? undefined;
     const profileDisplayName =
       row.profile_display_name ?? row.allowed_display_name ?? undefined;
 
     await this.ensureProfileExists(profileId);
-    await this.ensureCharacterExists(row.character_id, profileId, characterName);
+    await this.ensureCharacterExists(characterId, profileId, characterName);
     const chatAccess =
       row.chat_banned_at
         ? "banned"
@@ -163,7 +196,7 @@ export class SocialRepository {
 
     return {
       sessionId: row.session_id,
-      characterId: row.character_id,
+      characterId,
       profileId,
       characterName,
       profileDisplayName,
@@ -186,17 +219,15 @@ export class SocialRepository {
       `
         INSERT INTO player_profiles (id, display_name, created_at, updated_at)
         SELECT
-          COALESCE(player_characters.profile_id, server_sessions.player_uuid) AS profile_id,
+          COALESCE(server_sessions.profile_id, server_sessions.player_uuid) AS profile_id,
           COALESCE(resolved_profiles.display_name, allowed_players.display_name) AS display_name,
           CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
         FROM server_sessions
         INNER JOIN allowed_players
-          ON allowed_players.player_uuid = server_sessions.player_uuid
-        LEFT JOIN player_characters
-          ON player_characters.id = server_sessions.player_uuid
+          ON allowed_players.player_uuid = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
         LEFT JOIN player_profiles resolved_profiles
-          ON resolved_profiles.id = COALESCE(player_characters.profile_id, server_sessions.player_uuid)
+          ON resolved_profiles.id = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
         WHERE datetime(server_sessions.last_seen_at) >= datetime('now', ?)
         ON CONFLICT(id) DO UPDATE SET
           display_name = COALESCE(player_profiles.display_name, excluded.display_name),
@@ -215,17 +246,36 @@ export class SocialRepository {
     >(
       `
         SELECT
-          COALESCE(player_characters.profile_id, server_sessions.player_uuid) AS profile_id,
-          player_characters.id AS character_id,
-          COALESCE(player_characters.name, allowed_players.display_name) AS character_name,
+          COALESCE(server_sessions.profile_id, server_sessions.player_uuid) AS profile_id,
+          COALESCE(
+            server_sessions.active_character_id,
+            (
+              SELECT candidate.id
+              FROM player_characters AS candidate
+              WHERE candidate.profile_id = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
+              ORDER BY datetime(candidate.last_played_at) DESC, datetime(candidate.updated_at) DESC, candidate.id DESC
+              LIMIT 1
+            )
+          ) AS character_id,
+          COALESCE(
+            selected_character.name,
+            (
+              SELECT candidate.name
+              FROM player_characters AS candidate
+              WHERE candidate.profile_id = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
+              ORDER BY datetime(candidate.last_played_at) DESC, datetime(candidate.updated_at) DESC, candidate.id DESC
+              LIMIT 1
+            ),
+            allowed_players.display_name
+          ) AS character_name,
           COALESCE(resolved_profiles.display_name, allowed_players.display_name) AS profile_display_name
         FROM server_sessions
         INNER JOIN allowed_players
-          ON allowed_players.player_uuid = server_sessions.player_uuid
-        LEFT JOIN player_characters
-          ON player_characters.id = server_sessions.player_uuid
+          ON allowed_players.player_uuid = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
+        LEFT JOIN player_characters AS selected_character
+          ON selected_character.id = server_sessions.active_character_id
         LEFT JOIN player_profiles resolved_profiles
-          ON resolved_profiles.id = COALESCE(player_characters.profile_id, server_sessions.player_uuid)
+          ON resolved_profiles.id = COALESCE(server_sessions.profile_id, server_sessions.player_uuid)
         WHERE datetime(server_sessions.last_seen_at) >= datetime('now', ?)
       `,
       `-${activeWindowMinutes} minutes`,
@@ -1410,9 +1460,7 @@ export class SocialRepository {
       `
         SELECT rank
         FROM allowed_players
-        WHERE player_uuid IN (
-          SELECT id FROM player_characters WHERE profile_id = ? ORDER BY updated_at DESC LIMIT 1
-        )
+        WHERE player_uuid = ?
         LIMIT 1
       `,
       profileId,
@@ -1513,7 +1561,7 @@ export class SocialRepository {
           allowed_players.server_banned_at
         FROM player_characters
         LEFT JOIN allowed_players
-          ON allowed_players.player_uuid = player_characters.id
+          ON allowed_players.player_uuid = player_characters.profile_id
         WHERE player_characters.profile_id = ?
         ORDER BY player_characters.created_at ASC
       `,
@@ -1665,6 +1713,7 @@ export class SocialRepository {
       Array<{
         character_id: string;
         name: string;
+        last_played_at: string | null;
         online: number;
         guild_id: string | null;
         guild_name: string | null;
@@ -1675,6 +1724,7 @@ export class SocialRepository {
         SELECT
           player_characters.id AS character_id,
           player_characters.name,
+          player_characters.last_played_at,
           CASE WHEN player_presence.current_character_id = player_characters.id
             AND player_presence.online = 1
           THEN 1 ELSE 0 END AS online,
@@ -1723,6 +1773,7 @@ export class SocialRepository {
       characterId: character.character_id,
       name: character.name,
       online: Boolean(character.online),
+      lastPlayedAt: character.last_played_at ?? undefined,
       guildId: character.guild_id ?? undefined,
       guildName: character.guild_name ?? undefined,
       role: character.role ?? undefined,
@@ -2073,9 +2124,7 @@ export class SocialRepository {
           SET server_banned_at = CURRENT_TIMESTAMP,
               server_ban_reason = COALESCE(?, server_ban_reason),
               updated_at = CURRENT_TIMESTAMP
-          WHERE player_uuid IN (
-            SELECT id FROM player_characters WHERE profile_id = ?
-          )
+          WHERE player_uuid = ?
         `,
         input.reason ?? null,
         input.targetProfileId,
@@ -2084,9 +2133,7 @@ export class SocialRepository {
       await this.db.run(
         `
           DELETE FROM server_sessions
-          WHERE player_uuid IN (
-            SELECT id FROM player_characters WHERE profile_id = ?
-          )
+          WHERE profile_id = ?
         `,
         input.targetProfileId,
       );
@@ -2096,9 +2143,7 @@ export class SocialRepository {
       await this.db.run(
         `
           DELETE FROM server_sessions
-          WHERE player_uuid IN (
-            SELECT id FROM player_characters WHERE profile_id = ?
-          )
+          WHERE profile_id = ?
         `,
         input.targetProfileId,
       );
@@ -2111,9 +2156,7 @@ export class SocialRepository {
           SET chat_banned_at = CURRENT_TIMESTAMP,
               chat_ban_reason = COALESCE(?, chat_ban_reason),
               updated_at = CURRENT_TIMESTAMP
-          WHERE player_uuid IN (
-            SELECT id FROM player_characters WHERE profile_id = ?
-          )
+          WHERE player_uuid = ?
         `,
         input.reason ?? null,
         input.targetProfileId,
@@ -2152,9 +2195,7 @@ export class SocialRepository {
           SET server_banned_at = NULL,
               server_ban_reason = NULL,
               updated_at = CURRENT_TIMESTAMP
-          WHERE player_uuid IN (
-            SELECT id FROM player_characters WHERE profile_id = ?
-          )
+          WHERE player_uuid = ?
         `,
         input.targetProfileId,
       );
@@ -2167,9 +2208,7 @@ export class SocialRepository {
           SET chat_banned_at = NULL,
               chat_ban_reason = NULL,
               updated_at = CURRENT_TIMESTAMP
-          WHERE player_uuid IN (
-            SELECT id FROM player_characters WHERE profile_id = ?
-          )
+          WHERE player_uuid = ?
         `,
         input.targetProfileId,
       );
@@ -3143,6 +3182,21 @@ export class SocialRepository {
 
     if (row?.profile_id) {
       return row.profile_id;
+    }
+
+    const legacyRow = await this.db.get<{ profile_id: string }>(
+      `
+        SELECT profile_id
+        FROM player_characters
+        WHERE legacy_player_id = ?
+        ORDER BY datetime(updated_at) DESC, id DESC
+        LIMIT 1
+      `,
+      characterId,
+    );
+
+    if (legacyRow?.profile_id) {
+      return legacyRow.profile_id;
     }
 
     const profile = await this.db.get<{ id: string }>(

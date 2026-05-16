@@ -32,7 +32,7 @@ export function createAuthRouter(repository: MultiplayerRepository): Router {
         return;
       }
 
-      const player = await repository.getAllowedPlayer(session.playerUuid);
+      const player = await repository.getAllowedPlayer(session.profileId);
 
       if (!player || player.serverBanned) {
           clearSessionCookie(response, request);
@@ -44,12 +44,12 @@ export function createAuthRouter(repository: MultiplayerRepository): Router {
       }
 
       await repository.markSessionSeen(sessionId);
-      await repository.markPlayerSeen(player.playerUuid);
+      await repository.markPlayerSeen(player.profileId);
 
       response.json({
         authenticated: true,
         admin: player.rank === "admin",
-        username: player.playerUuid,
+        username: player.profileId,
       });
     } catch (error) {
       next(error);

@@ -172,7 +172,7 @@ export class ServerChatService {
     return "Enter sends. Shift+Enter makes a new line. Slash commands work in all tabs.";
   });
   readonly currentPlayerUuid = computed(
-    () => this.serverConnection.session()?.playerUuid ?? null,
+    () => this.serverConnection.session()?.activeCharacterId ?? null,
   );
   readonly footerSummary = computed<ServerFooterSummaryView>(() => {
     const server = this.serverConnection.selectedServer();
@@ -473,7 +473,7 @@ export class ServerChatService {
       );
 
       if (currentPlayer) {
-        this.serverConnection.syncSessionModeration(currentPlayer.playerUuid, {
+        this.serverConnection.syncSessionModeration(currentPlayer.profileId, {
           chatAccess: currentPlayer.chatAccess,
           chatAccessLabel: currentPlayer.chatAccessLabel,
           chatTimeoutUntil: currentPlayer.chatTimeoutUntil,

@@ -20,23 +20,30 @@ export interface PlayerCharacterSummary {
   readonly guildName?: string;
 }
 
-export interface PlayerCharacterRecord extends PlayerCharacterSummary {
+export interface PlayerCharacter extends PlayerCharacterSummary {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
 
-export interface PlayerProfileRecord {
-  readonly id: string;
-  readonly displayName?: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly characters: readonly PlayerCharacterRecord[];
-}
-
-export interface PlayerProfileSummary {
+export interface PlayerProfile {
   readonly id: string;
   readonly displayName?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly characters: readonly PlayerCharacterSummary[];
+}
+
+export interface PlayerSession {
+  readonly profileId: string;
+  readonly activeCharacterId?: string;
+  readonly authenticatedAt: string;
+}
+
+export function assertProfileCharacterDifferent(
+  profileId: string,
+  characterId: string,
+): void {
+  if (profileId === characterId) {
+    throw new Error("Profile ID and Character ID must be different.");
+  }
 }

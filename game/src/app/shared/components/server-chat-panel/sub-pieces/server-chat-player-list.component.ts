@@ -31,14 +31,15 @@ export class ServerChatPlayerListComponent {
     _index: number,
     player: ServerPresencePlayerView,
   ): string {
-    return player.playerUuid;
+    return player.characterId ?? player.profileId;
   }
 
   protected displayName(player: ServerPresencePlayerView): string {
     const baseName =
       player.displayName?.trim() ||
       player.profileId?.trim() ||
-      player.playerUuid;
+      player.characterId ||
+      "unknown-profile";
 
     return formatGuildTaggedName(
       baseName,
@@ -50,7 +51,8 @@ export class ServerChatPlayerListComponent {
     return initialsFor(
       player.displayName?.trim() ||
       player.profileId?.trim() ||
-      player.playerUuid,
+      player.characterId ||
+      "unknown-profile",
     );
   }
 
@@ -62,16 +64,16 @@ export class ServerChatPlayerListComponent {
   }
 
   protected canModeratePlayer(player: ServerPresencePlayerView): boolean {
-    return this.canModerate() && player.playerUuid !== this.currentPlayerUuid();
+    return this.canModerate() && player.characterId !== this.currentPlayerUuid();
   }
 
   protected isSelected(player: ServerPresencePlayerView): boolean {
-    return player.playerUuid === this.selectedPlayerUuid();
+    return player.characterId === this.selectedPlayerUuid();
   }
 
   protected hasContextActions(player: ServerPresencePlayerView): boolean {
     return (
-      player.playerUuid !== this.currentPlayerUuid() &&
+      player.characterId !== this.currentPlayerUuid() &&
       Boolean(player.profileId?.trim())
     );
   }
@@ -89,12 +91,14 @@ export class ServerChatPlayerListComponent {
       return;
     }
 
-    if (this.activeContextTargetId() === player.playerUuid) {
+    const targetId = player.characterId ?? player.profileId;
+
+    if (this.activeContextTargetId() === targetId) {
       this.closeContextMenu();
       return;
     }
 
-    this.activeContextTargetId.set(player.playerUuid);
+    this.activeContextTargetId.set(targetId);
     this.contextMenuItems.set(
       buildPlayerActionItems(
         player,
@@ -149,16 +153,16 @@ function buildPlayerActionItems(
         emit({
           action: "inspect_profile",
           targetProfileId,
-          targetPlayerUuid: player.playerUuid,
-          targetCharacterName: player.displayName,
+          targetPlayerUuid: player.characterId,
+          targetCharacterName: player.currentCharacterName ?? player.displayName,
         }),
       ),
       createActionItem("Whisper", "pi pi-send", () =>
         emit({
           action: "whisper",
           targetProfileId,
-          targetPlayerUuid: player.playerUuid,
-          targetCharacterName: player.displayName,
+          targetPlayerUuid: player.characterId,
+          targetCharacterName: player.currentCharacterName ?? player.displayName,
         }),
       ),
     );

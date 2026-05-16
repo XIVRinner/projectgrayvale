@@ -44,7 +44,7 @@ export function registerAdminTagRoutes(
 
       await tagRegistryService.writeRegistry(registry);
       await multiplayerRepository.markSessionSeen(actor.sessionId);
-      await multiplayerRepository.markPlayerSeen(actor.playerUuid);
+      await multiplayerRepository.markPlayerSeen(actor.profileId);
 
       response.setHeader("Cache-Control", "no-cache").json({
         categories: registry.categories,

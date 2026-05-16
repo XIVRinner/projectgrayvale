@@ -60,3 +60,4 @@ server/config/server.yml
 **/.DS_Store
 **/Thumbs.db
 
+.rtk/

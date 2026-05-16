@@ -28,6 +28,7 @@ import { ServerChatService } from "../../core/services/server-chat.service";
 import { ServerConnectionService } from "../../core/services/server-connection.service";
 import { GuildService } from "../../core/services/guild.service";
 import { SocialService } from "../../core/services/social.service";
+import { PlayerIdentityService } from "../../core/services/player-identity.service";
 import type {
   ServerChatPlayerActionRequest,
   ServerRelayProfileView,
@@ -252,6 +253,7 @@ export class ShellContainerComponent {
   private readonly serverConnection = inject(ServerConnectionService);
   private readonly guildService = inject(GuildService);
   private readonly socialService = inject(SocialService);
+  private readonly playerIdentity = inject(PlayerIdentityService);
   protected readonly serverChat = inject(ServerChatService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
@@ -321,7 +323,6 @@ export class ShellContainerComponent {
   );
 
   readonly navItems = signal<readonly ShellNavItem[]>([
-    { label: "Home", route: "/" },
     { label: "Creator Lab", route: "/creator" },
     { label: "Changelog", route: "/changelog" },
     { label: "Profile", route: "/profile" },
@@ -436,7 +437,7 @@ export class ShellContainerComponent {
       const refreshedPlayer =
         this.serverChat
           .players()
-          .find((player) => player.playerUuid === selectedPlayer.playerUuid) ??
+          .find((player) => player.profileId === selectedPlayer.profileId) ??
         null;
 
       if (!refreshedPlayer) {
@@ -680,10 +681,19 @@ export class ShellContainerComponent {
     this.isCharacterCreationOpenState.set(false);
   }
 
-  protected handleCharacterCreated(): void {
+  protected async handleCharacterCreated(): Promise<void> {
     this.logUi("Character creation completed.");
     this.isCharacterCreationOpenState.set(false);
-    this.transferStatusMessage.set("Character registered and active.");
+
+    if (!this.serverConnection.isConnected()) {
+      this.transferStatusMessage.set(
+        "Character created locally. Connect to a server to register it there.",
+      );
+      return;
+    }
+
+    this.transferStatusMessage.set("Character created locally.");
+    this.handleLoadedCharacterChangedWhileConnected();
   }
 
   protected openSaveManager(): void {
@@ -1041,7 +1051,11 @@ export class ShellContainerComponent {
         request.targetPlayerUuid ?? request.targetProfileId;
       const player = this.serverChat
         .players()
-        .find((entry) => entry.playerUuid === targetPlayerUuid);
+        .find(
+          (entry) =>
+            (entry.characterId ?? entry.profileId) === targetPlayerUuid ||
+            entry.profileId === request.targetProfileId,
+        );
 
       if (player) {
         this.openServerModerationDialog(player);
@@ -1171,7 +1185,8 @@ export class ShellContainerComponent {
 
   protected openServerModerationDialog(player: ServerPresencePlayerView): void {
     this.logUi("Focusing server moderation target.", {
-      playerUuid: player.playerUuid,
+      profileId: player.profileId,
+      characterId: player.characterId,
     });
     this.closeServerAdminDialog();
     this.selectedModerationPlayer.set(player);
@@ -1201,7 +1216,7 @@ export class ShellContainerComponent {
       const refreshedPlayer =
         this.serverChat
           .players()
-          .find((player) => player.playerUuid === request.targetUuid) ?? null;
+          .find((player) => player.profileId === request.targetUuid) ?? null;
 
       this.selectedModerationPlayer.set(refreshedPlayer);
     } catch (error) {
@@ -1242,11 +1257,11 @@ export class ShellContainerComponent {
 
   protected async connectServer(password: string): Promise<void> {
     const activeCharacter = this.roster.activeCharacter();
-    const playerUuid = activeCharacter?.id;
+    const profileId = this.playerIdentity.ensureProfileId();
 
-    if (!playerUuid) {
+    if (!activeCharacter) {
       this.serverStatusMessage.set(
-        "Create or load a character first so the server can track its UUID.",
+        "Create or load a character first before connecting a profile.",
       );
       return;
     }
@@ -1265,22 +1280,58 @@ export class ShellContainerComponent {
             this.characterMetadata().racesById,
           )
         : undefined;
-      const session = await this.serverConnection.connectPlayer(
-        playerUuid,
+      await this.serverConnection.connectPlayer(
+        profileId,
         password,
-        activeCharacter?.name,
+        activeCharacter.name,
         avatarPath,
       );
+
+      await this.ensureServerCharacterRegistered(activeCharacter);
+
+      const updatedSession = this.serverConnection.session();
       this.serverStatusMessage.set(
-        `Connected ${session.playerUuid} as ${session.rank.toUpperCase()}.`,
+        updatedSession?.activeCharacterId
+          ? `Connected profile ${updatedSession.profileId} as ${updatedSession.rank.toUpperCase()} with ${updatedSession.activeCharacterId} active.`
+          : `Connected profile ${updatedSession?.profileId ?? profileId} as ${updatedSession?.rank.toUpperCase() ?? "PLAYER"}.`,
       );
       await this.refreshRelayProfile();
-      this.logUi("Connected player to server.", session);
+      this.logUi("Connected player to server.", updatedSession);
     } catch (error) {
       const message = errorToMessage(error);
       this.serverStatusMessage.set(message);
       this.logUi("Connecting player to server failed.", message, "error");
     }
+  }
+
+  /**
+   * Registers the active local character with the current server, then marks it active.
+   * Local character creation stays client-owned; the server learns about it on connect.
+   */
+  private async ensureServerCharacterRegistered(localCharacter: Player): Promise<void> {
+    const initialSnapshot = buildInitialCharacterSnapshot(localCharacter);
+    const portraitShardId = resolvePortraitShardId(localCharacter);
+
+    if (!portraitShardId) {
+      throw new Error("The active character is missing portrait data required for server registration.");
+    }
+
+    await this.playerProfileApi.registerCharacter({
+      characterId: localCharacter.id,
+      characterName: localCharacter.name,
+      portraitShardId,
+      level: initialSnapshot.level,
+      locationId: initialSnapshot.locationId,
+      lastLocationName: initialSnapshot.lastLocationName,
+    });
+    await this.playerProfileApi.registerActiveCharacter({
+      characterId: localCharacter.id,
+      level: initialSnapshot.level,
+      locationId: initialSnapshot.locationId,
+      lastLocationName: initialSnapshot.lastLocationName,
+    });
+
+    await this.serverConnection.restoreSessionFromCookie();
   }
 
   private async handleServerModerationCommand(
@@ -1343,7 +1394,7 @@ export class ShellContainerComponent {
     this.openServerModerationDialog(targetPlayer);
     await this.submitServerModeration({
       ...parsedCommand.request,
-      targetUuid: targetPlayer.playerUuid,
+      targetUuid: targetPlayer.profileId,
     });
   }
 
@@ -1369,9 +1420,9 @@ export class ShellContainerComponent {
     adminPassword: string,
     source: "server-select" | "relay",
   ): Promise<void> {
-    const playerUuid = this.roster.activeCharacter()?.id;
+    const profileId = this.playerIdentity.ensureProfileId();
 
-    if (!playerUuid) {
+    if (!this.roster.activeCharacter()) {
       const message = "Create or load a character before granting admin.";
       this.serverStatusMessage.set(message);
       this.serverAdminStatusMessage.set(message);
@@ -1391,10 +1442,10 @@ export class ShellContainerComponent {
 
     try {
       const session = await this.serverConnection.grantAdmin(
-        playerUuid,
+        profileId,
         adminPassword,
       );
-      const message = `Granted ${session.playerUuid} admin rights on the selected server.`;
+      const message = `Granted profile ${session.profileId} admin rights on the selected server.`;
       this.serverStatusMessage.set(message);
       this.serverAdminStatusMessage.set(message);
       this.logUi("Granted admin rights.", session);
@@ -1474,7 +1525,9 @@ export class ShellContainerComponent {
 
   protected loadSlot(slotId: string): void {
     this.logUi("Loading save slot.", { slotId });
+    const previousCharacterId = this.roster.activeCharacter()?.id ?? null;
     this.roster.setActiveSlot(slotId);
+    const nextCharacterId = this.roster.activeCharacter()?.id ?? null;
     this.transferStatusMessage.set(`Loaded ${formatSlotLabel(slotId)}.`);
     this.isCharacterSheetOpen.set(false);
     this.isSaveManagerOpen.set(false);
@@ -1482,6 +1535,26 @@ export class ShellContainerComponent {
     this.isQuestLogOpen.set(false);
     this.isGegVisualizerOpen.set(false);
     this.isCharacterCreationOpenState.set(false);
+
+    if (
+      this.serverConnection.isConnected() &&
+      previousCharacterId !== null &&
+      nextCharacterId !== null &&
+      previousCharacterId !== nextCharacterId
+    ) {
+      this.handleLoadedCharacterChangedWhileConnected();
+    }
+  }
+
+  private handleLoadedCharacterChangedWhileConnected(): void {
+    this.serverConnection.disconnect();
+    this.serverStatusMessage.set(
+      "Your loaded character changed. Reconnect to a server to join with this character.",
+    );
+    this.logUi(
+      "Disconnected current server session because the loaded local character changed.",
+    );
+    this.openServerSelect();
   }
 
   protected deleteSlot(slotId: string): void {
@@ -1790,6 +1863,68 @@ function resolveSaveSlotPortraitPath(
   return `${race.imageBasePath}/${appearance.variant}/${portraitFile}`;
 }
 
+function buildInitialCharacterSnapshot(player: Player): {
+  portraitShardId?: string;
+  level?: number;
+  locationId?: string;
+  lastLocationName?: string;
+} {
+  const locationId = resolveLatestLocationId(player);
+
+  return {
+    portraitShardId: resolvePortraitShardId(player),
+    level: Number.isInteger(player.progression.level) && player.progression.level > 0
+      ? player.progression.level
+      : undefined,
+    locationId,
+    lastLocationName: locationId ? humanizeLocationId(locationId) : undefined,
+  };
+}
+
+function resolvePortraitShardId(player: Player): string | undefined {
+  const appearance = player.selectedAppearance;
+
+  if (!appearance) {
+    return undefined;
+  }
+
+  return `${player.raceId}:${appearance.variant}:${appearance.imageIndex}`;
+}
+
+function resolveLatestLocationId(player: Player): string | undefined {
+  const interactionState = player.interactionState;
+
+  if (!interactionState) {
+    return undefined;
+  }
+
+  const lastButtonLocationId = interactionState.lastButtonPress?.locationId?.trim();
+
+  if (lastButtonLocationId) {
+    return lastButtonLocationId;
+  }
+
+  const recent = interactionState.recentButtonPresses ?? [];
+
+  for (let index = recent.length - 1; index >= 0; index -= 1) {
+    const locationId = recent[index]?.locationId?.trim();
+
+    if (locationId) {
+      return locationId;
+    }
+  }
+
+  return undefined;
+}
+
+function humanizeLocationId(locationId: string): string {
+  return locationId
+    .split(/[-_]+/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment[0]!.toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
 function shouldShowServerSelectOnStartup(): boolean {
   try {
     const persisted = localStorage.getItem(SERVER_SELECT_STARTUP_KEY);
@@ -1832,7 +1967,9 @@ function resolveModerationTarget(
 
   const exactUuidMatch =
     players.find(
-      (player) => normalizeModerationTarget(player.playerUuid) === normalizedTarget,
+      (player) =>
+        normalizeModerationTarget(player.characterId ?? player.profileId) === normalizedTarget ||
+        normalizeModerationTarget(player.profileId) === normalizedTarget,
     ) ?? null;
 
   if (exactUuidMatch) {

@@ -43,7 +43,7 @@ export async function resolveChangelogActorContext(
     };
   }
 
-  const player = await repository.getAllowedPlayer(session.playerUuid);
+  const player = await repository.getAllowedPlayer(session.profileId);
 
   if (!player) {
     return {
@@ -55,7 +55,7 @@ export async function resolveChangelogActorContext(
   const isAdmin = headerAdmin || player.rank === "admin";
 
   return {
-    userId: player.playerUuid,
+    userId: player.profileId,
     rank: player.rank,
     isAdmin,
     canViewInternal: isAdmin,

@@ -4,6 +4,13 @@ import type { CharacterCompatibilityStatus, PlayerProfileData } from "./player-p
 import type { ServerProfile } from "../../core/services/server-profile.service";
 import { PlayerCharacterCardComponent } from "./player-character-card.component";
 
+interface CharacterCardView {
+  readonly status: CharacterCompatibilityStatus;
+  readonly portraitSrc: string | null;
+  readonly active: boolean;
+  readonly createdOrder: number;
+}
+
 @Component({
   selector: "gv-player-profile-view",
   standalone: true,
@@ -14,25 +21,44 @@ import { PlayerCharacterCardComponent } from "./player-character-card.component"
 export class PlayerProfileViewComponent {
   readonly profile = input<PlayerProfileData | null>(null);
   readonly serverProfile = input<ServerProfile | null>(null);
-  readonly characterStatuses = input<readonly CharacterCompatibilityStatus[]>([]);
+  readonly characterCards = input<readonly CharacterCardView[]>([]);
   readonly isLoading = input(false);
-  readonly isCreating = input(false);
+  readonly isSavingProfileName = input(false);
   readonly errorMessage = input<string | null>(null);
-  readonly createErrorMessage = input<string | null>(null);
-  readonly newCharacterName = input("");
+  readonly profileNameErrorMessage = input<string | null>(null);
+  readonly profileNameDraft = input("");
 
-  readonly selectRequested = output<string>();
-  readonly createRequested = output<string>();
-  readonly newCharacterNameChanged = output<string>();
+  readonly removeRequested = output<string>();
+  readonly profileNameDraftChanged = output<string>();
+  readonly profileNameSaveRequested = output<string>();
 
-  protected onNameInput(event: Event): void {
-    this.newCharacterNameChanged.emit((event.target as HTMLInputElement).value);
+  protected onProfileNameInput(event: Event): void {
+    this.profileNameDraftChanged.emit((event.target as HTMLInputElement).value);
   }
 
-  protected onCreateSubmit(): void {
-    const name = this.newCharacterName().trim();
-    if (name) {
-      this.createRequested.emit(name);
+  protected onProfileNameSave(): void {
+    const value = this.profileNameDraft().trim();
+
+    if (value) {
+      this.profileNameSaveRequested.emit(value);
     }
+  }
+
+  protected isSelectedCharacter(characterId: string): boolean {
+    const profile = this.profile();
+    return Boolean(
+      profile && (profile.currentCharacterId === characterId || profile.activeCharacterId === characterId),
+    );
+  }
+
+  protected canSaveProfileName(): boolean {
+    const profile = this.profile();
+    const draft = this.profileNameDraft().trim();
+
+    if (!profile || !draft || this.isSavingProfileName()) {
+      return false;
+    }
+
+    return draft !== (profile.displayName ?? "");
   }
 }

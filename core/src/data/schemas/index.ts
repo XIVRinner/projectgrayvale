@@ -7,6 +7,7 @@ export * from "./item.schema";
 export * from "./loadout.schema";
 export * from "./modifier.schema";
 export * from "./player.schema";
+export * from "./player-profile.schema";
 export * from "./progression.schema";
 export * from "./race.schema";
 export * from "./shared";

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -63,9 +64,37 @@ async function openSqliteDatabase(filename: string): Promise<GrayvaleDatabase> {
   await ensureColumn(db, "allowed_players", "moderated_at", "TEXT");
   await ensureColumn(db, "guilds", "short_name", "TEXT");
   await ensureColumn(db, "chat_channels_v2", "destroyed_at", "TEXT");
+  await ensureColumn(db, "player_profiles", "last_online_at", "TEXT");
+  await ensureColumn(db, "player_characters", "legacy_player_id", "TEXT");
+  await ensureColumn(db, "player_characters", "save_data_json", "TEXT");
+  await ensureColumn(db, "player_characters", "last_played_at", "TEXT");
+  await ensureColumn(db, "player_characters", "portrait_shard_id", "TEXT");
+  await ensureColumn(db, "player_characters", "snapshot_level", "INTEGER");
+  await ensureColumn(db, "player_characters", "snapshot_location_id", "TEXT");
+  await ensureColumn(
+    db,
+    "player_characters",
+    "snapshot_last_location_name",
+    "TEXT",
+  );
+  await ensureColumn(db, "server_sessions", "profile_id", "TEXT");
+  await ensureColumn(db, "server_sessions", "active_character_id", "TEXT");
+  await ensureColumn(db, "server_sessions", "authenticated_at", "TEXT");
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_guilds_short_name
       ON guilds (short_name);
+  `);
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_server_sessions_profile
+      ON server_sessions (profile_id);
+  `);
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_server_sessions_active_character
+      ON server_sessions (active_character_id);
+  `);
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_player_characters_legacy_player
+      ON player_characters (legacy_player_id);
   `);
   await db.exec(`
     UPDATE guilds
@@ -73,6 +102,8 @@ async function openSqliteDatabase(filename: string): Promise<GrayvaleDatabase> {
     WHERE short_name IS NULL
        OR trim(short_name) = ''
   `);
+  await migrateLegacyProfileCharacterIdentity(db);
+  await backfillCharacterSnapshotsFromSaveData(db);
 
   return withDatabaseErrorLogging(db, "sqlite");
 }
@@ -109,9 +140,37 @@ async function openTursoDatabase(
   await ensureColumn(db, "allowed_players", "moderated_at", "TEXT");
   await ensureColumn(db, "guilds", "short_name", "TEXT");
   await ensureColumn(db, "chat_channels_v2", "destroyed_at", "TEXT");
+  await ensureColumn(db, "player_profiles", "last_online_at", "TEXT");
+  await ensureColumn(db, "player_characters", "legacy_player_id", "TEXT");
+  await ensureColumn(db, "player_characters", "save_data_json", "TEXT");
+  await ensureColumn(db, "player_characters", "last_played_at", "TEXT");
+  await ensureColumn(db, "player_characters", "portrait_shard_id", "TEXT");
+  await ensureColumn(db, "player_characters", "snapshot_level", "INTEGER");
+  await ensureColumn(db, "player_characters", "snapshot_location_id", "TEXT");
+  await ensureColumn(
+    db,
+    "player_characters",
+    "snapshot_last_location_name",
+    "TEXT",
+  );
+  await ensureColumn(db, "server_sessions", "profile_id", "TEXT");
+  await ensureColumn(db, "server_sessions", "active_character_id", "TEXT");
+  await ensureColumn(db, "server_sessions", "authenticated_at", "TEXT");
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_guilds_short_name
       ON guilds (short_name);
+  `);
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_server_sessions_profile
+      ON server_sessions (profile_id);
+  `);
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_server_sessions_active_character
+      ON server_sessions (active_character_id);
+  `);
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_player_characters_legacy_player
+      ON player_characters (legacy_player_id);
   `);
   await db.exec(`
     UPDATE guilds
@@ -119,6 +178,8 @@ async function openTursoDatabase(
     WHERE short_name IS NULL
        OR trim(short_name) = ''
   `);
+  await migrateLegacyProfileCharacterIdentity(db);
+  await backfillCharacterSnapshotsFromSaveData(db);
 
   return withDatabaseErrorLogging(db, "turso");
 }
@@ -277,9 +338,12 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
     CREATE TABLE IF NOT EXISTS server_sessions (
       session_id TEXT PRIMARY KEY,
       player_uuid TEXT NOT NULL,
+      profile_id TEXT,
+      active_character_id TEXT,
       client_id TEXT NOT NULL,
       ip_address TEXT,
       connected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      authenticated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (player_uuid)
         REFERENCES allowed_players (player_uuid)
@@ -375,16 +439,24 @@ function buildSchemaSql(options: { includeLocalPragmas: boolean }): string {
       id TEXT PRIMARY KEY,
       display_name TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_online_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS player_characters (
       id TEXT PRIMARY KEY,
       profile_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      legacy_player_id TEXT,
       content_binding_json TEXT,
+      save_data_json TEXT,
+      portrait_shard_id TEXT,
+      snapshot_level INTEGER,
+      snapshot_location_id TEXT,
+      snapshot_last_location_name TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_played_at TEXT,
       FOREIGN KEY (profile_id)
         REFERENCES player_profiles (id)
         ON DELETE CASCADE
@@ -757,6 +829,576 @@ async function ensureColumn(
   await db.exec(
     `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`,
   );
+}
+
+async function migrateLegacyProfileCharacterIdentity(
+  db: GrayvaleDatabase,
+): Promise<void> {
+  const profiles = await db.all<Array<{
+    id: string;
+    display_name: string | null;
+  }>>(
+    `
+      SELECT allowed_players.player_uuid AS id, allowed_players.display_name
+      FROM allowed_players
+    `,
+  );
+
+  for (const profile of profiles) {
+    await db.run(
+      `
+        INSERT INTO player_profiles (id, display_name, created_at, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET
+          display_name = COALESCE(player_profiles.display_name, excluded.display_name),
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      profile.id,
+      profile.display_name,
+    );
+
+    const sameIdCharacter = await db.get<{
+      id: string;
+      profile_id: string;
+      name: string;
+      legacy_player_id: string | null;
+      content_binding_json: string | null;
+      save_data_json: string | null;
+      portrait_shard_id: string | null;
+      snapshot_level: number | null;
+      snapshot_location_id: string | null;
+      snapshot_last_location_name: string | null;
+      created_at: string;
+      updated_at: string;
+      last_played_at: string | null;
+    }>(
+      `
+        SELECT
+          id,
+          profile_id,
+          name,
+          legacy_player_id,
+          content_binding_json,
+          save_data_json,
+          portrait_shard_id,
+          snapshot_level,
+          snapshot_location_id,
+          snapshot_last_location_name,
+          created_at,
+          updated_at,
+          last_played_at
+        FROM player_characters
+        WHERE profile_id = ?
+          AND id = ?
+      `,
+      profile.id,
+      profile.id,
+    );
+
+    if (sameIdCharacter) {
+      const replacementCharacterId = randomUUID();
+
+      await db.run(
+        `
+          INSERT INTO player_characters (
+            id,
+            profile_id,
+            name,
+            legacy_player_id,
+            content_binding_json,
+            save_data_json,
+            portrait_shard_id,
+            snapshot_level,
+            snapshot_location_id,
+            snapshot_last_location_name,
+            created_at,
+            updated_at,
+            last_played_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        replacementCharacterId,
+        sameIdCharacter.profile_id,
+        sameIdCharacter.name,
+        sameIdCharacter.legacy_player_id ?? sameIdCharacter.id,
+        sameIdCharacter.content_binding_json,
+        sameIdCharacter.save_data_json,
+        sameIdCharacter.portrait_shard_id,
+        sameIdCharacter.snapshot_level,
+        sameIdCharacter.snapshot_location_id,
+        sameIdCharacter.snapshot_last_location_name,
+        sameIdCharacter.created_at,
+        sameIdCharacter.updated_at,
+        sameIdCharacter.last_played_at,
+      );
+
+      await remapCharacterReferences(db, sameIdCharacter.id, replacementCharacterId);
+
+      await db.run(
+        `
+          DELETE FROM player_characters
+          WHERE id = ?
+        `,
+        sameIdCharacter.id,
+      );
+    }
+
+    const characterCount = await db.get<{ count: number }>(
+      `
+        SELECT COUNT(1) AS count
+        FROM player_characters
+        WHERE profile_id = ?
+      `,
+      profile.id,
+    );
+
+    if ((characterCount?.count ?? 0) === 0) {
+      await db.run(
+        `
+          INSERT INTO player_characters (
+            id,
+            profile_id,
+            name,
+            legacy_player_id,
+            created_at,
+            updated_at,
+            last_played_at
+          )
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `,
+        randomUUID(),
+        profile.id,
+        profile.display_name?.trim() || profile.id,
+        profile.id,
+      );
+    }
+  }
+
+  const sessions = await db.all<Array<{
+    session_id: string;
+    player_uuid: string;
+    connected_at: string;
+    authenticated_at: string | null;
+  }>>(
+    `
+      SELECT session_id, player_uuid, connected_at, authenticated_at
+      FROM server_sessions
+    `,
+  );
+
+  for (const session of sessions) {
+    const resolvedProfileId =
+      (
+        await db.get<{ profile_id: string }>(
+          `
+            SELECT profile_id
+            FROM player_characters
+            WHERE id = ?
+          `,
+          session.player_uuid,
+        )
+      )?.profile_id ??
+      (
+        await db.get<{ profile_id: string }>(
+          `
+            SELECT profile_id
+            FROM player_characters
+            WHERE legacy_player_id = ?
+            ORDER BY datetime(updated_at) DESC, id DESC
+            LIMIT 1
+          `,
+          session.player_uuid,
+        )
+      )?.profile_id ??
+      (
+        await db.get<{ id: string }>(
+          `
+            SELECT id
+            FROM player_profiles
+            WHERE id = ?
+          `,
+          session.player_uuid,
+        )
+      )?.id ??
+      session.player_uuid;
+
+    const resolvedCharacterId =
+      (
+        await db.get<{ id: string }>(
+          `
+            SELECT id
+            FROM player_characters
+            WHERE id = ?
+              AND profile_id = ?
+          `,
+          session.player_uuid,
+          resolvedProfileId,
+        )
+      )?.id ??
+      (
+        await db.get<{ id: string }>(
+          `
+            SELECT id
+            FROM player_characters
+            WHERE legacy_player_id = ?
+              AND profile_id = ?
+            ORDER BY datetime(updated_at) DESC, id DESC
+            LIMIT 1
+          `,
+          session.player_uuid,
+          resolvedProfileId,
+        )
+      )?.id ??
+      (
+        await db.get<{ id: string }>(
+          `
+            SELECT id
+            FROM player_characters
+            WHERE profile_id = ?
+            ORDER BY datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+            LIMIT 1
+          `,
+          resolvedProfileId,
+        )
+      )?.id ??
+      null;
+
+    await db.run(
+      `
+        UPDATE server_sessions
+        SET profile_id = ?,
+            active_character_id = COALESCE(active_character_id, ?),
+            authenticated_at = COALESCE(authenticated_at, ?)
+        WHERE session_id = ?
+      `,
+      resolvedProfileId,
+      resolvedCharacterId,
+      session.connected_at,
+      session.session_id,
+    );
+  }
+}
+
+async function backfillCharacterSnapshotsFromSaveData(
+  db: GrayvaleDatabase,
+): Promise<void> {
+  const rows = await db.all<Array<{
+    id: string;
+    save_data_json: string | null;
+    portrait_shard_id: string | null;
+    snapshot_level: number | null;
+    snapshot_location_id: string | null;
+    snapshot_last_location_name: string | null;
+  }>>(
+    `
+      SELECT
+        id,
+        save_data_json,
+        portrait_shard_id,
+        snapshot_level,
+        snapshot_location_id,
+        snapshot_last_location_name
+      FROM player_characters
+      WHERE save_data_json IS NOT NULL
+        AND (
+          portrait_shard_id IS NULL
+          OR snapshot_level IS NULL
+          OR snapshot_location_id IS NULL
+          OR snapshot_last_location_name IS NULL
+        )
+    `,
+  );
+
+  for (const row of rows) {
+    const snapshot = parseSnapshotFromSaveData(row.save_data_json);
+
+    if (!snapshot) {
+      continue;
+    }
+
+    const portraitShardId = row.portrait_shard_id ?? snapshot.portraitShardId ?? null;
+    const level = row.snapshot_level ?? snapshot.level ?? null;
+    const locationId = row.snapshot_location_id ?? snapshot.locationId ?? null;
+    const lastLocationName =
+      row.snapshot_last_location_name ??
+      snapshot.lastLocationName ??
+      (locationId ? humanizeLocationId(locationId) : null);
+
+    if (
+      portraitShardId === row.portrait_shard_id &&
+      level === row.snapshot_level &&
+      locationId === row.snapshot_location_id &&
+      lastLocationName === row.snapshot_last_location_name
+    ) {
+      continue;
+    }
+
+    await db.run(
+      `
+        UPDATE player_characters
+        SET portrait_shard_id = ?,
+            snapshot_level = ?,
+            snapshot_location_id = ?,
+            snapshot_last_location_name = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      portraitShardId,
+      level,
+      locationId,
+      lastLocationName,
+      row.id,
+    );
+  }
+}
+
+function parseSnapshotFromSaveData(saveDataJson: string | null): {
+  portraitShardId?: string;
+  level?: number;
+  locationId?: string;
+  lastLocationName?: string;
+} | null {
+  if (!saveDataJson) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(saveDataJson) as unknown;
+    const player = extractPlayerSnapshotRecord(parsed);
+
+    if (!player) {
+      return null;
+    }
+
+    const level = readPositiveInteger(player["progression"], "level");
+    const locationId = readOptionalLocationId(player);
+    const portraitShardId = readPortraitShardId(player);
+
+    return {
+      portraitShardId: portraitShardId ?? undefined,
+      level: level ?? undefined,
+      locationId: locationId ?? undefined,
+      lastLocationName: locationId ? humanizeLocationId(locationId) : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractPlayerSnapshotRecord(raw: unknown): Record<string, unknown> | null {
+  const root = ensureRecord(raw);
+
+  if (!root) {
+    return null;
+  }
+
+  const direct = root;
+  const nestedPlayer = ensureRecord(root["player"]);
+
+  if (nestedPlayer) {
+    return nestedPlayer;
+  }
+
+  return direct;
+}
+
+function ensureRecord(raw: unknown): Record<string, unknown> | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+
+  return raw as Record<string, unknown>;
+}
+
+function readPositiveInteger(
+  rawParent: unknown,
+  childKey: string,
+): number | null {
+  const parent = ensureRecord(rawParent);
+
+  if (!parent) {
+    return null;
+  }
+
+  const raw = parent[childKey];
+
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1) {
+    return null;
+  }
+
+  return raw;
+}
+
+function readOptionalLocationId(player: Record<string, unknown>): string | null {
+  const interactionState = ensureRecord(player["interactionState"]);
+
+  if (interactionState) {
+    const lastButtonPress = ensureRecord(interactionState["lastButtonPress"]);
+    const fromLastPress = readNonEmptyString(lastButtonPress?.["locationId"]);
+
+    if (fromLastPress) {
+      return fromLastPress;
+    }
+
+    const recentPresses = Array.isArray(interactionState["recentButtonPresses"])
+      ? interactionState["recentButtonPresses"]
+      : [];
+
+    for (let index = recentPresses.length - 1; index >= 0; index -= 1) {
+      const entry = ensureRecord(recentPresses[index]);
+      const value = readNonEmptyString(entry?.["locationId"]);
+
+      if (value) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
+function readPortraitShardId(player: Record<string, unknown>): string | null {
+  const explicit = readNonEmptyString(player["portraitShardId"]);
+
+  if (explicit) {
+    return explicit;
+  }
+
+  const raceId = readNonEmptyString(player["raceId"]);
+  const selectedAppearance = ensureRecord(player["selectedAppearance"]);
+  const variant = readNonEmptyString(selectedAppearance?.["variant"]);
+  const imageIndexRaw = selectedAppearance?.["imageIndex"];
+
+  if (
+    !raceId ||
+    !variant ||
+    (variant !== "warm" && variant !== "cool" && variant !== "exotic") ||
+    typeof imageIndexRaw !== "number" ||
+    !Number.isInteger(imageIndexRaw) ||
+    imageIndexRaw < 0
+  ) {
+    return null;
+  }
+
+  return `${raceId}:${variant}:${imageIndexRaw}`;
+}
+
+function readNonEmptyString(raw: unknown): string | null {
+  if (typeof raw !== "string") {
+    return null;
+  }
+
+  const value = raw.trim();
+  return value.length > 0 ? value : null;
+}
+
+function humanizeLocationId(locationId: string): string {
+  return locationId
+    .split(/[-_]+/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment[0].toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+async function remapCharacterReferences(
+  db: GrayvaleDatabase,
+  previousCharacterId: string,
+  nextCharacterId: string,
+): Promise<void> {
+  const updates: Array<{ sql: string; params: readonly unknown[] }> = [
+    {
+      sql: `
+        UPDATE player_presence
+        SET current_character_id = ?
+        WHERE current_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE guild_memberships
+        SET character_id = ?
+        WHERE character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE guild_members
+        SET character_id = ?
+        WHERE character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE guilds
+        SET created_by_character_id = ?
+        WHERE created_by_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE chat_messages_v2
+        SET sender_character_id = ?
+        WHERE sender_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE direct_messages
+        SET sender_character_id = ?
+        WHERE sender_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE friendships
+        SET requester_character_id = ?
+        WHERE requester_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE friendships
+        SET target_character_id = ?
+        WHERE target_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE guild_invitations
+        SET inviter_character_id = ?
+        WHERE inviter_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE guild_invitations
+        SET target_character_id = ?
+        WHERE target_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+    {
+      sql: `
+        UPDATE server_sessions
+        SET active_character_id = ?
+        WHERE active_character_id = ?
+      `,
+      params: [nextCharacterId, previousCharacterId],
+    },
+  ];
+
+  for (const update of updates) {
+    await db.run(update.sql, ...update.params);
+  }
 }
 
 class TursoDatabase implements GrayvaleDatabase {

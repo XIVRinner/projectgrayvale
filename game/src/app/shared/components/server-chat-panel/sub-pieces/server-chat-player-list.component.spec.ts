@@ -26,6 +26,8 @@ describe("ServerChatPlayerListComponent", () => {
 
     fixture.componentRef.setInput("players", [
       {
+        profileId: "profile-1",
+        characterId: "player-1",
         playerUuid: "player-1",
         displayName: "Aerin",
         avatarPath: "assets/images/portraits/aerin.png",

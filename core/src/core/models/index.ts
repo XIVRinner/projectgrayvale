@@ -4,6 +4,7 @@ export * from "./character-identity";
 export * from "./equipment";
 export * from "./inventory";
 export * from "./player";
+export * from "./player-profile";
 export * from "./progression";
 export * from "./skill";
 export * from "./weapon";

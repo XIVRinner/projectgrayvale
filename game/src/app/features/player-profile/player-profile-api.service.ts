@@ -1,31 +1,34 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
+import type {
+  CharacterContentBinding,
+  PlayerCharacterSummary,
+  PlayerProfile,
+} from "@rinner/grayvale-core";
 import { firstValueFrom } from "rxjs";
 
 import { ServerConnectionService } from "../../core/services/server-connection.service";
 import type { ServerProfile } from "../../core/services/server-profile.service";
 
-export interface PlayerCharacterContentBinding {
-  readonly serverName: string;
-  readonly customContent: boolean;
-  readonly profileToken: string;
-  readonly acceptedAt: string;
-}
+export type PlayerCharacterContentBinding = CharacterContentBinding;
 
-export interface PlayerCharacterSummary {
-  readonly id: string;
-  readonly name: string;
-  readonly contentBinding: PlayerCharacterContentBinding | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
-
-export interface PlayerProfileData {
-  readonly id: string;
-  readonly displayName: string | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly characters: readonly PlayerCharacterSummary[];
+export interface PlayerProfileData extends PlayerProfile {
+  readonly displayName?: string;
+  readonly currentCharacterId?: string;
+  readonly currentCharacterName?: string;
+  readonly activeCharacterId?: string;
+  readonly badges: readonly {
+    type: "friend" | "guild_role" | "admin" | "moderation" | "permission";
+    label: string;
+  }[];
+  readonly friendSummary: {
+    count: number;
+  };
+  readonly guildSummary: {
+    id: string;
+    name: string;
+    role: string;
+  } | null;
 }
 
 export interface CreateCharacterRequest {
@@ -35,12 +38,45 @@ export interface CreateCharacterRequest {
     readonly customContent: boolean;
     readonly profileToken: string;
   };
+  readonly initialSnapshot?: {
+    readonly portraitShardId?: string;
+    readonly level?: number;
+    readonly locationId?: string;
+    readonly lastLocationName?: string;
+  };
 }
+
+export interface RegisterCharacterRequest {
+  readonly characterId: string;
+  readonly characterName: string;
+  readonly portraitShardId: string;
+  readonly level?: number;
+  readonly locationId?: string;
+  readonly lastLocationName?: string;
+}
+
+export interface RegisterActiveCharacterRequest {
+  readonly characterId: string;
+  readonly level?: number;
+  readonly locationId?: string;
+  readonly lastLocationName?: string;
+}
+
+export interface UpdateProfileRequest {
+  readonly displayName: string;
+}
+
+export type UnavailableCharacterReasonCategory =
+  | "missing_local_save"
+  | "server_incompatible"
+  | "character_tamper_detected"
+  | "active_character_registration_missing";
 
 export interface CharacterCompatibilityStatus {
   readonly character: PlayerCharacterSummary;
   readonly compatible: boolean;
   readonly reason: string;
+  readonly reasonCategory?: UnavailableCharacterReasonCategory;
 }
 
 @Injectable({ providedIn: "root" })
@@ -62,12 +98,80 @@ export class PlayerProfileApiService {
     );
   }
 
-  async selectCharacter(characterId: string): Promise<{ selected: boolean; character: PlayerCharacterSummary }> {
+  async registerCharacter(request: RegisterCharacterRequest): Promise<{
+    status: "created" | "refreshed";
+    character: PlayerCharacterSummary;
+  }> {
+    const url = this.serverConnection.serverApiUrl("/api/player/register-character");
+    return firstValueFrom(
+      this.http.post<{
+        status: "created" | "refreshed";
+        character: PlayerCharacterSummary;
+      }>(url, request, { withCredentials: true }),
+    );
+  }
+
+  async registerActiveCharacter(request: RegisterActiveCharacterRequest): Promise<{
+    status: "activated";
+    profileId: string;
+    activeCharacterId: string;
+    character: PlayerCharacterSummary;
+  }> {
+    const url = this.serverConnection.serverApiUrl("/api/player/register-active-character");
+    return firstValueFrom(
+      this.http.post<{
+        status: "activated";
+        profileId: string;
+        activeCharacterId: string;
+        character: PlayerCharacterSummary;
+      }>(url, request, { withCredentials: true }),
+    );
+  }
+
+  async deleteCharacter(characterId: string): Promise<{
+    deleted: true;
+    characterId: string;
+  }> {
+    const url = this.serverConnection.serverApiUrl(`/api/player/characters/${characterId}`);
+    return firstValueFrom(
+      this.http.delete<{
+        deleted: true;
+        characterId: string;
+      }>(url, { withCredentials: true }),
+    );
+  }
+
+  async updateProfile(request: UpdateProfileRequest): Promise<PlayerProfileData> {
+    const url = this.serverConnection.serverApiUrl("/api/player/profile");
+    return firstValueFrom(
+      this.http.patch<PlayerProfileData>(url, request, { withCredentials: true }),
+    );
+  }
+
+  async selectCharacter(
+    characterId: string,
+    snapshot?: {
+      readonly portraitShardId?: string;
+      readonly level?: number;
+      readonly locationId?: string;
+      readonly lastLocationName?: string;
+    },
+  ): Promise<{
+    selected: boolean;
+    profileId: string;
+    activeCharacterId: string;
+    character: PlayerCharacterSummary;
+  }> {
     const url = this.serverConnection.serverApiUrl(`/api/player/characters/${characterId}/select`);
     return firstValueFrom(
-      this.http.post<{ selected: boolean; character: PlayerCharacterSummary }>(
+      this.http.post<{
+        selected: boolean;
+        profileId: string;
+        activeCharacterId: string;
+        character: PlayerCharacterSummary;
+      }>(
         url,
-        {},
+        snapshot ? { snapshot } : {},
         { withCredentials: true },
       ),
     );
@@ -109,6 +213,7 @@ export class PlayerProfileApiService {
         character,
         compatible: false,
         reason: `Bound to a custom-content server ("${character.contentBinding.serverName}"). Cannot load on an official server.`,
+        reasonCategory: "server_incompatible",
       };
     }
 
@@ -118,6 +223,7 @@ export class PlayerProfileApiService {
         character,
         compatible: false,
         reason: `This character's server compatibility token does not match the current server. It may have been created on a different server.`,
+        reasonCategory: "server_incompatible",
       };
     }
 

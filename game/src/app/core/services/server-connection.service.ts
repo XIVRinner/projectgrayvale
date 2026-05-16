@@ -22,13 +22,15 @@ export interface ServerDirectoryEntry {
 
 export interface ServerSessionState {
   readonly sessionId: string;
-  readonly playerUuid: string;
+  readonly profileId: string;
+  readonly activeCharacterId?: string;
   readonly rank: ServerPlayerRank;
   readonly rankColor: string;
   readonly chatAccess: ServerChatAccessState;
   readonly chatAccessLabel: string;
   readonly chatTimeoutUntil?: string;
   readonly chatReason?: string;
+  readonly authenticatedAt: string;
   readonly connectedAt: string;
 }
 
@@ -156,8 +158,14 @@ export class ServerConnectionService {
     void this.tryRestoreSelectedServerSession();
   }
 
+  disconnect(): void {
+    this.sessionState.set(null);
+    this.lastConnectedServerIdState.set(null);
+    this.persist();
+  }
+
   async connectPlayer(
-    playerUuid: string,
+    profileId: string,
     password: string,
     displayName?: string,
     avatarPath?: string,
@@ -176,7 +184,7 @@ export class ServerConnectionService {
 
     const clientId = await this.resolveClientId(selected);
     const payload = {
-      playerUuid,
+      profileId,
       password,
       clientId,
       displayName,
@@ -211,13 +219,15 @@ export class ServerConnectionService {
 
     const nextSession: ServerSessionState = {
       sessionId: response.session.sessionId,
-      playerUuid: response.player.playerUuid,
+      profileId: response.session.profileId,
+      activeCharacterId: response.session.activeCharacterId,
       rank: response.player.rank,
       rankColor: rankColorFor(response.player.rank),
       chatAccess: response.player.chatAccess,
       chatAccessLabel: response.player.chatAccessLabel,
       chatTimeoutUntil: response.player.chatTimeoutUntil,
       chatReason: response.player.chatReason,
+      authenticatedAt: response.session.authenticatedAt,
       connectedAt: response.session.connectedAt,
     };
 
@@ -229,7 +239,7 @@ export class ServerConnectionService {
   }
 
   async grantAdmin(
-    playerUuid: string,
+    profileId: string,
     adminPassword: string,
   ): Promise<ServerSessionState> {
     const currentSession = this.sessionState();
@@ -244,7 +254,7 @@ export class ServerConnectionService {
         url,
         {
           sessionId: currentSession.sessionId,
-          targetUuid: playerUuid,
+          targetUuid: profileId,
           rank: "admin",
           adminPassword,
         },
@@ -256,7 +266,6 @@ export class ServerConnectionService {
 
     const nextSession: ServerSessionState = {
       ...currentSession,
-      playerUuid: response.player.playerUuid,
       rank: response.player.rank,
       rankColor: rankColorFor(response.player.rank),
       chatAccess: response.player.chatAccess,
@@ -280,13 +289,15 @@ export class ServerConnectionService {
 
     const nextSession: ServerSessionState = {
       sessionId: response.session.sessionId,
-      playerUuid: response.player.playerUuid,
+      profileId: response.session.profileId,
+      activeCharacterId: response.session.activeCharacterId,
       rank: response.player.rank,
       rankColor: rankColorFor(response.player.rank),
       chatAccess: response.player.chatAccess,
       chatAccessLabel: response.player.chatAccessLabel,
       chatTimeoutUntil: response.player.chatTimeoutUntil,
       chatReason: response.player.chatReason,
+      authenticatedAt: response.session.authenticatedAt,
       connectedAt: response.session.connectedAt,
     };
 
@@ -298,12 +309,12 @@ export class ServerConnectionService {
   }
 
   syncSessionModeration(
-    playerUuid: string,
+    profileId: string,
     moderation: ServerSessionModerationState,
   ): void {
     const session = this.sessionState();
 
-    if (!session || session.playerUuid !== playerUuid) {
+    if (!session || session.profileId !== profileId) {
       return;
     }
 
@@ -437,10 +448,14 @@ export class ServerConnectionService {
 interface JoinResponse {
   readonly session: {
     readonly sessionId: string;
+    readonly profileId: string;
+    readonly activeCharacterId?: string;
+    readonly authenticatedAt: string;
     readonly connectedAt: string;
   };
   readonly player: {
-    readonly playerUuid: string;
+    readonly profileId?: string;
+    readonly playerUuid?: string;
     readonly rank: ServerPlayerRank;
     readonly chatAccess: ServerChatAccessState;
     readonly chatAccessLabel: string;
@@ -451,7 +466,8 @@ interface JoinResponse {
 
 interface AdminGrantResponse {
   readonly player: {
-    readonly playerUuid: string;
+    readonly profileId?: string;
+    readonly playerUuid?: string;
     readonly rank: ServerPlayerRank;
     readonly chatAccess: ServerChatAccessState;
     readonly chatAccessLabel: string;

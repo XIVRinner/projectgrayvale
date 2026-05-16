@@ -9,23 +9,41 @@ import { MultiplayerRepository } from "./multiplayer-repository";
 import { type AllowedPlayerRecord, type PlayerRank } from "./multiplayer-types";
 import { buildServerProfile } from "../server-profile/server-profile-service";
 
-const playerUuidSchema = z.string().trim().uuid();
+const profileIdSchema = z.string().trim().uuid();
 const clientIdSchema = z.string().trim().min(1).max(120);
 const passwordSchema = z.string().min(1).max(200);
 const displayNameSchema = z.string().trim().min(1).max(80).optional();
 const avatarPathSchema = z.string().trim().min(1).max(300).optional();
 const joinBodySchema = z.object({
-  playerUuid: playerUuidSchema,
+  profileId: profileIdSchema.optional(),
+  playerUuid: profileIdSchema.optional(),
   password: passwordSchema,
   clientId: clientIdSchema,
   displayName: displayNameSchema,
   avatarPath: avatarPathSchema,
+}).superRefine((value, context) => {
+  if (!value.profileId && !value.playerUuid) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "profileId is required.",
+      path: ["profileId"],
+    });
+  }
 });
 const registerBodySchema = z.object({
-  playerUuid: playerUuidSchema,
+  profileId: profileIdSchema.optional(),
+  playerUuid: profileIdSchema.optional(),
   password: passwordSchema,
   displayName: displayNameSchema,
   avatarPath: avatarPathSchema,
+}).superRefine((value, context) => {
+  if (!value.profileId && !value.playerUuid) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "profileId is required.",
+      path: ["profileId"],
+    });
+  }
 });
 const rankSchema = z.enum(["player", "vip", "moderator", "admin"]);
 const chatMessageSchema = z.string().trim().min(1).max(500);
@@ -35,7 +53,7 @@ const moderationReasonSchema = z.string().trim().min(3).max(300);
 const moderationDurationSchema = z.number().int().min(1).max(43_200);
 const moderationBodySchema = z
   .object({
-    targetUuid: playerUuidSchema,
+    targetUuid: profileIdSchema,
     action: moderationActionSchema,
     durationMinutes: moderationDurationSchema.optional(),
     reason: moderationReasonSchema.optional(),
@@ -161,7 +179,7 @@ export function createMultiplayerRouter(
         return;
       }
 
-      const player = await repository.getAllowedPlayer(session.playerUuid);
+      const player = await repository.getAllowedPlayer(session.profileId);
 
       if (!player) {
         clearSessionCookie(response, request);
@@ -173,7 +191,7 @@ export function createMultiplayerRouter(
       }
 
       if (player.serverBanned) {
-        await repository.deleteSessionsForPlayer(player.playerUuid);
+        await repository.deleteSessionsForPlayer(player.profileId);
         clearSessionCookie(response, request);
         response.status(403).json({
           error: "server_banned",
@@ -185,10 +203,8 @@ export function createMultiplayerRouter(
       }
 
       if (socialRepository) {
-        const profileId = await socialRepository.getProfileIdByCharacterId(session.playerUuid);
-
-        if (profileId && (await socialRepository.isProfileBanned(profileId))) {
-          await repository.deleteSessionsForPlayer(session.playerUuid);
+        if (await socialRepository.isProfileBanned(session.profileId)) {
+          await repository.deleteSessionsForPlayer(session.profileId);
           clearSessionCookie(response, request);
           response.status(403).json({
             error: "server_banned",
@@ -199,7 +215,7 @@ export function createMultiplayerRouter(
       }
 
       await repository.markSessionSeen(sessionId);
-      await repository.markPlayerSeen(session.playerUuid);
+      await repository.markPlayerSeen(session.profileId);
 
       response.json({
         session,
@@ -227,10 +243,10 @@ export function createMultiplayerRouter(
           return;
         }
 
-        const player = await repository.getAllowedPlayer(session.playerUuid);
+        const player = await repository.getAllowedPlayer(session.profileId);
 
         if (player?.serverBanned) {
-          await repository.deleteSessionsForPlayer(session.playerUuid);
+          await repository.deleteSessionsForPlayer(session.profileId);
           clearSessionCookie(response, request);
           response.status(403).json({
             error: "server_banned",
@@ -242,10 +258,8 @@ export function createMultiplayerRouter(
         }
 
         if (socialRepository) {
-          const profileId = await socialRepository.getProfileIdByCharacterId(session.playerUuid);
-
-          if (profileId && (await socialRepository.isProfileBanned(profileId))) {
-            await repository.deleteSessionsForPlayer(session.playerUuid);
+          if (await socialRepository.isProfileBanned(session.profileId)) {
+            await repository.deleteSessionsForPlayer(session.profileId);
             clearSessionCookie(response, request);
             response.status(403).json({
               error: "server_banned",
@@ -256,25 +270,22 @@ export function createMultiplayerRouter(
         }
 
         await repository.markSessionSeen(sessionId);
-        await repository.markPlayerSeen(session.playerUuid);
+        await repository.markPlayerSeen(session.profileId);
       }
 
       const players = await repository.listOnlinePlayers(limit);
       const hydratedPlayers = socialRepository
         ? await Promise.all(
             players.map(async (player) => {
-              const profileId =
-                (await socialRepository.getProfileIdByCharacterId(
-                  player.playerUuid,
-                )) ?? undefined;
               const guildShortName =
-                (await socialRepository.getGuildShortNameByCharacterId(
-                  player.playerUuid,
-                )) ?? undefined;
+                player.characterId
+                  ? (await socialRepository.getGuildShortNameByCharacterId(
+                      player.characterId,
+                    )) ?? undefined
+                  : undefined;
 
               return {
                 ...player,
-                profileId,
                 guildShortName,
               };
             }),
@@ -302,8 +313,9 @@ export function createMultiplayerRouter(
     async (request, response, next) => {
       try {
         const payload = registerBodySchema.parse(request.body);
+        const profileId = payload.profileId ?? payload.playerUuid!;
         const player = await repository.registerPlayer(
-          payload.playerUuid,
+          profileId,
           payload.password,
           payload.displayName,
           payload.avatarPath,
@@ -312,7 +324,7 @@ export function createMultiplayerRouter(
         await repository.appendAuditLog(
           "player_registered",
           { clientId: config.clientId },
-          payload.playerUuid,
+          profileId,
         );
 
         response.status(201).json({
@@ -322,7 +334,7 @@ export function createMultiplayerRouter(
         if (isErrorCode(error, "player_exists")) {
           response.status(409).json({
             error: "player_exists",
-            message: "This player UUID is already registered.",
+            message: "This profile ID is already registered.",
           });
           return;
         }
@@ -346,15 +358,16 @@ export function createMultiplayerRouter(
     async (request, response, next) => {
       try {
         const payload = joinBodySchema.parse(request.body);
+        const profileId = payload.profileId ?? payload.playerUuid!;
         const player = await repository.authenticatePlayer(
-          payload.playerUuid,
+          profileId,
           payload.password,
         );
 
         if (!player) {
           response.status(404).json({
             error: "player_not_registered",
-            message: "Player UUID is not allowed on this server.",
+            message: "Profile ID is not allowed on this server.",
           });
           return;
         }
@@ -370,9 +383,7 @@ export function createMultiplayerRouter(
         }
 
         if (socialRepository) {
-          const profileId = await socialRepository.getProfileIdByCharacterId(payload.playerUuid);
-
-          if (profileId && (await socialRepository.isProfileBanned(profileId))) {
+          if (await socialRepository.isProfileBanned(profileId)) {
             response.status(403).json({
               error: "server_banned",
               message: "This profile is banned from entering the server.",
@@ -381,12 +392,14 @@ export function createMultiplayerRouter(
           }
         }
 
+        const defaultCharacterId = await repository.getDefaultCharacterId(profileId);
         const session = await repository.createSession(
-          payload.playerUuid,
+          profileId,
           payload.clientId,
+          defaultCharacterId ?? undefined,
           readIpAddress(request),
         );
-        await repository.syncPlayerProfile(payload.playerUuid, {
+        await repository.syncPlayerProfile(profileId, {
           displayName: payload.displayName,
           avatarPath: payload.avatarPath,
         });
@@ -399,7 +412,7 @@ export function createMultiplayerRouter(
             clientId: payload.clientId,
             ipAddress: readIpAddress(request),
           },
-          payload.playerUuid,
+          profileId,
         );
 
         response.json({
@@ -466,12 +479,12 @@ export function createMultiplayerRouter(
         return;
       }
 
-      const player = await repository.getAllowedPlayer(session.playerUuid);
+      const player = await repository.getAllowedPlayer(session.profileId);
 
       if (!player) {
         response.status(404).json({
           error: "player_not_registered",
-          message: "Player no longer exists in the allow-list.",
+          message: "Profile no longer exists in the allow-list.",
         });
         return;
       }
@@ -488,9 +501,7 @@ export function createMultiplayerRouter(
       }
 
       if (socialRepository) {
-        const profileId = await socialRepository.getProfileIdByCharacterId(session.playerUuid);
-
-        if (profileId && (await socialRepository.isProfileMuted(profileId))) {
+        if (await socialRepository.isProfileMuted(session.profileId)) {
           response.status(403).json({
             error: "chat_muted",
             message: "This profile is muted and cannot send chat messages.",
@@ -500,19 +511,19 @@ export function createMultiplayerRouter(
       }
 
       const entry = await repository.appendChatMessage(
-        session.playerUuid,
+        session.profileId,
         player.rank,
         message,
       );
       await repository.markSessionSeen(sessionId);
-      await repository.markPlayerSeen(session.playerUuid);
+      await repository.markPlayerSeen(session.profileId);
       await repository.appendAuditLog(
         "chat_message",
         {
           sessionId,
           chatMessageId: entry.id,
         },
-        session.playerUuid,
+        session.profileId,
       );
 
       response.status(201).json({
@@ -567,7 +578,7 @@ export function createMultiplayerRouter(
         }
 
         const actorPlayer = await repository.getAllowedPlayer(
-          actorSession.playerUuid,
+          actorSession.profileId,
         );
 
         if (!actorPlayer) {
@@ -586,10 +597,10 @@ export function createMultiplayerRouter(
           return;
         }
 
-        if (actorPlayer.playerUuid === payload.targetUuid) {
+        if (actorPlayer.profileId === payload.targetUuid) {
           response.status(400).json({
             error: "bad_request",
-            message: "You cannot moderate your own character.",
+            message: "You cannot moderate your own profile.",
           });
           return;
         }
@@ -599,7 +610,7 @@ export function createMultiplayerRouter(
         if (!targetPlayer) {
           response.status(404).json({
             error: "player_not_registered",
-            message: "Target player UUID is not registered.",
+            message: "Target profile ID is not registered.",
           });
           return;
         }
@@ -650,7 +661,7 @@ export function createMultiplayerRouter(
         if (!updated) {
           response.status(404).json({
             error: "player_not_registered",
-            message: "Target player UUID is not registered.",
+            message: "Target profile ID is not registered.",
           });
           return;
         }
@@ -658,7 +669,7 @@ export function createMultiplayerRouter(
         await repository.appendAuditLog(
           `moderation_${payload.action}`,
           {
-            actorPlayerUuid: actorPlayer.playerUuid,
+            actorProfileId: actorPlayer.profileId,
             targetUuid: payload.targetUuid,
             action: payload.action,
             reason: payload.reason ?? null,
@@ -691,7 +702,7 @@ export function createMultiplayerRouter(
     async (request, response, next) => {
       try {
         const sessionId = z.string().uuid().parse(request.body?.sessionId);
-        const targetUuid = playerUuidSchema.parse(request.body?.targetUuid);
+        const targetUuid = profileIdSchema.parse(request.body?.targetUuid);
         const targetRank = rankSchema.parse(request.body?.rank);
         const adminPassword = passwordSchema.parse(request.body?.adminPassword);
 
@@ -718,7 +729,7 @@ export function createMultiplayerRouter(
         if (!updated) {
           response.status(404).json({
             error: "player_not_registered",
-            message: "Target player UUID is not registered.",
+            message: "Target profile ID is not registered.",
           });
           return;
         }
@@ -726,7 +737,7 @@ export function createMultiplayerRouter(
         await repository.appendAuditLog(
           "rank_changed",
           {
-            actorPlayerUuid: actorSession.playerUuid,
+            actorProfileId: actorSession.profileId,
             targetUuid,
             rank: targetRank,
           },
@@ -768,7 +779,7 @@ export function createMultiplayerRouter(
 
   router.get("/audit", enforceReadRateLimit, async (request, response, next) => {
     try {
-      // Audit logs contain sensitive data (IPs, session IDs, player UUIDs).
+      // Audit logs contain sensitive data (IPs, session IDs, profile IDs).
       // Access is restricted to moderators and admins.
       const actorSessionId = resolveSessionId(request);
 
@@ -792,7 +803,7 @@ export function createMultiplayerRouter(
       }
 
       const actorPlayer = await repository.getAllowedPlayer(
-        actorSession.playerUuid,
+        actorSession.profileId,
       );
 
       if (!actorPlayer) {
@@ -853,7 +864,7 @@ function optionalUuid(raw: unknown): string | undefined {
     return undefined;
   }
 
-  const parsed = playerUuidSchema.safeParse(raw);
+  const parsed = profileIdSchema.safeParse(raw);
 
   return parsed.success ? parsed.data : undefined;
 }

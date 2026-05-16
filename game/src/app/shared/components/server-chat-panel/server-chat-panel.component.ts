@@ -1,4 +1,4 @@
-import { Component, effect, input, output, signal, viewChild } from "@angular/core";
+import { Component, input, output, signal, viewChild } from "@angular/core";
 import { MenuItem } from "primeng/api";
 import { ContextMenu, ContextMenuModule } from "primeng/contextmenu";
 
@@ -26,6 +26,7 @@ import { ServerChatMessageListComponent } from "./sub-pieces/server-chat-message
 import { ServerChatModerationBannerComponent } from "./sub-pieces/server-chat-moderation-banner.component";
 import { ServerChatPlayerDirectoryComponent } from "./sub-pieces/server-chat-player-directory.component";
 import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-list.component";
+import { PlayerProfileContainerComponent } from "../../../features/player-profile/player-profile-container.component";
 
 @Component({
   selector: "gv-server-chat-panel",
@@ -40,6 +41,7 @@ import { ServerChatPlayerListComponent } from "./sub-pieces/server-chat-player-l
     ServerChatModerationBannerComponent,
     ServerChatPlayerDirectoryComponent,
     ServerChatPlayerListComponent,
+    PlayerProfileContainerComponent,
   ],
   templateUrl: "./server-chat-panel.component.html",
   styleUrl: "./server-chat-panel.component.scss",
@@ -123,26 +125,8 @@ export class ServerChatPanelComponent {
   protected readonly activePanel = signal<"chat" | "friends" | "guild" | "players" | "admin">("chat");
   protected readonly contextMenuItems = signal<MenuItem[]>([]);
   protected readonly activeContextChannelId = signal<string | null>(null);
-  protected readonly selectedProfileAvatarPath = signal<string | null>(null);
   protected readonly inspectProfile = signal<InspectProfilePreview | null>(null);
-  protected readonly profileAvatarOptions = PROFILE_AVATAR_OPTIONS;
   protected readonly contextMenu = viewChild<ContextMenu>("channelContextMenu");
-
-  constructor() {
-    effect(() => {
-      const profileId = this.relayProfile()?.profileId;
-
-      if (!profileId) {
-        this.selectedProfileAvatarPath.set(null);
-        return;
-      }
-
-      const persisted = readProfileAvatar(profileId);
-      this.selectedProfileAvatarPath.set(
-        persisted ?? PROFILE_AVATAR_OPTIONS[0]?.src ?? null,
-      );
-    });
-  }
 
   protected selectRootMenu(menu: "communications" | "profile"): void {
     this.activeRootMenu.set(menu);
@@ -241,10 +225,12 @@ export class ServerChatPanelComponent {
     }
 
     const player = this.players().find(
-      (entry) => entry.playerUuid === message.playerUuid,
+      (entry) =>
+        entry.profileId === message.sender.profileId ||
+        entry.characterId === message.playerUuid,
     );
 
-    if (!player || player.playerUuid === this.currentPlayerUuid()) {
+    if (!player || player.characterId === this.currentPlayerUuid()) {
       return;
     }
 
@@ -258,29 +244,6 @@ export class ServerChatPanelComponent {
     }
 
     this.playerActionRequested.emit(request);
-  }
-
-  protected profileAvatarPath(): string | null {
-    return this.selectedProfileAvatarPath();
-  }
-
-  protected selectProfileAvatar(path: string): void {
-    const profileId = this.relayProfile()?.profileId;
-
-    if (!profileId) {
-      return;
-    }
-
-    this.selectedProfileAvatarPath.set(path);
-    writeProfileAvatar(profileId, path);
-  }
-
-  protected profileCharacterFriendships() {
-    return this.relayProfile()?.friendships.filter((entry) => entry.type === "character") ?? [];
-  }
-
-  protected profileAccountFriendships() {
-    return this.relayProfile()?.friendships.filter((entry) => entry.type === "profile") ?? [];
   }
 
   protected closeInspectProfile(): void {
@@ -362,11 +325,15 @@ export class ServerChatPanelComponent {
     }
 
     const playerByUuid = request.targetPlayerUuid
-      ? this.players().find((entry) => entry.playerUuid === request.targetPlayerUuid)
+      ? this.players().find(
+          (entry) =>
+            entry.characterId === request.targetPlayerUuid ||
+            entry.profileId === request.targetPlayerUuid,
+        )
       : undefined;
     const playerByProfile =
       playerByUuid ??
-      this.players().find((entry) => entry.profileId?.trim() === targetProfileId);
+      this.players().find((entry) => entry.profileId.trim() === targetProfileId);
     const latestMessage = this.messages()
       .slice()
       .reverse()
@@ -391,40 +358,4 @@ interface InspectProfilePreview {
   readonly profileId: string;
   readonly displayName: string;
   readonly avatarPath?: string;
-}
-
-interface ProfileAvatarOption {
-  readonly id: string;
-  readonly label: string;
-  readonly src: string;
-}
-
-const PROFILE_AVATAR_OPTIONS: readonly ProfileAvatarOption[] = [
-  { id: "human", label: "Human", src: "assets/images/character/race-icons/human.png" },
-  { id: "elf", label: "Elf", src: "assets/images/character/race-icons/elf.png" },
-  { id: "night-elf", label: "Night Elf", src: "assets/images/character/race-icons/nelf.png" },
-  { id: "catfolk", label: "Catfolk", src: "assets/images/character/race-icons/catfolk.svg" },
-  { id: "oni", label: "Oni", src: "assets/images/character/race-icons/oni.png" },
-  { id: "golem", label: "Golem", src: "assets/images/character/race-icons/golem.svg" },
-  { id: "high-goblin", label: "High Goblin", src: "assets/images/character/race-icons/highgoblin.png" },
-];
-
-function avatarStorageKey(profileId: string): string {
-  return `grayvale:relay-profile-avatar:${profileId}`;
-}
-
-function readProfileAvatar(profileId: string): string | null {
-  try {
-    return localStorage.getItem(avatarStorageKey(profileId));
-  } catch {
-    return null;
-  }
-}
-
-function writeProfileAvatar(profileId: string, path: string): void {
-  try {
-    localStorage.setItem(avatarStorageKey(profileId), path);
-  } catch {
-    // Ignore browser storage failures.
-  }
 }

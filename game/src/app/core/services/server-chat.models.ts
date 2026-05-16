@@ -32,9 +32,11 @@ export interface ServerInfoView {
 }
 
 export interface ServerPresencePlayerView {
-  readonly playerUuid: string;
-  readonly profileId?: string;
+  readonly profileId: string;
+  readonly characterId?: string;
+  readonly playerUuid?: string;
   readonly displayName?: string;
+  readonly currentCharacterName?: string;
   readonly guildShortName?: string;
   readonly avatarPath?: string;
   readonly rank: ServerPlayerRank;
@@ -237,6 +239,7 @@ export interface AdminProfileCharacterView {
   readonly characterId: string;
   readonly name: string;
   readonly online: boolean;
+  readonly lastPlayedAt?: string;
   readonly guildId?: string;
   readonly guildName?: string;
   readonly role?: string;

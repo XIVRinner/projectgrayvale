@@ -71,6 +71,7 @@ export interface AdminCharacterSummaryDto {
   readonly characterId: string;
   readonly name: string;
   readonly online: boolean;
+  readonly lastPlayedAt?: string;
   readonly guildId?: string;
   readonly guildName?: string;
   readonly guildShortName?: string;
