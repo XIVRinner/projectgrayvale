@@ -1,0 +1,16 @@
+[
+  {
+    "achievementId": "short-blade-100-character",
+    "scope": "character",
+    "statisticFactType": "skill.short_blade.level",
+    "threshold": 100,
+    "notificationEventType": "achievement.earned"
+  },
+  {
+    "achievementId": "dungeon-100-character",
+    "scope": "character",
+    "statisticFactType": "dungeon.cleared",
+    "threshold": 100,
+    "notificationEventType": "achievement.earned"
+  }
+]

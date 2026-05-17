@@ -1,0 +1,19 @@
+[
+  {
+    "eventType": "achievement.earned",
+    "deliveryPolicy": "client-and-server",
+    "channels": ["toast", "system-chat"],
+    "audience": "global",
+    "toastVariant": "achievement-earned",
+    "chatTemplate": "{player} earned {achievement}",
+    "serverFanout": true
+  },
+  {
+    "eventType": "friend.online",
+    "deliveryPolicy": "server-only",
+    "channels": ["toast"],
+    "audience": "local",
+    "toastVariant": "friend-request",
+    "serverFanout": false
+  }
+]

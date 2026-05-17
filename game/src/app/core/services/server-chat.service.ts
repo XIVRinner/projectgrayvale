@@ -12,6 +12,7 @@ import { GuildService } from "./guild.service";
 import { SERVER_CHAT_COMMANDS } from "./server-chat-commands";
 import { ServerConnectionService } from "./server-connection.service";
 import { SocialService } from "./social.service";
+import { NotificationEventsService } from "./notification-events.service";
 import {
   AdminPlayerListEntryView,
   AdminProfileDetailView,
@@ -66,6 +67,7 @@ export class ServerChatService {
   private readonly adminSocialService = inject(AdminSocialService);
   private readonly socialService = inject(SocialService);
   private readonly guildService = inject(GuildService);
+  private readonly notificationEvents = inject(NotificationEventsService);
 
   private readonly panelOpenState = signal(false);
   private readonly infoState = signal<ServerInfoView | null>(null);
@@ -112,6 +114,7 @@ export class ServerChatService {
   private presenceRefreshInFlight = false;
   private channelsRefreshInFlight = false;
   private messagesRefreshInFlight = false;
+  private friendOnlineByProfileId = new Map<string, boolean>();
 
   readonly panelOpen = this.panelOpenState.asReadonly();
   readonly info = this.infoState.asReadonly();
@@ -267,6 +270,7 @@ export class ServerChatService {
         this.currentGuildState.set(null);
         this.guildInvitationsState.set([]);
         this.guildLoadingState.set(false);
+        this.friendOnlineByProfileId.clear();
         queueMicrotask(() => void this.refreshAll());
       },
       { allowSignalWrites: true },
@@ -776,6 +780,7 @@ export class ServerChatService {
     try {
       const response = await this.socialService.listFriends();
       this.friendshipsState.set(response.friendships);
+      this.emitFriendOnlineTransitions(response.friendships);
     } catch (error) {
       this.friendshipsState.set([]);
       if (this.panelOpenState()) {
@@ -783,6 +788,28 @@ export class ServerChatService {
       }
     } finally {
       this.friendsLoadingState.set(false);
+    }
+  }
+
+  private emitFriendOnlineTransitions(friendships: readonly SocialFriendshipView[]): void {
+    for (const friendship of friendships) {
+      if (friendship.status !== "accepted") {
+        continue;
+      }
+
+      const previous = this.friendOnlineByProfileId.get(friendship.counterpartProfileId);
+      const current = friendship.counterpartOnline;
+
+      if (previous === false && current === true) {
+        const counterpart = friendship.counterpartDisplayName?.trim() || "A friend";
+        this.notificationEvents.emit({
+          eventType: "friend.online",
+          actorName: counterpart,
+          message: `${counterpart} is online`
+        });
+      }
+
+      this.friendOnlineByProfileId.set(friendship.counterpartProfileId, current);
     }
   }
 

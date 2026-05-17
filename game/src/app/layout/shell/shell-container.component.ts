@@ -29,6 +29,7 @@ import { ServerConnectionService } from "../../core/services/server-connection.s
 import { GuildService } from "../../core/services/guild.service";
 import { SocialService } from "../../core/services/social.service";
 import { PlayerIdentityService } from "../../core/services/player-identity.service";
+import { ToastEventsService } from "../../core/services/toast-events.service";
 import type {
   ServerChatPlayerActionRequest,
   ServerRelayProfileView,
@@ -259,6 +260,7 @@ export class ShellContainerComponent {
   private readonly guildService = inject(GuildService);
   private readonly socialService = inject(SocialService);
   private readonly playerIdentity = inject(PlayerIdentityService);
+  private readonly toastEvents = inject(ToastEventsService);
   protected readonly serverChat = inject(ServerChatService);
 
   protected readonly isCharacterCreationOpenState = signal(false);
@@ -887,6 +889,15 @@ export class ShellContainerComponent {
     try {
       await this.serverChat.requestProfileFriend(profileId.trim());
       this.serverChat.showStatusMessage("Profile friend request sent.");
+      this.toastEvents.emit({
+        variant: "friend-request",
+        payload: {
+          title: "Friend Request Sent",
+          message: `Request sent to ${profileId.trim()}.`,
+        },
+        logEntry: { type: "system", text: `Friend request sent to ${profileId.trim()}.` },
+        debugScope: "social",
+      });
     } catch (error) {
       this.serverChat.showStatusMessage(errorToMessage(error));
     }
@@ -896,6 +907,15 @@ export class ShellContainerComponent {
     try {
       await this.serverChat.acceptFriendRequest(friendshipId);
       this.serverChat.showStatusMessage("Friend request accepted.");
+      this.toastEvents.emit({
+        variant: "friend-request",
+        payload: {
+          title: "Friend Request Accepted",
+          message: "A new friend was added to your social list.",
+        },
+        logEntry: { type: "system", text: "Friend request accepted." },
+        debugScope: "social",
+      });
     } catch (error) {
       this.serverChat.showStatusMessage(errorToMessage(error));
     }
@@ -947,6 +967,15 @@ export class ShellContainerComponent {
     try {
       await this.serverChat.inviteToGuild(input.guildId, input.targetProfileId.trim());
       this.serverChat.showStatusMessage("Guild invitation sent.");
+      this.toastEvents.emit({
+        variant: "guild-invite",
+        payload: {
+          title: "Guild Invite Sent",
+          message: `Invitation sent to ${input.targetProfileId.trim()}.`,
+        },
+        logEntry: { type: "system", text: `Guild invitation sent to ${input.targetProfileId.trim()}.` },
+        debugScope: "guild",
+      });
     } catch (error) {
       this.serverChat.showStatusMessage(errorToMessage(error));
     }
@@ -959,6 +988,20 @@ export class ShellContainerComponent {
     try {
       await this.serverChat.respondGuildInvitation(input.invitationId, input.accept);
       this.serverChat.showStatusMessage(input.accept ? "Guild invitation accepted." : "Guild invitation rejected.");
+      this.toastEvents.emit({
+        variant: "guild-invite",
+        payload: {
+          title: input.accept ? "Guild Invitation Accepted" : "Guild Invitation Rejected",
+          message: input.accept
+            ? "You are now part of the guild."
+            : "The guild invitation was declined.",
+        },
+        logEntry: {
+          type: "system",
+          text: input.accept ? "Guild invitation accepted." : "Guild invitation rejected.",
+        },
+        debugScope: "guild",
+      });
     } catch (error) {
       this.serverChat.showStatusMessage(errorToMessage(error));
     }

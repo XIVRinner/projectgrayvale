@@ -150,4 +150,14 @@
   --gv-radius-md: 12px;
   --gv-radius-lg: 20px;
   --gv-border-subtle: 1px solid var(--gv-color-border-subtle);
+
+  --gv-toast-bg: color-mix(in srgb, var(--gv-color-bg-raised) 92%, transparent);
+  --gv-toast-title: var(--gv-color-text-primary);
+  --gv-toast-text: var(--gv-color-text-muted);
+  --gv-toast-reward-bg: color-mix(in srgb, var(--gv-color-accent) 14%, var(--gv-color-bg-raised));
+  --gv-toast-reward-title: var(--gv-color-accent-warm);
+  --gv-toast-reward-text: var(--gv-color-text-primary);
+  --gv-toast-social-bg: color-mix(in srgb, var(--gv-color-accent-cool) 16%, var(--gv-color-bg-raised));
+  --gv-toast-social-title: var(--gv-color-accent-cool);
+  --gv-toast-social-text: var(--gv-color-text-primary);
 }

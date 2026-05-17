@@ -62,3 +62,37 @@ body {
   border-color: var(--gv-color-border-strong);
   transform: scale(0.98);
 }
+
+.p-toast .p-toast-message.gv-toast {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-toast-bg);
+  color: var(--gv-toast-text);
+}
+
+.p-toast .p-toast-message.gv-toast .p-toast-summary {
+  color: var(--gv-toast-title);
+  font-size: var(--gv-font-size-sm);
+}
+
+.p-toast .p-toast-message.gv-toast .p-toast-detail {
+  color: var(--gv-toast-text);
+  font-size: var(--gv-font-size-sm);
+}
+
+.p-toast .p-toast-message.gv-toast.gv-toast--level-up,
+.p-toast .p-toast-message.gv-toast.gv-toast--achievement-earned,
+.p-toast .p-toast-message.gv-toast.gv-toast--skill-unlock,
+.p-toast .p-toast-message.gv-toast.gv-toast--attribute-unlock {
+  --gv-toast-bg: var(--gv-toast-reward-bg);
+  --gv-toast-title: var(--gv-toast-reward-title);
+  --gv-toast-text: var(--gv-toast-reward-text);
+}
+
+.p-toast .p-toast-message.gv-toast.gv-toast--friend-request,
+.p-toast .p-toast-message.gv-toast.gv-toast--guild-invite,
+.p-toast .p-toast-message.gv-toast.gv-toast--game-updated {
+  --gv-toast-bg: var(--gv-toast-social-bg);
+  --gv-toast-title: var(--gv-toast-social-title);
+  --gv-toast-text: var(--gv-toast-social-text);
+}

@@ -42,6 +42,7 @@ import { ShellSaveManagerModalComponent } from "./sub-pieces/shell-save-manager-
 import { ShellServerSelectModalComponent } from "./sub-pieces/shell-server-select-modal.component";
 import { ShellServerJoinConfirmationComponent } from "./sub-pieces/shell-server-join-confirmation.component";
 import { WhatsNewModalComponent } from "../../shared/components/changelog/whats-new-modal.component";
+import { ToastModule } from "primeng/toast";
 import {
   ShellActionGroup,
   ShellCharacterPanel,
@@ -80,6 +81,7 @@ import type { ServerProfile } from "../../core/services/server-profile.service";
     ShellServerSelectModalComponent,
     ShellServerJoinConfirmationComponent,
     WhatsNewModalComponent,
+    ToastModule,
   ],
   templateUrl: "./shell-view.component.html",
   styleUrl: "./shell-view.component.scss",

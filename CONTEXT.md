@@ -261,6 +261,70 @@ _Avoid_: Dual UUID display in profile UI
 The World Server Relay "Your Profile" menu renders the canonical Server Profile Page behavior and removes relay-specific duplicate profile cards.
 _Avoid_: Parallel profile UIs
 
+**Notification Event**:
+A domain-level signal that something player-relevant happened and may be routed to one or more delivery channels.
+_Avoid_: Toast-only event semantics
+
+**Delivery Policy**:
+The routing rule that decides whether a notification event is client-only, server-only, or client-and-server.
+_Avoid_: Treating routing policy as event origin
+
+**Toast**:
+An in-session UI delivery channel for immediate notification display while the player is online in the client.
+_Avoid_: Persisted offline inbox behavior
+
+**System Chat Message**:
+A chat-channel delivery for notable game events intended to be visible to other players in shared spaces.
+_Avoid_: Using toast as the only multiplayer notification channel
+
+**Notification Backlog**:
+A persisted store of notification events delivered after reconnect for things that happened while the player was offline.
+_Avoid_: Treating backlog delivery as toast-only behavior
+
+**Notification Channel Mapping**:
+A per-event rule that chooses delivery channels such as toast, system chat message, or silent handling.
+_Avoid_: Global one-channel-for-all notification behavior
+
+**Local Notification Finality**:
+Client-visible notification outcomes are final once shown locally and are not revoked if downstream server broadcast fails.
+_Avoid_: Toast rollback or take-back behavior
+
+**Notification Policy Catalog**:
+A declarative data configuration that defines delivery policy and channel mapping per notification event type.
+_Avoid_: Hardcoded service branching as the source of truth
+
+**Notification Audience**:
+The target player scope for a broadcast notification, such as local scope or global scope.
+_Avoid_: Implicit audience defaults hidden in transport code
+
+**Statistic**:
+A raw tracked gameplay fact or counter used as input for progression and achievement evaluation.
+_Avoid_: Embedding achievement semantics directly in activity events
+
+**Atomic Gameplay Fact**:
+A single immutable gameplay occurrence emitted as source input for statistics aggregation.
+_Avoid_: Feature-specific pre-aggregated counter mutations as source events
+
+**Statistics Idempotency**:
+The rule that each atomic gameplay fact is processed once using a stable idempotency identity.
+_Avoid_: Double-counting from retries or duplicate deliveries
+
+**Achievement**:
+A milestone rule that is evaluated from statistics and can be earned once per declared scope when its criteria are met.
+_Avoid_: Re-earning the same milestone repeatedly within one scope
+
+**Achievement Scope**:
+The ownership boundary for an achievement, either profile-bound or character-bound.
+_Avoid_: Implicit or mixed ownership without an explicit scope
+
+**Milestone Crossing Emission**:
+When a statistic jump satisfies multiple new achievement thresholds, all newly crossed milestones are emitted in ascending order.
+_Avoid_: Emitting only the highest crossed threshold
+
+**Domain Emit vs Transport Publish**:
+Domain logic emits notification events while infrastructure publishes transport messages.
+_Avoid_: Treating emit and publish as interchangeable domain terms
+
 ## Relationships
 
 - A **Profile** owns zero or more **Characters**
@@ -337,6 +401,18 @@ _Avoid_: Parallel profile UIs
 - "profile identity labels" were ambiguous between profile and player UUID display; resolved: use **Profile Identity Labeling** with Profile UUID only.
 - "relay profile implementation" was ambiguous between custom relay cards and canonical page behavior; resolved: use **Relay Profile Unification**.
 - "register" was ambiguous between creating server auth access and refreshing the active profile-character relationship; resolved: use **Server Access Registration** for the former and **Character Pair Registration** for the latter.
+- "notification" was ambiguous between domain signal and UI rendering; resolved: use **Notification Event** for the signal and **Toast** for online in-session display, with **Notification Backlog** for offline catch-up delivery.
+- "local/server/combined" was ambiguous between source and routing; resolved: use **Delivery Policy** (client-only, server-only, client-and-server) as the canonical model.
+- "combined notification failure" was ambiguous on player-facing behavior; resolved: use **Local Notification Finality** so local toasts remain even when server broadcast fails.
+- "achievement vs stats" was ambiguous between counters and milestones; resolved: use **Statistic** as raw facts and **Achievement** as one-time rule outcomes derived from those facts.
+- "achievement ownership" was ambiguous between account and character progression; resolved: use **Achievement Scope** with explicit profile-bound or character-bound ownership per achievement.
+- "server notification display" was ambiguous between forced toast and per-event routing; resolved: use **Notification Channel Mapping** per event.
+- "where notification routing rules live" was ambiguous between code and config; resolved: use a declarative **Notification Policy Catalog**.
+- "statistics source shape" was ambiguous between raw facts and pre-aggregates; resolved: use **Atomic Gameplay Fact** as canonical source input.
+- "statistics retry behavior" was ambiguous under duplicate delivery; resolved: enforce **Statistics Idempotency**.
+- "milestone jump handling" was ambiguous between single and full unlock; resolved: use **Milestone Crossing Emission** for all crossed thresholds in order.
+- "broadcast target scope" was ambiguous between one default and explicit targeting; resolved: include **Notification Audience** in notification policy.
+- "emit vs publish" was ambiguous across domain and infrastructure language; resolved: use **Domain Emit vs Transport Publish** terminology.
 - "when registration runs" was unspecified; resolved: use **Character Pair Registration Triggers** after join, cookie restore, and active-character changes, not per tick.
 - "which character wins on cookie restore" was ambiguous between local active save and restored session state; resolved: use **Cookie Restore Character Authority** with server session `activeCharacterId`.
 - "what restore can update" was ambiguous between always overwriting and partial reaffirmation; resolved: use **Restore Snapshot Rule** with optional level/location refresh only when the matching local Character is loaded.

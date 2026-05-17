@@ -1,0 +1,14 @@
+[
+  {
+    "factType": "dungeon.cleared",
+    "scope": "character",
+    "aggregation": "counter",
+    "initialValue": 0
+  },
+  {
+    "factType": "skill.short_blade.level",
+    "scope": "character",
+    "aggregation": "max",
+    "initialValue": 0
+  }
+]
