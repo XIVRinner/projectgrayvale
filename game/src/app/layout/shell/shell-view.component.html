@@ -85,18 +85,30 @@
     (transferPayloadChanged)="saveTransferPayloadChanged.emit($event)"
   />
 
+  <gv-shell-server-join-confirmation
+    [open]="isServerJoinConfirmationOpen()"
+    [server]="selectedServer()"
+    [serverProfile]="serverProfile()"
+    [activePlayerUuid]="activePlayerUuid()"
+    [activeCharacterLabel]="activeCharacterLabel()"
+    (closed)="serverJoinConfirmationCloseRequested.emit()"
+    (joinCurrentServerRequested)="serverJoinCurrentRequested.emit()"
+    (chooseDifferentServerRequested)="serverChooseDifferentRequested.emit()"
+    (stayOfflineRequested)="serverStayOfflineRequested.emit()"
+  />
+
   <gv-shell-server-select-modal
     [open]="isServerSelectOpen()"
     [servers]="servers()"
     [selectedServerId]="selectedServerId()"
     [activePlayerUuid]="activePlayerUuid()"
+    [activeCharacterLabel]="activeCharacterLabel()"
     [statusMessage]="serverStatusMessage()"
     [serverProfile]="serverProfile()"
     (closed)="serverSelectCloseRequested.emit()"
     (selectedServerChanged)="serverChanged.emit($event)"
     (serverAdded)="serverAdded.emit($event)"
     (connectRequested)="serverConnectRequested.emit($event)"
-    (giveAdminRequested)="serverGiveAdminRequested.emit($event)"
   />
 
   <gv-shell-server-chat-dialog

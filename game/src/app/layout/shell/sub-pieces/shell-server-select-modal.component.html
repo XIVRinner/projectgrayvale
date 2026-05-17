@@ -3,9 +3,9 @@
     [open]="open()"
     variant="character-system"
     width="standard"
-    eyebrow="Server"
-    title="Server Select"
-    subtitle="Choose a server, add custom endpoints, and connect your character UUID to multiplayer tracking."
+    eyebrow="Server relay"
+    title="Join a server"
+    subtitle="Choose where this character will register before touching server state."
     ariaLabel="Server select"
     (closed)="closed.emit()"
   >
@@ -13,33 +13,84 @@
       <p class="gv-server-select__status">{{ status }}</p>
     }
 
-    <section class="gv-server-select__panel">
-      <h3>Current Server</h3>
-      <label>
-        <span>Server</span>
-        <select [value]="selectedServerId()" (change)="onSelectedServerChanged($event)">
-          @for (server of servers(); track server.id) {
-            <option [value]="server.id">
-              {{ server.label }} — {{ server.host }}:{{ server.port }} · {{ server.clientId }}
-            </option>
-          }
-        </select>
-      </label>
+    <section class="gv-server-select__hero" aria-label="Character connection">
+      <div class="gv-server-select__character">
+        <span class="gv-server-select__eyebrow">Connecting character</span>
+        <strong>{{ activeCharacterLabel() ?? "No active character" }}</strong>
+        <span class="gv-server-select__uuid">{{ activePlayerUuid() ?? "Create/load a character first" }}</span>
+      </div>
 
-      @if (serverProfile(); as sp) {
-        <div class="gv-server-select__profile">
-          <span class="gv-server-select__profile-name">{{ sp.serverName }}</span>
-          <span
-            class="gv-server-select__profile-tag"
-            [class.gv-server-select__profile-tag--custom]="sp.customContent"
-            [title]="sp.customContent ? 'Custom content server — character compatibility is enforced on select.' : 'Official server — standard characters are compatible.'"
-          >{{ sp.customContent ? 'Custom Content' : 'Official' }}</span>
-        </div>
-      }
+      <form class="gv-server-select__connect" (submit)="$event.preventDefault(); connect()">
+        <label>
+          <span>Player password</span>
+          <input
+            [value]="playerPassword()"
+            type="password"
+            placeholder="Password for this character"
+            autocomplete="current-password"
+            (input)="onPlayerPasswordInput($event)"
+          />
+        </label>
+        <button type="submit" class="gv-server-select__action gv-server-select__action--primary" [disabled]="!canConnect()">
+          Connect
+        </button>
+      </form>
     </section>
 
-    <section class="gv-server-select__panel">
-      <h3>Add Server</h3>
+    <section class="gv-server-select__servers" aria-label="Available servers">
+      <div class="gv-server-select__section-header">
+        <div>
+          <h3>Servers</h3>
+          <p>Pick the endpoint this character should join.</p>
+        </div>
+        <button type="button" class="gv-server-select__add-trigger" aria-label="Add server" (click)="openAddServerDialog()">
+          +
+        </button>
+      </div>
+
+      <div class="gv-server-select__server-list">
+        @for (server of servers(); track server.id) {
+          <button
+            type="button"
+            class="gv-server-select__server"
+            [class.gv-server-select__server--selected]="server.id === selectedServerId()"
+            (click)="selectServer(server.id)"
+          >
+            <span class="gv-server-select__server-main">
+              <strong>{{ server.label }}</strong>
+              <span>{{ server.protocol }}://{{ server.host }}:{{ server.port }}</span>
+            </span>
+            <span class="gv-server-select__server-meta">
+              <span>{{ server.clientId }}</span>
+              @if (server.id === selectedServerId()) {
+                @if (serverProfile(); as sp) {
+                  <span
+                    class="gv-server-select__profile-tag"
+                    [class.gv-server-select__profile-tag--custom]="sp.customContent"
+                    [title]="sp.customContent ? 'Custom content server. Character compatibility is enforced on select.' : 'Official server. Standard characters are compatible.'"
+                  >{{ sp.customContent ? 'Custom Content' : 'Official' }}</span>
+                }
+              }
+            </span>
+          </button>
+        }
+      </div>
+    </section>
+  </gv-dialog-shell>
+}
+
+@if (isAddServerOpen()) {
+  <gv-dialog-shell
+    [open]="isAddServerOpen()"
+    variant="reference"
+    width="standard"
+    eyebrow="Server endpoint"
+    title="Add server"
+    subtitle="Save a custom endpoint to the local server list."
+    ariaLabel="Add server"
+    (closed)="closeAddServerDialog()"
+  >
+    <section class="gv-server-select__add-panel">
       <div class="gv-server-select__grid">
         <label>
           <span>IP / Host</span>
@@ -54,40 +105,10 @@
           <input [value]="clientId()" placeholder="grayvale-local-client" (input)="onClientIdInput($event)" />
         </label>
       </div>
-      <button type="button" class="gv-server-select__action" (click)="addServer()">Add Server</button>
-    </section>
-
-    <section class="gv-server-select__panel">
-      <h3>Connect Player UUID</h3>
-      <p class="gv-server-select__copy">
-        Active Player UUID:
-        <span class="gv-server-select__uuid">{{ activePlayerUuid() ?? "Create/load a character first" }}</span>
-      </p>
-      <label>
-        <span>Player Password</span>
-        <input
-          [value]="playerPassword()"
-          type="password"
-          placeholder="Password for this UUID"
-          (input)="onPlayerPasswordInput($event)"
-        />
-      </label>
-      <button type="button" class="gv-server-select__action" (click)="connect()">Connect</button>
-    </section>
-
-    <section class="gv-server-select__panel">
-      <h3>Settings</h3>
-      <p class="gv-server-select__copy">Give admin rights by validating the server admin password.</p>
-      <label>
-        <span>Server Admin Password</span>
-        <input
-          [value]="adminPassword()"
-          type="password"
-          placeholder="Server admin password"
-          (input)="onAdminPasswordInput($event)"
-        />
-      </label>
-      <button type="button" class="gv-server-select__action" (click)="giveAdminRights()">Give Admin Rights</button>
+      <div class="gv-server-select__dialog-actions">
+        <button type="button" class="gv-server-select__action gv-server-select__action--primary" (click)="addServer()">Add server</button>
+        <button type="button" class="gv-server-select__action" (click)="closeAddServerDialog()">Cancel</button>
+      </div>
     </section>
   </gv-dialog-shell>
 }

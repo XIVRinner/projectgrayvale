@@ -1,7 +1,8 @@
 .gv-server-select__status,
-.gv-server-select__panel h3,
-.gv-server-select__copy,
-.gv-server-select__panel label {
+.gv-server-select__section-header h3,
+.gv-server-select__section-header p,
+.gv-server-select__connect label,
+.gv-server-select__add-panel label {
   margin: 0;
 }
 
@@ -14,51 +15,198 @@
   font-size: var(--gv-font-size-sm);
 }
 
-.gv-server-select__panel {
+.gv-server-select__hero,
+.gv-server-select__servers,
+.gv-server-select__add-panel {
   border: var(--gv-border-subtle);
-  border-radius: var(--gv-radius-md);
-  background: color-mix(in srgb, var(--gv-color-bg-raised) 88%, transparent);
+  border-radius: var(--gv-radius-lg);
+  background:
+    linear-gradient(180deg, var(--gv-color-overlay-soft), transparent 58%),
+    color-mix(in srgb, var(--gv-color-bg-raised) 90%, transparent);
   padding: var(--gv-space-md);
+}
+
+.gv-server-select__hero {
   display: grid;
-  gap: var(--gv-space-sm);
+  gap: var(--gv-space-md);
+  justify-items: center;
+  text-align: center;
 }
 
-.gv-server-select__panel h3 {
+.gv-server-select__character {
+  display: grid;
+  gap: var(--gv-space-xs);
+  min-inline-size: min(100%, 34rem);
+}
+
+.gv-server-select__eyebrow,
+.gv-server-select__connect label span,
+.gv-server-select__add-panel label span {
+  color: var(--gv-color-accent);
+  font-size: var(--gv-font-size-xs);
+  font-weight: 600;
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-server-select__character strong {
   color: var(--gv-color-text-primary);
-  font-size: var(--gv-font-size-md);
-}
-
-.gv-server-select__copy {
-  color: var(--gv-color-text-muted);
-  font-size: var(--gv-font-size-sm);
+  font-family: var(--gv-font-dialogue);
+  font-size: var(--gv-font-size-lg);
 }
 
 .gv-server-select__uuid {
-  color: var(--gv-color-text-primary);
+  color: var(--gv-color-text-muted);
   font-family: monospace;
+  font-size: var(--gv-font-size-sm);
+  overflow-wrap: anywhere;
 }
 
-.gv-server-select__panel label {
+.gv-server-select__connect {
+  display: grid;
+  gap: var(--gv-space-sm);
+  inline-size: min(100%, 26rem);
+}
+
+.gv-server-select__connect label,
+.gv-server-select__add-panel label {
   display: grid;
   gap: var(--gv-space-xs);
+  text-align: start;
 }
 
-.gv-server-select__panel label span {
-  color: var(--gv-color-text-muted);
-  font-size: var(--gv-font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--gv-letter-spacing-wide);
-}
-
-.gv-server-select__panel input,
-.gv-server-select__panel select {
+.gv-server-select__connect input,
+.gv-server-select__add-panel input {
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-sm);
   background: var(--gv-color-bg-primary);
   color: var(--gv-color-text-primary);
   font: inherit;
   font-size: var(--gv-font-size-sm);
-  padding: var(--gv-space-xs) var(--gv-space-sm);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+}
+
+.gv-server-select__connect input:focus-visible,
+.gv-server-select__add-panel input:focus-visible,
+.gv-server-select__server:focus-visible,
+.gv-server-select__action:focus-visible,
+.gv-server-select__add-trigger:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--gv-color-accent-cool) 58%, transparent);
+  outline-offset: var(--gv-space-xs);
+}
+
+.gv-server-select__servers {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-server-select__section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gv-space-md);
+}
+
+.gv-server-select__section-header h3 {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-md);
+}
+
+.gv-server-select__section-header p {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  margin-top: var(--gv-space-xs);
+}
+
+.gv-server-select__add-trigger {
+  border: 1px solid color-mix(in srgb, var(--gv-color-accent-cool) 42%, var(--gv-color-border-subtle));
+  border-radius: var(--gv-radius-lg);
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 14%, transparent);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--gv-font-size-lg);
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  line-height: 1;
+  transition:
+    background var(--gv-anim-fast),
+    border-color var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
+
+.gv-server-select__add-trigger:hover {
+  border-color: var(--gv-color-accent-cool);
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 24%, transparent);
+  transform: translateY(calc(var(--gv-space-xs) * -0.5));
+}
+
+.gv-server-select__server-list {
+  display: grid;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-select__server {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  background: var(--gv-color-bg-primary);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gv-space-md);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  text-align: start;
+  transition:
+    background var(--gv-anim-fast),
+    border-color var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
+
+.gv-server-select__server:hover,
+.gv-server-select__server--selected {
+  border-color: color-mix(in srgb, var(--gv-color-accent-cool) 50%, var(--gv-color-border-subtle));
+  background: color-mix(in srgb, var(--gv-color-accent-cool) 10%, var(--gv-color-bg-primary));
+}
+
+.gv-server-select__server--selected {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gv-color-accent-cool) 34%, transparent);
+}
+
+.gv-server-select__server-main,
+.gv-server-select__server-meta {
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-server-select__server-main strong {
+  font-size: var(--gv-font-size-sm);
+}
+
+.gv-server-select__server-main span,
+.gv-server-select__server-meta span {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+}
+
+.gv-server-select__server-meta {
+  justify-items: end;
+  min-inline-size: 8rem;
+}
+
+.gv-server-select__profile-tag {
+  color: var(--gv-color-success) !important;
+  border: 1px solid currentColor;
+  border-radius: var(--gv-radius-sm);
+  font-size: var(--gv-font-size-xxs) !important;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: calc(var(--gv-space-xs) * 0.5) var(--gv-space-xs);
+  text-transform: uppercase;
+
+  &--custom {
+    color: var(--gv-color-accent-warm) !important;
+  }
 }
 
 .gv-server-select__grid {
@@ -67,8 +215,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.gv-server-select__dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-sm);
+  margin-top: var(--gv-space-md);
+}
+
 .gv-server-select__action {
-  justify-self: start;
   border: var(--gv-border-subtle);
   border-radius: var(--gv-radius-sm);
   background: var(--gv-color-bg-primary);
@@ -76,38 +230,41 @@
   cursor: pointer;
   font: inherit;
   font-size: var(--gv-font-size-sm);
-  padding: var(--gv-space-xs) var(--gv-space-sm);
-}
-
-.gv-server-select__profile {
-  display: flex;
-  align-items: center;
-  gap: var(--gv-space-sm);
-  padding: var(--gv-space-xs) 0;
-}
-
-.gv-server-select__profile-name {
-  color: var(--gv-color-text-primary);
-  font-size: var(--gv-font-size-sm);
-}
-
-.gv-server-select__profile-tag {
-  font-size: var(--gv-font-size-xxs, 0.6875rem);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--gv-color-success);
-  padding: 2px var(--gv-space-xs);
-  border-radius: var(--gv-radius-sm);
-  border: 1px solid currentColor;
+  padding: var(--gv-space-sm) var(--gv-space-md);
+  transition:
+    background var(--gv-anim-fast),
+    border-color var(--gv-anim-fast),
+    opacity var(--gv-anim-fast),
+    transform var(--gv-anim-fast);
+}
 
-  &--custom {
-    color: var(--gv-color-accent-warm);
-  }
+.gv-server-select__action:hover:not(:disabled) {
+  border-color: var(--gv-color-border-strong);
+  transform: translateY(calc(var(--gv-space-xs) * -0.5));
+}
+
+.gv-server-select__action:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.gv-server-select__action--primary {
+  border-color: color-mix(in srgb, var(--gv-color-accent) 48%, var(--gv-color-border-subtle));
+  background: color-mix(in srgb, var(--gv-color-accent) 14%, var(--gv-color-bg-primary));
 }
 
 @media (max-width: 64rem) {
-  .gv-server-select__grid {
+  .gv-server-select__grid,
+  .gv-server-select__server {
     grid-template-columns: 1fr;
+  }
+
+  .gv-server-select__server {
+    display: grid;
+  }
+
+  .gv-server-select__server-meta {
+    justify-items: start;
   }
 }

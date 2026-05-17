@@ -49,9 +49,11 @@
     "check:game": "npm run check --workspace=game --if-present",
     "check:server": "npm run check --workspace=server --if-present",
     "e2e:game": "npm run e2e --workspace=game",
-    "e2e:game:ui": "npm run e2e:ui --workspace=game"
+    "e2e:game:ui": "npm run e2e:ui --workspace=game",
+    "sandcastle": "npx tsx .sandcastle/main.mts"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.5.10",
     "concurrently": "^9.2.1"
   }
 }

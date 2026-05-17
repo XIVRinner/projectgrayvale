@@ -1,0 +1,95 @@
+.gv-server-join {
+  display: grid;
+  gap: var(--gv-space-md);
+}
+
+.gv-server-join__server,
+.gv-server-join__warning,
+.gv-server-join__auth-note {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  padding: var(--gv-space-md);
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-server-join__server,
+.gv-server-join__auth-note {
+  background: color-mix(in srgb, var(--gv-color-bg-raised) 88%, transparent);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-server-join__server strong,
+.gv-server-join__auth-note strong {
+  color: var(--gv-color-text-primary);
+  font-size: var(--gv-font-size-lg);
+}
+
+.gv-server-join__label,
+.gv-server-join__character,
+.gv-server-join__uuid {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-xs);
+  letter-spacing: var(--gv-letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.gv-server-join__warning {
+  background: color-mix(in srgb, var(--gv-color-accent) 16%, var(--gv-color-bg-raised));
+  border-color: color-mix(in srgb, var(--gv-color-accent) 62%, var(--gv-color-border-subtle));
+  color: var(--gv-color-accent-yellow);
+}
+
+.gv-server-join__warning strong {
+  color: var(--gv-color-accent-warm);
+}
+
+.gv-server-join__copy,
+.gv-server-join__character,
+.gv-server-join__uuid {
+  margin: 0;
+}
+
+.gv-server-join__copy {
+  color: var(--gv-color-text-muted);
+  font-size: var(--gv-font-size-sm);
+  line-height: 1.6;
+}
+
+.gv-server-join__character span,
+.gv-server-join__uuid span {
+  color: var(--gv-color-text-primary);
+  text-transform: none;
+}
+
+.gv-server-join__uuid span {
+  font-family: monospace;
+}
+
+.gv-server-join__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gv-space-sm);
+}
+
+.gv-server-join__action {
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-sm);
+  background: var(--gv-color-bg-primary);
+  color: var(--gv-color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--gv-font-size-sm);
+  padding: var(--gv-space-sm) var(--gv-space-md);
+}
+
+.gv-server-join__action--primary {
+  background: var(--gv-color-accent);
+  border-color: var(--gv-color-accent);
+  color: var(--gv-color-bg-primary);
+  font-weight: 700;
+}
+
+.gv-server-join__action--quiet {
+  color: var(--gv-color-text-muted);
+}

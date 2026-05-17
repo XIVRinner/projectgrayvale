@@ -1,0 +1,69 @@
+@if (open()) {
+  <gv-dialog-shell
+    [open]="open()"
+    variant="character-system"
+    width="standard"
+    eyebrow="Server checkpoint"
+    title="Join server?"
+    subtitle="Confirm before this character touches server state. A valid same-server cookie can be used after consent."
+    ariaLabel="Confirm server join"
+    (closed)="closed.emit()"
+  >
+    <section class="gv-server-join">
+      @if (server(); as selectedServer) {
+        <div class="gv-server-join__server">
+          <span class="gv-server-join__label">Current server</span>
+          <strong>{{ selectedServer.label }}</strong>
+          <span>{{ selectedServer.protocol }}://{{ selectedServer.host }}:{{ selectedServer.port }}</span>
+        </div>
+      } @else {
+        <div class="gv-server-join__server">
+          <span class="gv-server-join__label">Current server</span>
+          <strong>No server selected</strong>
+          <span>Choose a server before joining this character.</span>
+        </div>
+      }
+
+      @if (serverProfile()?.customContent) {
+        <div class="gv-server-join__warning" role="alert">
+          <strong>You are about to join a modded server.</strong>
+          <span>Choose deliberately. Future server info will provide the exact compatibility risk.</span>
+        </div>
+      }
+
+      <div class="gv-server-join__auth-note">
+        <span class="gv-server-join__label">Authentication</span>
+        <strong>Use current server cookie first</strong>
+        <span>If the cookie is valid, this character joins without re-entering a password. If it expired, choose another server or enter the password in Server Select.</span>
+      </div>
+
+      <p class="gv-server-join__copy">
+        Joining can let the selected server register compatibility state for this character. Nothing is sent until you confirm.
+      </p>
+
+      @if (activeCharacterLabel(); as characterLabel) {
+        <p class="gv-server-join__character">
+          Character <span>{{ characterLabel }}</span>
+        </p>
+      }
+
+      @if (activePlayerUuid(); as uuid) {
+        <p class="gv-server-join__uuid">
+          Character UUID <span>{{ uuid }}</span>
+        </p>
+      }
+
+      <div class="gv-server-join__actions">
+        <button type="button" class="gv-server-join__action gv-server-join__action--primary" (click)="joinCurrentServerRequested.emit()">
+          Join current server
+        </button>
+        <button type="button" class="gv-server-join__action" (click)="chooseDifferentServerRequested.emit()">
+          Choose another server
+        </button>
+        <button type="button" class="gv-server-join__action gv-server-join__action--quiet" (click)="stayOfflineRequested.emit()">
+          Stay offline
+        </button>
+      </div>
+    </section>
+  </gv-dialog-shell>
+}

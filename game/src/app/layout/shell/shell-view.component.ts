@@ -40,6 +40,7 @@ import { ShellQuestTrackerComponent } from "./sub-pieces/shell-quest-tracker.com
 import { ShellMiniChatComponent } from "./sub-pieces/shell-mini-chat.component";
 import { ShellSaveManagerModalComponent } from "./sub-pieces/shell-save-manager-modal.component";
 import { ShellServerSelectModalComponent } from "./sub-pieces/shell-server-select-modal.component";
+import { ShellServerJoinConfirmationComponent } from "./sub-pieces/shell-server-join-confirmation.component";
 import { WhatsNewModalComponent } from "../../shared/components/changelog/whats-new-modal.component";
 import {
   ShellActionGroup,
@@ -77,6 +78,7 @@ import type { ServerProfile } from "../../core/services/server-profile.service";
     ShellMiniChatComponent,
     ShellSaveManagerModalComponent,
     ShellServerSelectModalComponent,
+    ShellServerJoinConfirmationComponent,
     WhatsNewModalComponent,
   ],
   templateUrl: "./shell-view.component.html",
@@ -119,9 +121,11 @@ export class ShellViewComponent {
   readonly servers = input.required<readonly ServerDirectoryEntry[]>();
   readonly selectedServerId = input.required<string>();
   readonly activePlayerUuid = input<string | null>(null);
+  readonly activeCharacterLabel = input<string | null>(null);
   readonly serverStatusMessage = input<string | null>(null);
   readonly serverProfile = input<ServerProfile | null>(null);
   readonly isServerSelectOpen = input.required<boolean>();
+  readonly isServerJoinConfirmationOpen = input.required<boolean>();
   readonly isServerChatOpen = input.required<boolean>();
   readonly isServerAdminOpen = input.required<boolean>();
   readonly serverFooterSummary = input.required<ServerFooterSummaryView>();
@@ -207,7 +211,10 @@ export class ShellViewComponent {
     clientId: string;
   }>();
   readonly serverConnectRequested = output<{ password: string }>();
-  readonly serverGiveAdminRequested = output<{ adminPassword: string }>();
+  readonly serverJoinConfirmationCloseRequested = output<void>();
+  readonly serverJoinCurrentRequested = output<void>();
+  readonly serverChooseDifferentRequested = output<void>();
+  readonly serverStayOfflineRequested = output<void>();
   readonly serverChatRefreshRequested = output<void>();
   readonly serverChatGrantAdminRequested = output<void>();
   readonly serverChatModeratePlayerRequested = output<ServerPresencePlayerView>();
@@ -245,6 +252,10 @@ export class ShellViewComponent {
   readonly gameDialogAdvanceRequested = output<void>();
   readonly gameDialogChoiceSelected = output<number>();
   readonly gameDialogCloseRequested = output<void>();
+
+  protected readonly selectedServer = computed(
+    () => this.servers().find((server) => server.id === this.selectedServerId()) ?? this.servers()[0] ?? null,
+  );
 
   protected readonly isCommandCenter = computed(
     () => this.layoutPreset() === "command-center",

@@ -61,3 +61,4 @@ server/config/server.yml
 **/Thumbs.db
 
 .rtk/
+.superpowers/

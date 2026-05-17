@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-16T00:00:00.000Z",
+  "title": "Design System: ProjectGrayVale",
+  "extensions": {
+    "colorMeta": {
+      "void-navy": {
+        "role": "neutral",
+        "displayName": "Void Navy",
+        "canonical": "#050a12",
+        "tonalRamp": ["#050a12", "#08111d", "#0b1220", "#102036", "#18304b", "#253b57", "#465b76", "#f5f7ff"]
+      },
+      "relic-gold": {
+        "role": "primary",
+        "displayName": "Relic Gold",
+        "canonical": "#ffc145",
+        "tonalRamp": ["#2b1b05", "#5d3b0b", "#8c5c14", "#bf8224", "#ffc145", "#ffd88c", "#ffe8bd", "#fff6d6"]
+      },
+      "relay-teal": {
+        "role": "primary",
+        "displayName": "Relay Teal",
+        "canonical": "#5bc0be",
+        "tonalRamp": ["#06201f", "#0c3838", "#145756", "#237d7b", "#5bc0be", "#91d8d6", "#c5eeed", "#defefd"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Ritual Display",
+        "purpose": "Dialog titles, ceremonial headings, and story-adjacent surfaces only."
+      },
+      "body": {
+        "displayName": "Product Body",
+        "purpose": "Primary shell, forms, dense panels, and server/admin workflows."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shell-ambient",
+        "value": "0 18px 42px var(--gv-color-bg-primary)",
+        "purpose": "Top-level app panels and the topbar."
+      },
+      {
+        "name": "dialog-depth",
+        "value": "0 30px 80px color-mix(in srgb, var(--gv-color-bg-primary) 88%, transparent)",
+        "purpose": "Modal/dialog shells that must separate from the game surface."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast-state",
+        "value": "100ms ease",
+        "purpose": "Small hover, focus, and chip state changes."
+      },
+      {
+        "name": "normal-state",
+        "value": "220ms ease",
+        "purpose": "Panel and button hover transitions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "shell-collapse",
+        "value": "56rem"
+      },
+      {
+        "name": "dialog-compact",
+        "value": "48rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Compact product action with dark body and gold focus.",
+      "html": "<button class=\"ds-btn-primary\">Connect</button>",
+      "css": ".ds-btn-primary { border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: #050a12; color: #f5f7ff; cursor: pointer; font: 600 0.875rem Bahnschrift, Aptos, Segoe UI, sans-serif; padding: 0.25rem 0.5rem; transition: background 100ms ease, border-color 100ms ease, transform 100ms ease; } .ds-btn-primary:hover, .ds-btn-primary:focus-visible { border-color: #ffc14566; background: rgba(255,193,69,0.12); transform: translateY(-1px); outline: none; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Dark compact form field for server, password, and UUID workflows.",
+      "html": "<label class=\"ds-field\"><span>Server</span><input value=\"127.0.0.1:3000\" /></label>",
+      "css": ".ds-field { display: grid; gap: 0.25rem; color: #f5f7ff; font-family: Bahnschrift, Aptos, Segoe UI, sans-serif; } .ds-field span { color: #f5f1e8; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; } .ds-field input { border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: #050a12; color: #f5f7ff; font: inherit; font-size: 0.875rem; padding: 0.25rem 0.5rem; } .ds-field input:focus-visible { outline: 2px solid rgba(91,192,190,0.45); outline-offset: 2px; border-color: #5bc0be; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Rounded tonal container for shell and dialog content.",
+      "html": "<section class=\"ds-panel\"><h3>Current Server</h3><p>Explicit connection state and character identity live here.</p></section>",
+      "css": ".ds-panel { border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 55%), #08111d; color: #f5f7ff; font-family: Bahnschrift, Aptos, Segoe UI, sans-serif; padding: 1rem; box-shadow: 0 18px 42px #050a12; } .ds-panel h3 { margin: 0 0 0.5rem; color: #ffc145; font-size: 1rem; } .ds-panel p { margin: 0; color: #f5f1e8; font-size: 0.875rem; line-height: 1.5; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Reliquary Console",
+    "overview": "GrayVale’s UI is a dependable control surface inside an arcane fantasy world. It uses dark relic-metal surfaces, warm gold emphasis, and precise teal server signals to make play, identity, chat, and moderation workflows feel deliberate rather than ornamental.",
+    "keyCharacteristics": [
+      "Dark navy layered surfaces with restrained gold and teal signals.",
+      "Compact product layouts, not poster-like fantasy scenes.",
+      "Clear consent points for server state, character identity, and admin actions.",
+      "Ritual atmosphere through typography, labels, and tonal depth, not visual clutter."
+    ],
+    "rules": [
+      {
+        "name": "The Signal Rarity Rule",
+        "body": "Gold and teal are signals, not decoration. If more than one thing on a screen looks primary, the screen is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Neon Rule",
+        "body": "Saturated glows are prohibited. Server state can feel magical, but it must never read as cyberpunk or arcade.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ritual Header Rule",
+        "body": "Serif display type is for ceremony and hierarchy. It is forbidden for routine field labels, buttons, tables, or dense admin controls.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal First Rule",
+        "body": "If depth can be expressed with surface color, border, and spacing, do not add a new shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do make server state explicit before join, switch, registration, or reconnect actions.",
+      "Do use Relic Gold for importance and Relay Teal for server/network state.",
+      "Do keep admin and moderation tools sober, compact, and consequence-aware.",
+      "Do use compact progressive disclosure for complex server and identity explanations.",
+      "Do respect WCAG AA where practical: visible focus, keyboard-usable dialogs/forms, reduced motion, and non-color state cues."
+    ],
+    "donts": [
+      "Don't create neon cyberpunk MMO noise, excessive glow, or unreadable fantasy chrome.",
+      "Don't use fantasy styling that obscures controls, labels, UUIDs, passwords, or moderation consequences.",
+      "Don't make server entry, character registration, or reconnect behavior silent or automatic when consent is required.",
+      "Don't use side-stripe borders greater than 1px as a decorative accent on cards, list items, callouts, or alerts.",
+      "Don't use gradient text or decorative glassmorphism as default UI treatment."
+    ]
+  }
+}

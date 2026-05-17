@@ -112,9 +112,11 @@ import {
       [servers]="servers()"
       [selectedServerId]="selectedServerId()"
       [activePlayerUuid]="activePlayerUuid()"
+      [activeCharacterLabel]="activeCharacterLabel()"
       [serverStatusMessage]="serverStatusMessage()"
       [serverProfile]="serverProfile()"
       [isServerSelectOpen]="isServerSelectOpen()"
+      [isServerJoinConfirmationOpen]="isServerJoinConfirmationOpen()"
       [isServerChatOpen]="isServerChatOpen()"
       [isServerAdminOpen]="isServerAdminOpen()"
       [serverFooterSummary]="serverChat.footerSummary()"
@@ -198,7 +200,10 @@ import {
       (serverChanged)="selectServer($event)"
       (serverAdded)="addServer($event)"
       (serverConnectRequested)="connectServer($event.password)"
-      (serverGiveAdminRequested)="giveAdminRights($event.adminPassword)"
+      (serverJoinConfirmationCloseRequested)="stayOfflineAfterServerJoinConfirmation()"
+      (serverJoinCurrentRequested)="joinCurrentServerAfterConfirmation()"
+      (serverChooseDifferentRequested)="chooseDifferentServerAfterConfirmation()"
+      (serverStayOfflineRequested)="stayOfflineAfterServerJoinConfirmation()"
       (serverChatRefreshRequested)="refreshServerChat()"
       (serverChatGrantAdminRequested)="openServerAdminDialog()"
       (serverChatModeratePlayerRequested)="openServerModerationDialog($event)"
@@ -267,6 +272,7 @@ export class ShellContainerComponent {
   protected readonly isServerSelectOpen = signal(
     shouldShowServerSelectOnStartup(),
   );
+  protected readonly isServerJoinConfirmationOpen = signal(false);
   protected readonly isServerChatOpen = signal(false);
   protected readonly isServerAdminOpen = signal(false);
   protected readonly transferPayload = signal("");
@@ -549,6 +555,16 @@ export class ShellContainerComponent {
     () => this.roster.activeCharacter()?.id ?? null,
   );
 
+  readonly activeCharacterLabel = computed(() => {
+    const activeCharacter = this.roster.activeCharacter();
+
+    if (!activeCharacter) {
+      return null;
+    }
+
+    return `${activeCharacter.name} · Level ${activeCharacter.progression.level}`;
+  });
+
   readonly gegDebugSnapshot = computed(() =>
     this.gameplayRuntime.debugSnapshot(),
   );
@@ -692,8 +708,15 @@ export class ShellContainerComponent {
       return;
     }
 
-    this.transferStatusMessage.set("Character created locally.");
-    this.handleLoadedCharacterChangedWhileConnected();
+    this.closeServerChat();
+    this.transferStatusMessage.set(
+      "Character created locally. Confirm before joining this server.",
+    );
+    this.serverStatusMessage.set(
+      "Confirm whether this character should join the current server. A valid cookie session can be used after consent.",
+    );
+    this.isServerSelectOpen.set(false);
+    this.isServerJoinConfirmationOpen.set(true);
   }
 
   protected openSaveManager(): void {
@@ -734,6 +757,7 @@ export class ShellContainerComponent {
   protected openServerSelect(): void {
     this.logUi("Opening server select.");
     this.closeServerChat();
+    this.isServerJoinConfirmationOpen.set(false);
     this.isServerSelectOpen.set(true);
     persistServerSelectPreference(true);
   }
@@ -742,6 +766,48 @@ export class ShellContainerComponent {
     this.logUi("Closing server select.");
     this.isServerSelectOpen.set(false);
     persistServerSelectPreference(false);
+  }
+
+  protected async joinCurrentServerAfterConfirmation(): Promise<void> {
+    const activeCharacter = this.roster.activeCharacter();
+
+    if (!activeCharacter) {
+      this.serverStatusMessage.set("Create or load a character before joining a server.");
+      this.isServerJoinConfirmationOpen.set(false);
+      return;
+    }
+
+    this.isServerJoinConfirmationOpen.set(false);
+
+    try {
+      this.serverStatusMessage.set("Checking current server cookie...");
+      await this.serverConnection.restoreSessionFromCookie();
+      await this.ensureServerCharacterRegistered(activeCharacter);
+      this.serverStatusMessage.set(
+        "Joined current server with this character using the current cookie session.",
+      );
+      await this.refreshRelayProfile();
+      this.logUi("Joined current server after character confirmation.");
+    } catch (error) {
+      const message = errorToMessage(error);
+      this.serverStatusMessage.set(
+        `${message} Cookie session could not be used. Choose another server or enter this server's password to connect.`,
+      );
+      this.openServerSelect();
+      this.logUi("Joining current server after confirmation failed.", message, "error");
+    }
+  }
+
+  protected chooseDifferentServerAfterConfirmation(): void {
+    this.isServerJoinConfirmationOpen.set(false);
+    this.serverStatusMessage.set("Choose a server for this character.");
+    this.openServerSelect();
+  }
+
+  protected stayOfflineAfterServerJoinConfirmation(): void {
+    this.logUi("Staying offline after server join confirmation.");
+    this.isServerJoinConfirmationOpen.set(false);
+    this.serverStatusMessage.set("Character remains local. Join a server when ready.");
   }
 
   protected openServerChat(): void {
@@ -1296,6 +1362,7 @@ export class ShellContainerComponent {
           : `Connected profile ${updatedSession?.profileId ?? profileId} as ${updatedSession?.rank.toUpperCase() ?? "PLAYER"}.`,
       );
       await this.refreshRelayProfile();
+      this.closeServerSelect();
       this.logUi("Connected player to server.", updatedSession);
     } catch (error) {
       const message = errorToMessage(error);

@@ -2,7 +2,7 @@
   [open]="open()"
   title="Gameplay Log"
   eyebrow="Field Record"
-  subtitle="A player-facing recap plus a runtime trace for gameplay actions and state transitions."
+  subtitle="Merged gameplay and runtime events in a console-style readout."
   ariaLabel="Gameplay log"
   [variant]="'special'"
   [width]="'log'"
@@ -13,27 +13,15 @@
       <div class="gv-gameplay-log__empty">
         <p class="gv-gameplay-log__empty-title">No gameplay entries yet.</p>
         <p class="gv-gameplay-log__empty-copy">
-          Quest updates, loot, combat results, and runtime trace messages will appear here.
+          Gameplay and runtime lines appear here as they are recorded.
         </p>
       </div>
     } @else {
-      <gv-shell-gameplay-log-filter-bar
-        [section]="activeSection()"
-        [feedFilter]="activeFeedFilter()"
-        [traceScope]="activeTraceScope()"
-        [availableScopes]="availableScopes()"
-        (sectionChanged)="activeSection.set($event)"
-        (feedFilterChanged)="activeFeedFilter.set($event)"
-        (traceScopeChanged)="activeTraceScope.set($event)"
-      />
-
-      @if (isFeedActive()) {
-        <gv-shell-gameplay-log-feed-list [entries]="filteredFeedEntries()" />
-      }
-
-      @if (isTraceActive()) {
-        <gv-shell-gameplay-log-trace-list [entries]="filteredTraceEntries()" />
-      }
+      <ol class="gv-gameplay-log__console" aria-label="Console log lines">
+        @for (line of consoleLines(); track $index) {
+          <li class="gv-gameplay-log__line">{{ line }}</li>
+        }
+      </ol>
     }
   </section>
 </gv-dialog-shell>
