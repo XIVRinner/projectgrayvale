@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1",
+  "meta": {
+    "timestamp": "2026-05-18T15:07:21.601Z",
+    "commitSha": null,
+    "durationMs": 91287
+  },
+  "stages": [
+    {
+      "stage": "reference-integrity",
+      "status": "fail",
+      "issues": [
+        {
+          "file": "game/src/assets/data/world-locations.json",
+          "pathOrField": "locations.0.sublocations.3.availableNpcIds.0",
+          "code": "REF_DANGLING_ID",
+          "message": "Missing referenced id: lydia",
+          "relatedId": "lydia"
+        },
+        {
+          "file": "game/src/assets/data/world-locations.json",
+          "pathOrField": "locations.0.sublocations.4.availableNpcIds.0",
+          "code": "REF_DANGLING_ID",
+          "message": "Missing referenced id: shopkeeper",
+          "relatedId": "shopkeeper"
+        }
+      ],
+      "timingMs": 104
+    },
+    {
+      "stage": "angular-loaders",
+      "status": "pass",
+      "issues": [],
+      "timingMs": 3349
+    },
+    {
+      "stage": "dialogue-compile",
+      "status": "pass",
+      "issues": [],
+      "timingMs": 88
+    },
+    {
+      "stage": "smoke-tests",
+      "status": "fail",
+      "issues": [
+        {
+          "file": "workspace-tests",
+          "pathOrField": "npm run test:core -- --runInBand --passWithNoTests",
+          "code": "SMOKE_TEST_FAIL",
+          "message": "zod/v3/types.cjs:120:22)\n      at Object.<anonymous> (src/data/tests/player.test.ts:27:25)\n\nPASS src/data/tests/registry.test.ts\nPASS src/data/tests/item.test.ts\nPASS src/data/tests/loadout.test.ts\nPASS src/data/tests/xp-calculation.test.ts\nPASS src/data/tests/character-identity.test.ts\nPASS src/core/story/milestone.test.ts\nPASS src/data/tests/skill.test.ts\nPASS src/core/activity/reward.test.ts\nPASS src/data/tests/experience-config.test.ts\nPASS src/core/quest/quest.test.ts\nPASS src/core/delta/delta.test.ts\nPASS src/core/npc/npc.test.ts\nPASS src/data/tests/notification-statistics-schema.test.ts\nPASS src/core/story/story.test.ts\nPASS src/core/equipment/equip.test.ts\nPASS src/core/talent/talent.test.ts\nPASS src/core/inventory/inventory-item.test.ts\nPASS src/core/balance/balance.test.ts\nPASS src/core/modifiers/modifier.test.ts\nPASS src/core/modifiers/modifier.breakdown.test.ts\nPASS src/core/activity/activity.test.ts\nPASS src/core/equipment/rarity.test.ts\nPASS src/data/tests/combat-fixtures.test.ts\nPASS src/core/equipment/scaling.test.ts\nPASS src/core/race/race.test.ts\nPASS src/core/equipment/loadout.test.ts\n\nSummary of all failing tests\nFAIL src/data/tests/player.test.ts (6.244 s)\n  ● playerSchema › accepts a valid player with skills\n\n    ZodError: [\n      {\n        \"code\": \"unrecognized_keys\",\n        \"keys\": [\n          \"money\",\n          \"currencies\"\n        ],\n        \"path\": [],\n        \"message\": \"Unrecognized key(s) in object: 'money', 'currencies'\"\n      }\n    ]\n\n      4 | describe(\"playerSchema\", () => {\n      5 |   it(\"accepts a valid player with skills\", () => {\n    > 6 |     expect(playerSchema.parse(samplePlayer)).toEqual(samplePlayer);\n        |                         ^\n      7 |   });\n      8 |\n      9 |   it(\"accepts seeded story state with empty activity availability\", () => {\n\n      at Object.get error [as error] (node_modules/zod/v3/types.cjs:45:31)\n      at ZodObject.parse (node_modules/zod/v3/types.cjs:120:22)\n      at Object.<anonymous> (src/data/tests/player.test.ts:6:25)\n\n  ● playerSchema › accepts seeded story state with empty activity availability\n\n    ZodError: [\n      {\n        \"code\": \"unrecognized_keys\",\n        \"keys\": [\n          \"money\",\n          \"currencies\"\n        ],\n        \"path\": [],\n        \"message\": \"Unrecognized key(s) in object: 'money', 'currencies'\"\n      }\n    ]\n\n       9 |   it(\"accepts seeded story state with empty activity availability\", () => {\n      10 |     expect(\n    > 11 |       playerSchema.parse({\n         |                    ^\n      12 |         ...samplePlayer,\n      13 |         story: {\n      14 |           currentArcId: \"prologue\",\n\n      at Object.get error [as error] (node_modules/zod/v3/types.cjs:45:31)\n      at ZodObject.parse (node_modules/zod/v3/types.cjs:120:22)\n      at Object.<anonymous> (src/data/tests/player.test.ts:11:20)\n\n  ● playerSchema › accepts interaction state button press records\n\n    ZodError: [\n      {\n        \"code\": \"unrecognized_keys\",\n        \"keys\": [\n          \"money\",\n          \"currencies\"\n        ],\n        \"path\": [],\n        \"message\": \"Unrecognized key(s) in object: 'money', 'currencies'\"\n      }\n    ]\n\n      25 |\n      26 |   it(\"accepts interaction state button press records\", () => {\n    > 27 |     expect(playerSchema.parse(samplePlayer).interactionState).toEqual(\n         |                         ^\n      28 |       samplePlayer.interactionState\n      29 |     );\n      30 |   });\n\n      at Object.get error [as error] (node_modules/zod/v3/types.cjs:45:31)\n      at ZodObject.parse (node_modules/zod/v3/types.cjs:120:22)\n      at Object.<anonymous> (src/data/tests/player.test.ts:27:25)\n\n\nTest Suites: 1 failed, 26 passed, 27 total\nTests:       3 failed, 257 passed, 260 total\nSnapshots:   0 total\nTime:        32.686 s\nRan all test suites.\nnpm ERR! Lifecycle script `test` failed with error: \nnpm ERR! Error: command failed \nnpm ERR!   in workspace: @rinner/grayvale-core@0.0.1 \nnpm ERR!   at location: /mnt/e/Projects/ProjectGrayVale/core"
+        }
+      ],
+      "timingMs": 87740
+    }
+  ],
+  "summary": {
+    "failedStages": [
+      "reference-integrity",
+      "smoke-tests"
+    ],
+    "issueCount": 3,
+    "countsByCode": {
+      "REF_DANGLING_ID": 2,
+      "SMOKE_TEST_FAIL": 1
+    }
+  }
+}

@@ -18,8 +18,13 @@ At session start, the skill must read:
 ## Core Workflow
 1. **Context load**
    - Read the three required reference sources.
-2. **Relentless interview loop**
+2. **Grill-style interview loop (default)**
    - Ask one question at a time.
+   - User proposes playstyle ideas; agent pressure-tests them for contradictions and weak uniqueness.
+   - After each user answer, the agent must respond with:
+     1) What’s strong
+     2) What conflicts/overlaps (canon, uniqueness, counterplay)
+     3) How to sharpen (1-2 concrete rewrite options)
    - Resolve purpose, fantasy, role, loop, pressure pattern, counters, and failure states.
 3. **Canon gate**
    - Detect new keyword usage or semantic drift.
@@ -46,6 +51,24 @@ Each archetype document must include these sections:
 8. `## Tuning Levers (Non-numeric first)`
 9. `## Failure Modes`
 10. `## Open Questions`
+
+### Core Loop Content Contract (required inside `## Core Loop`)
+- Ability capability inventory with at least **8 abilities total**:
+  - minimum **2 global/shared abilities or interactions**
+  - remaining abilities may be archetype-specific/unique
+- Every ability must be documented as an **Ability Recommendation Block**:
+  - Ability Name
+  - Gameplay Intent
+  - Trigger/Condition
+  - Tangible Effect
+  - Loop Contribution
+- Tangible Effect must use structured wording:
+  - `Effect: [damage/heal/buff/debuff/resource/mobility] + [what changes] + [duration/stack/cooldown note if relevant]`
+- Rotation trace identity (base cycle representation)
+- Level-band evolution from 1-100 (minimum: 1-20, 21-40, 41-60, 61-80, 81-100)
+- Capability boundaries (explicitly state what the archetype is not designed to do)
+- Canonical ID placeholders are allowed when unknown (e.g., `buff_piercing_talon`) with required note: `Replace with project canonical IDs before implementation.`
+- Capability-only framing: define what exists, not encounter-time execution policy
 
 ## Canon Document Design
 File: `docs/superpowers/combat-keyword-canon.md`
@@ -83,15 +106,19 @@ The skill must run these checks before finalization:
 
 Output format:
 - Compact pass/fail summary in chat.
-- Failed checks route back to interview/refinement loop.
+- Failed checks route back to grill-style interview/refinement loop with explicit contradiction callouts and sharpen options.
 
 ## Non-Goals
 - No implementation of runtime combat mechanics.
 - No balancing numbers engine.
 - No multi-archetype finalization in a single run.
+- No encounter-level execution policy authoring in archetype docs (raid/dungeon/solo/party `when/how` logic).
+- No cooldown/interrupt utility AI policy definitions in archetype docs; those belong to combat runtime/activity/profile systems.
 
 ## Success Criteria
 - One archetype can be fully designed and finalized per session.
 - Keyword semantics remain consistent with canon.
 - Canon evolves only via explicit approvals.
 - Final archetype docs are distinct and non-overlapping with existing design space.
+- `## Core Loop` includes at least 8 ability recommendation blocks (with minimum 2 global/shared), structured tangible effects, rotation trace identity, and 1-100 evolution without drifting into encounter-time policy.
+- Interview quality is grill-style by default: each user answer gets structured strength/conflict/sharpen feedback before the next question.

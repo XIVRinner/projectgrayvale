@@ -24,3 +24,27 @@ export interface CombatWeaponDamageRowView {
   label: string;
   intervalLabel: string;
 }
+
+export interface CombatScoreSubscoreView {
+  key: string;
+  label: string;
+  weightPercent: number;
+  value: number;
+  contribution: number;
+}
+
+export interface CombatScoreBottleneckView {
+  key: string;
+  label: string;
+  hint: string;
+}
+
+export interface CombatScoreSummaryView {
+  total: number;
+  formula: string;
+  percentOfExpected: number;
+  tierLabel: string;
+  expectedScore: number;
+  subscores: readonly CombatScoreSubscoreView[];
+  bottlenecks: readonly CombatScoreBottleneckView[];
+}

@@ -50,7 +50,8 @@
     "check:server": "npm run check --workspace=server --if-present",
     "e2e:game": "npm run e2e --workspace=game",
     "e2e:game:ui": "npm run e2e:ui --workspace=game",
-    "sandcastle": "npx tsx .sandcastle/main.mts"
+    "sandcastle": "npx tsx .sandcastle/main.mts",
+    "validate:content": "node ./scripts/validate-content.mjs"
   },
   "devDependencies": {
     "@ai-hero/sandcastle": "^0.5.10",

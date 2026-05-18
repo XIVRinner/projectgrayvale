@@ -82,3 +82,44 @@
   background: color-mix(in srgb, var(--gv-color-danger) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--gv-color-danger) 30%, transparent);
 }
+
+.gv-combat-stats__score-card {
+  display: grid;
+  gap: var(--gv-space-xs);
+  border: var(--gv-border-subtle);
+  border-radius: var(--gv-radius-md);
+  padding: var(--gv-space-sm);
+  background: var(--gv-color-bg-surface);
+}
+
+.gv-combat-stats__score-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gv-space-sm);
+  color: var(--gv-color-text-primary);
+}
+
+.gv-combat-stats__score-tier {
+  color: var(--gv-color-accent);
+}
+
+.gv-combat-stats__score-formula {
+  margin: 0;
+  font-size: var(--gv-font-size-sm);
+  color: var(--gv-color-text-muted);
+}
+
+.gv-combat-stats__score-list,
+.gv-combat-stats__score-bottlenecks {
+  margin: 0;
+  padding-left: var(--gv-space-md);
+  display: grid;
+  gap: var(--gv-space-xs);
+}
+
+.gv-combat-stats__score-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gv-space-sm);
+}

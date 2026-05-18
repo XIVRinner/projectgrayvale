@@ -30,7 +30,12 @@ import {
   PLAYER_HEALTH_BALANCE_PROFILE_ID,
   type SaveSlotHealthState
 } from "../../../core/services/health-balance";
+import {
+  CombatScoreFacade,
+  type CombatScoreSummary
+} from "../../../core/services/combat-score-facade";
 import type {
+  CombatScoreSummaryView,
   CombatStatGroupView,
   CombatStatRowView,
   CombatWeaponDamageRowView
@@ -242,6 +247,71 @@ const isStatLocked = (
 const toTitleCase = (value: string): string =>
   value.charAt(0).toUpperCase() + value.slice(1);
 
+const COMBAT_SCORE_EXPECTED_CONFIG = {
+  base: 20,
+  perLevel: 4,
+  milestoneOverrides: {
+    5: 30,
+    10: 50,
+    15: 70,
+    20: 90,
+    25: 115,
+    30: 140,
+    35: 170,
+    40: 200,
+    45: 235,
+    50: 270
+  }
+} as const;
+
+function derivePlayerCombatScoreInput(baseStats: StatBlock, modifiers: readonly LabeledModifier[]) {
+  // GAP: Combat score data contract is not yet fully wired to authored gear/skill progression tables.
+  // Blocked on: design
+  // Needs: canonical score feeds from gear tiering, skill proficiency source, and attribute-weight mapping tables.
+  // Do not implement until: Combat score authored data sources are finalized.
+  const gearScore = Math.min(100, modifiers.filter((modifier) => modifier.category === "equipment").length * 10);
+  const skillProficiencyScore = Math.max(0, Math.min(100, Math.round((baseStats["physical_damage"] ?? 0) / 2)));
+  const preferredAttributeScore = Math.max(0, Math.min(100, Math.round(baseStats["strength"] ?? 0)));
+
+  return {
+    gearScore,
+    skillProficiencyScore,
+    preferredAttributeScore
+  };
+}
+
+function toCombatScoreSummaryView(summary: CombatScoreSummary): CombatScoreSummaryView {
+  return {
+    total: summary.breakdown.total,
+    formula: summary.breakdown.formula,
+    percentOfExpected: summary.comparison.percentOfExpected,
+    tierLabel: toTitleCase(summary.comparison.tier.replace("_", " ")),
+    expectedScore: summary.comparison.expectedScore,
+    subscores: summary.breakdown.subscores.map((subscore) => ({
+      key: subscore.key,
+      label: subscore.label,
+      weightPercent: Math.round(subscore.weight * 100),
+      value: subscore.value,
+      contribution: subscore.contribution
+    })),
+    bottlenecks: summary.bottlenecks.map((bottleneck) => ({
+      key: bottleneck.key,
+      label: bottleneck.label,
+      hint: bottleneck.hint
+    }))
+  };
+}
+
+function normalizeLevel(level: unknown): number {
+  const parsed = typeof level === "number" ? level : Number(level);
+
+  if (!Number.isFinite(parsed)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.floor(parsed));
+}
+
 /**
  * Smart container for the combat stats panel.
  * Loads base stats and equipment items, computes labeled modifiers from the active
@@ -262,6 +332,7 @@ const toTitleCase = (value: string): string =>
       [isLoading]="isLoading()"
       [error]="error()"
       [weaponDamageRows]="weaponDamageRows()"
+      [playerCombatScore]="playerCombatScore()"
       (statSelected)="onStatSelected($event)"
       (drawerClosed)="onDrawerClosed()"
     />
@@ -271,6 +342,7 @@ export class CombatStatsContainerComponent {
   private readonly definitionRepository = inject(DefinitionRepositoryService);
   private readonly definitionImageService = inject(DefinitionImageService);
   private readonly gameSettings = inject(GameSettingsService);
+  private readonly combatScoreFacade = inject(CombatScoreFacade);
   private loadGeneration = 0;
 
   readonly activeLoadout = input<Loadout>(sampleLoadoutDefault);
@@ -300,6 +372,21 @@ export class CombatStatsContainerComponent {
   protected readonly weaponDamageRows = computed<readonly CombatWeaponDamageRowView[]>(() =>
     buildWeaponDamageRows(this.activeLoadout(), this.itemRegistry())
   );
+  protected readonly playerCombatScore = computed<CombatScoreSummaryView | null>(() => {
+    const player = this.player();
+
+    if (!player) {
+      return null;
+    }
+
+    const summary = this.combatScoreFacade.buildPlayerSummary({
+      level: normalizeLevel((player as { level?: unknown }).level),
+      input: derivePlayerCombatScoreInput(this.baseStats(), this.modifiers()),
+      expectedConfig: COMBAT_SCORE_EXPECTED_CONFIG
+    });
+
+    return toCombatScoreSummaryView(summary);
+  });
 
   protected readonly selectedBreakdown = computed<StatBreakdown | null>(() => {
     const key = this.selectedKey();

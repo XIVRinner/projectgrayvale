@@ -34,6 +34,33 @@
           <gv-combat-weapon-profile [rows]="weaponDamageRows()" />
         </div>
       }
+
+      @if (playerCombatScore(); as score) {
+        <div class="gv-combat-stats__group">
+          <h3 class="gv-combat-stats__group-label">Combat Score</h3>
+          <div class="gv-combat-stats__score-card">
+            <div class="gv-combat-stats__score-head">
+              <strong>{{ score.total }}</strong>
+              <span>{{ score.percentOfExpected }}% of expected ({{ score.expectedScore }})</span>
+              <span class="gv-combat-stats__score-tier">{{ score.tierLabel }}</span>
+            </div>
+            <p class="gv-combat-stats__score-formula">{{ score.formula }}</p>
+            <ul class="gv-combat-stats__score-list">
+              @for (sub of score.subscores; track sub.key) {
+                <li>
+                  <span>{{ sub.label }} ({{ sub.weightPercent }}%)</span>
+                  <span>{{ sub.contribution }}</span>
+                </li>
+              }
+            </ul>
+            <ul class="gv-combat-stats__score-bottlenecks">
+              @for (bottleneck of score.bottlenecks; track bottleneck.key) {
+                <li>{{ bottleneck.label }}: {{ bottleneck.hint }}</li>
+              }
+            </ul>
+          </div>
+        </div>
+      }
     </div>
 
     @if (selectedBreakdown(); as bd) {

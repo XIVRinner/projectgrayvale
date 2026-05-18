@@ -2,7 +2,11 @@ import { ChangeDetectionStrategy, Component, input, output } from "@angular/core
 
 import type { StatBreakdown } from "@rinner/grayvale-core";
 
-import type { CombatStatGroupView, CombatWeaponDamageRowView } from "./combat-stats.types";
+import type {
+  CombatScoreSummaryView,
+  CombatStatGroupView,
+  CombatWeaponDamageRowView
+} from "./combat-stats.types";
 import { StatRowComponent } from "./sub-pieces/stat-row.component";
 import { StatBreakdownDrawerComponent } from "./sub-pieces/stat-breakdown-drawer.component";
 import { CombatWeaponProfileComponent } from "./sub-pieces/combat-weapon-profile.component";
@@ -23,6 +27,7 @@ export class CombatStatsViewComponent {
   readonly isLoading = input.required<boolean>();
   readonly error = input.required<string | null>();
   readonly weaponDamageRows = input<readonly CombatWeaponDamageRowView[]>([]);
+  readonly playerCombatScore = input<CombatScoreSummaryView | null>(null);
 
   readonly statSelected = output<string>();
   readonly drawerClosed = output<void>();
